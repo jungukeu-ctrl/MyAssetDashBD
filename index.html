@@ -603,22 +603,22 @@ function init() {
   fetch('./data.json?t=' + Date.now())
     .then(r => { if (!r.ok) throw new Error('no file'); return r.json(); })
     .then(data => {
-      const lsState = localStorage.getItem('asset-dashboard-v3');
-      const lsTs    = localStorage.getItem('asset-dashboard-ts') || '0';
-      const fileTs  = data.exportedAt || '0';
-      // 파일이 localStorage보다 최신이면 자동 적용
-      if (fileTs > lsTs) {
-        if (data.state)  localStorage.setItem('asset-dashboard-v3', JSON.stringify(data.state));
-        if (data.todos)  localStorage.setItem('asset-todos', JSON.stringify(data.todos));
-        if (data.goal)   localStorage.setItem('asset-goal', JSON.stringify(data.goal));
-        if (data.kiwoom) localStorage.setItem('kiwoom-data', JSON.stringify(data.kiwoom));
-        localStorage.setItem('asset-dashboard-ts', fileTs);
-        console.log('✅ GitHub data.json 자동 로드 완료:', fileTs);
-      }
+      try {
+        const lsTs   = localStorage.getItem('asset-dashboard-ts') || '0';
+        const fileTs = data.exportedAt || '0';
+        if (fileTs >= lsTs) {
+          if (data.state)  localStorage.setItem('asset-dashboard-v3', JSON.stringify(data.state));
+          if (data.todos)  localStorage.setItem('asset-todos', JSON.stringify(data.todos));
+          if (data.goal)   localStorage.setItem('asset-goal', JSON.stringify(data.goal));
+          if (data.kiwoom) localStorage.setItem('kiwoom-data', JSON.stringify(data.kiwoom));
+          localStorage.setItem('asset-dashboard-ts', fileTs);
+          console.log('✅ GitHub data.json 적용:', fileTs);
+        }
+      } catch(e) { console.warn('data.json 적용 오류:', e); }
       _initCore();
     })
-    .catch(() => {
-      // data.json 없거나 로컬 실행 시 → 기존 localStorage 사용
+    .catch(e => {
+      console.log('data.json 없음 또는 로컬 실행 → localStorage 사용');
       _initCore();
     });
 }
