@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>내 자산 대시보드</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Mono:wght@300;400;500&family=Playfair+Display:wght@700&display=swap');
+
+  :root {
+    --bg: #08090f; --bg2: #0f1119; --bg3: #161820;
+    --border: #1e2030; --border2: #252738;
+    --gold: #c9a84c; --gold2: #e8c97a; --gold-dim: rgba(201,168,76,0.12);
+    --text: #e8eaf0; --text2: #9095a8; --text3: #565a70;
+    --green: #4ecdc4; --red: #ff6b6b; --blue: #6e8efb;
+    --purple: #b089f0; --orange: #ffb347; --teal: #36d399;
+    --card-shadow: 0 4px 32px rgba(0,0,0,0.4);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image: linear-gradient(rgba(201,168,76,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(201,168,76,0.03) 1px, transparent 1px);
+    background-size: 48px 48px; pointer-events: none; z-index: 0;
+  }
+  .page { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 24px 20px 60px; }
+
+  /* ─── Header ─── */
+  .header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 32px; padding-bottom: 20px; border-bottom: 1px solid var(--border); gap: 16px; flex-wrap: wrap; }
+  .header-left h1 { font-family: 'Playfair Display', serif; font-size: 22px; color: var(--gold2); letter-spacing: 1px; }
+  .header-left .date { font-size: 13px; color: var(--text3); margin-top: 3px; font-family: 'DM Mono', monospace; }
+  .upload-btns { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; }
+  .upload-btn {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--gold-dim); border: 1px solid rgba(201,168,76,0.3);
+    color: var(--gold2); padding: 9px 16px; border-radius: 8px;
+    cursor: pointer; font-size: 12px; font-family: 'Noto Sans KR', sans-serif; transition: all 0.2s;
+  }
+  .upload-btn:hover { background: rgba(201,168,76,0.2); border-color: var(--gold); }
+  .upload-btn.kiwoom { background: rgba(110,142,251,0.1); border-color: rgba(110,142,251,0.3); color: var(--blue); }
+  .upload-btn.kiwoom:hover { background: rgba(110,142,251,0.2); border-color: var(--blue); }
+  .upload-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+  #file-input, #kiwoom-input { display: none; }
+  .sync-status { font-size: 11px; color: var(--teal); margin-top: 4px; text-align: right; min-height: 14px; }
+  .sync-status.kiwoom-sync { color: var(--blue); }
+
+  /* ─── Hero ─── */
+  .hero {
+    background: linear-gradient(135deg, #131526 0%, #0d0f1a 50%, #111328 100%);
+    border: 1px solid var(--border2); border-radius: 16px;
+    padding: 32px 36px; margin-bottom: 16px; position: relative; overflow: hidden; box-shadow: var(--card-shadow);
+  }
+  .hero::before {
+    content: ''; position: absolute; top: -60px; right: -60px; width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(201,168,76,0.08) 0%, transparent 70%);
+  }
+  .hero-grid { display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: center; }
+  .hero-label { font-size: 11px; color: var(--text3); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+  .hero-amount { font-family: 'DM Mono', monospace; font-size: 42px; font-weight: 500; color: var(--gold2); letter-spacing: -1px; line-height: 1; }
+  .alloc-bar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; margin: 14px 0 10px; }
+  .alloc-seg { transition: width 0.8s cubic-bezier(0.4,0,0.2,1); }
+  .legend { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px 18px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .hero-sub { margin-top: 16px; display: flex; gap: 24px; flex-wrap: wrap; }
+  .hero-sub-item { display: flex; flex-direction: column; gap: 3px; }
+  .hero-sub-item .lbl { font-size: 11px; color: var(--text3); }
+  .hero-sub-item .val { font-size: 14px; color: var(--text2); font-family: 'DM Mono', monospace; }
+  .chart-wrap { width: 150px; height: 150px; position: relative; }
+  .chart-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
+  .chart-center .pct { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text3); }
+
+  /* ─── Goal bar ─── */
+  .goal-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+  .goal-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+  .goal-name { font-size: 13px; color: var(--text); }
+  .goal-pct { font-family: 'DM Mono', monospace; font-size: 18px; color: var(--gold2); }
+  .goal-bar-wrap { height: 6px; background: var(--bg3); border-radius: 3px; margin: 10px 0 6px; overflow: hidden; }
+  .goal-bar-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--gold) 0%, var(--gold2) 100%); transition: width 0.8s cubic-bezier(0.4,0,0.2,1); }
+  .goal-bar-fill.teal { background: linear-gradient(90deg, #4ecdc4 0%, #5ee7de 100%); }
+  .goal-divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+  .goal-amounts { display: flex; justify-content: space-between; font-size: 11px; color: var(--text3); font-family: 'DM Mono', monospace; }
+
+  /* ─── Section title ─── */
+  .section-title { font-size: 11px; color: var(--text3); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; margin-top: 28px; }
+
+  /* ─── Grid layouts ─── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+
+  /* ─── Asset Card ─── */
+  .asset-card {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
+    padding: 20px; transition: border-color 0.2s, box-shadow 0.2s; position: relative;
+  }
+  .asset-card:hover { border-color: var(--border2); box-shadow: 0 2px 20px rgba(0,0,0,0.3); }
+  .cat-badge { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 4px; margin-bottom: 10px; letter-spacing: 1px; font-weight: 500; }
+  .badge-realty { background: rgba(110,142,251,0.15); color: var(--blue); border: 1px solid rgba(110,142,251,0.25); }
+  .badge-bank { background: rgba(78,205,196,0.15); color: var(--green); border: 1px solid rgba(78,205,196,0.25); }
+  .badge-stock { background: rgba(255,179,71,0.15); color: var(--orange); border: 1px solid rgba(255,179,71,0.25); }
+  .badge-pension { background: rgba(176,137,240,0.15); color: var(--purple); border: 1px solid rgba(176,137,240,0.25); }
+  .badge-irp { background: rgba(201,168,76,0.15); color: var(--gold2); border: 1px solid rgba(201,168,76,0.25); }
+  .badge-overseas { background: rgba(110,142,251,0.15); color: #8ab4fd; border: 1px solid rgba(110,142,251,0.25); }
+  .asset-card .name { font-size: 13px; color: var(--text2); margin-bottom: 8px; line-height: 1.5; }
+  .asset-card .amount-row { display: flex; align-items: baseline; gap: 6px; }
+  .asset-card .amount { font-family: 'DM Mono', monospace; font-size: 22px; color: var(--text); font-weight: 500; }
+  .asset-card .unit { font-size: 12px; color: var(--text3); }
+  .asset-card .sub-info { margin-top: 8px; font-size: 11px; color: var(--text3); line-height: 1.7; }
+  .asset-card .sub-info span { color: var(--text2); }
+  .edit-overlay {
+    position: absolute; inset: 0; background: rgba(8,9,15,0.95); border-radius: 12px;
+    display: none; flex-direction: column; padding: 20px; gap: 10px; z-index: 10;
+  }
+  .edit-overlay.open { display: flex; }
+  .edit-overlay label { font-size: 11px; color: var(--text3); margin-bottom: 2px; display: block; }
+  .edit-overlay input, .edit-overlay textarea {
+    width: 100%; background: var(--bg3); border: 1px solid var(--border2);
+    color: var(--text); padding: 8px 12px; border-radius: 6px; font-size: 13px;
+    font-family: 'DM Mono', monospace; outline: none; transition: border-color 0.2s;
+  }
+  .edit-overlay textarea { font-family: 'Noto Sans KR', sans-serif; font-size: 12px; resize: none; min-height: 48px; }
+  .edit-overlay input:focus, .edit-overlay textarea:focus { border-color: var(--gold); }
+  .edit-btns { display: flex; gap: 8px; margin-top: 4px; }
+  .btn-save { flex: 1; background: var(--gold); color: #000; border: none; padding: 8px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; }
+  .btn-cancel { flex: 1; background: var(--bg3); color: var(--text2); border: 1px solid var(--border2); padding: 8px; border-radius: 6px; font-size: 12px; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; }
+  .edit-trigger { position: absolute; top: 14px; right: 14px; width: 26px; height: 26px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; color: var(--text3); }
+  .asset-card:hover .edit-trigger { opacity: 1; }
+  .edit-trigger:hover { background: var(--border2); color: var(--text); }
+
+  /* ─── Kiwoom Account Card ─── */
+  .kiwoom-card {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
+    padding: 18px; transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .kiwoom-card:hover { border-color: var(--border2); box-shadow: 0 2px 20px rgba(0,0,0,0.3); }
+  .kiwoom-card .k-acct { font-size: 11px; color: var(--text3); letter-spacing: 1px; margin-bottom: 8px; }
+  .kiwoom-card .k-eval { font-family: 'DM Mono', monospace; font-size: 20px; color: var(--text); font-weight: 500; }
+  .kiwoom-card .k-unit { font-size: 11px; color: var(--text3); margin-left: 3px; }
+  .kiwoom-card .k-invest-row { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+  .k-bar-wrap { height: 4px; background: var(--bg3); border-radius: 2px; overflow: hidden; margin-top: 4px; }
+  .k-bar-invest { height: 100%; background: var(--text3); border-radius: 2px; }
+  .k-bar-eval { height: 100%; border-radius: 2px; margin-top: -4px; opacity: 0.7; }
+  .k-compare { display: flex; justify-content: space-between; font-size: 11px; margin-top: 8px; }
+  .k-compare .k-label { color: var(--text3); }
+  .k-compare .k-val { font-family: 'DM Mono', monospace; color: var(--text2); }
+  .k-pnl { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+  .k-pnl-amt { font-family: 'DM Mono', monospace; font-size: 13px; }
+  .k-pnl-pct { font-size: 11px; font-family: 'DM Mono', monospace; padding: 2px 7px; border-radius: 4px; }
+  .pos { color: var(--teal); }
+  .neg { color: var(--red); }
+  .pct-pos { background: rgba(54,211,153,0.12); color: var(--teal); border: 1px solid rgba(54,211,153,0.2); }
+  .pct-neg { background: rgba(255,107,107,0.12); color: var(--red); border: 1px solid rgba(255,107,107,0.2); }
+  .pct-neu { background: rgba(144,149,168,0.1); color: var(--text2); border: 1px solid rgba(144,149,168,0.15); }
+
+  /* ─── Kiwoom Summary Bar ─── */
+  .kiwoom-summary {
+    background: linear-gradient(135deg, #0e1020 0%, #0a0c18 100%);
+    border: 1px solid rgba(110,142,251,0.2); border-radius: 14px; padding: 20px 28px;
+    margin-bottom: 16px; display: flex; gap: 32px; flex-wrap: wrap; align-items: center;
+  }
+  .ks-item { display: flex; flex-direction: column; gap: 4px; }
+  .ks-label { font-size: 11px; color: var(--text3); letter-spacing: 1px; }
+  .ks-val { font-family: 'DM Mono', monospace; font-size: 18px; color: var(--text); }
+  .ks-div { width: 1px; height: 36px; background: var(--border); align-self: center; }
+  .kiwoom-no-data { font-size: 12px; color: var(--text3); font-style: italic; display: flex; align-items: center; gap: 6px; }
+
+  /* ─── Chart containers ─── */
+  .chart-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 24px; }
+  .chart-title { font-size: 13px; color: var(--text); margin-bottom: 20px; font-weight: 500; display: flex; justify-content: space-between; align-items: center; }
+  .chart-subtitle { font-size: 11px; color: var(--text3); }
+  .chart-container { position: relative; }
+
+  /* ─── Toss badge ─── */
+  .toss-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; color: var(--teal); background: rgba(54,211,153,0.1); border: 1px solid rgba(54,211,153,0.2); padding: 2px 7px; border-radius: 4px; margin-left: 6px; }
+  .toss-badge::before { content: ''; width: 5px; height: 5px; background: var(--teal); border-radius: 50%; }
+  .kiwoom-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; color: var(--blue); background: rgba(110,142,251,0.1); border: 1px solid rgba(110,142,251,0.2); padding: 2px 7px; border-radius: 4px; margin-left: 6px; }
+  .kiwoom-badge::before { content: ''; width: 5px; height: 5px; background: var(--blue); border-radius: 50%; }
+
+  /* ─── Todo ─── */
+  .memo-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .memo-title { font-size: 12px; color: var(--text3); letter-spacing: 1px; margin-bottom: 14px; }
+  .todo-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .todo-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; background: var(--bg3); border-radius: 8px; border: 1px solid var(--border); cursor: pointer; transition: border-color 0.2s; }
+  .todo-item:hover { border-color: var(--border2); }
+  .todo-item.done { opacity: 0.5; }
+  .todo-item.done .todo-text { text-decoration: line-through; color: var(--text3); }
+  .todo-check { width: 16px; height: 16px; border: 1.5px solid var(--text3); border-radius: 4px; flex-shrink: 0; margin-top: 1px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+  .todo-item.done .todo-check { background: var(--teal); border-color: var(--teal); }
+  .todo-check svg { display: none; }
+  .todo-item.done .todo-check svg { display: block; }
+  .todo-text { font-size: 13px; color: var(--text); line-height: 1.5; }
+  .add-todo { display: flex; gap: 8px; margin-top: 10px; }
+  .add-todo input { flex: 1; background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 8px; font-size: 13px; font-family: 'Noto Sans KR', sans-serif; outline: none; transition: border-color 0.2s; }
+  .add-todo input:focus { border-color: var(--gold); }
+  .add-todo input::placeholder { color: var(--text3); }
+  .add-todo button { background: var(--gold-dim); border: 1px solid rgba(201,168,76,0.3); color: var(--gold2); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-family: 'Noto Sans KR', sans-serif; transition: all 0.2s; }
+  .add-todo button:hover { background: rgba(201,168,76,0.2); }
+  .todo-actions { margin-left: auto; display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; flex-shrink: 0; }
+  .todo-item:hover .todo-actions { opacity: 1; }
+  .todo-btn { background: none; border: none; cursor: pointer; padding: 2px 5px; border-radius: 4px; font-size: 11px; transition: background 0.15s; line-height: 1; }
+  .todo-btn.edit  { color: var(--text3); }
+  .todo-btn.edit:hover  { background: rgba(255,255,255,0.08); color: var(--text); }
+  .todo-btn.del   { color: var(--text3); }
+  .todo-btn.del:hover   { background: rgba(255,80,80,0.15); color: #ff6b6b; }
+  .todo-edit-input { flex: 1; background: var(--bg3); border: 1px solid var(--gold); color: var(--text); padding: 0 8px; border-radius: 6px; font-size: 13px; font-family: 'Noto Sans KR', sans-serif; outline: none; height: 24px; }
+  .todo-drag-handle { cursor: grab; color: var(--text3); font-size: 14px; padding: 0 2px; flex-shrink: 0; opacity: 0; transition: opacity 0.15s; user-select: none; line-height: 1; margin-top: 2px; }
+  .todo-item:hover .todo-drag-handle { opacity: 1; }
+  .todo-item.dragging { opacity: 0.4; border: 1px dashed var(--gold); }
+  .todo-item.drag-over { border-color: var(--teal); background: rgba(78,205,196,0.08); }
+
+  /* ─── Tab selector ─── */
+  .tab-row { display: flex; gap: 4px; margin-bottom: 20px; }
+  .tab-btn { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg3); color: var(--text3); font-size: 12px; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; transition: all 0.2s; }
+  .tab-btn.active { background: rgba(110,142,251,0.15); border-color: rgba(110,142,251,0.35); color: var(--blue); }
+  .tab-btn:hover:not(.active) { border-color: var(--border2); color: var(--text2); }
+
+  /* ─── Misc ─── */
+  .footer { margin-top: 40px; text-align: center; font-size: 11px; color: var(--text3); }
+  @media (max-width: 700px) {
+    .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+    .hero-grid { grid-template-columns: 1fr; }
+    .hero-amount { font-size: 30px; }
+    .kiwoom-summary { gap: 16px; }
+  }
+  .fade-in { animation: fadeIn 0.4s ease; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+</style>
+</head>
+<body>
+<div class="page fade-in">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <h1>My Asset Board</h1>
+      <div class="date" id="today-date"></div>
+    </div>
+    <div class="upload-btns">
+      <div>
+        <label class="upload-btn" for="toss-input">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          토스 엑셀
+        </label>
+        <input type="file" id="toss-input" accept=".xlsx,.xls">
+        <div class="sync-status" id="toss-sync-status"></div>
+      </div>
+      <div>
+        <label class="upload-btn kiwoom" for="kiwoom-input">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          키움 엑셀
+        </label>
+        <input type="file" id="kiwoom-input" accept=".xlsx,.xls">
+        <div class="sync-status kiwoom-sync" id="kiwoom-sync-status"></div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Hero: Total Assets -->
+  <div class="hero">
+    <div class="hero-grid">
+      <div>
+        <div class="hero-label">총 자산</div>
+        <div class="hero-amount" id="total-amount">0 원</div>
+        <div class="alloc-bar" id="alloc-bar"></div>
+        <div class="legend" id="legend"></div>
+        <div class="hero-sub">
+          <div class="hero-sub-item"><span class="lbl">금융자산</span><span class="val" id="financial-total">—</span></div>
+          <div class="hero-sub-item"><span class="lbl">부동산</span><span class="val" id="realty-total">—</span></div>
+          <div class="hero-sub-item"><span class="lbl">연금/IRP</span><span class="val" id="pension-total">—</span></div>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="donut-chart"></canvas>
+        <div class="chart-center"><div class="pct" id="chart-count">—</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Goal Bar -->
+  <div class="goal-card" id="goal-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">
+      <div class="goal-header" style="flex:1">
+        <span class="goal-name" id="goal-name">총 목표자산</span>
+        <span class="goal-pct" id="goal-pct">0%</span>
+      </div>
+      <button style="background:none;border:1px solid var(--border);color:var(--text3);padding:4px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-family:'Noto Sans KR',sans-serif;margin-left:12px" onclick="openGoalEdit()">수정</button>
+    </div>
+    <div class="goal-bar-wrap"><div class="goal-bar-fill" id="goal-bar" style="width:0%"></div></div>
+    <div class="goal-amounts"><span id="goal-current">현재: 0원</span><span id="goal-target">목표: —</span></div>
+
+    <hr class="goal-divider">
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">
+      <div class="goal-header" style="flex:1">
+        <span class="goal-name" id="goal-fin-name">금융 목표자산</span>
+        <span class="goal-pct" id="goal-fin-pct" style="color:var(--teal)">0%</span>
+      </div>
+    </div>
+    <div class="goal-bar-wrap"><div class="goal-bar-fill teal" id="goal-fin-bar" style="width:0%"></div></div>
+    <div class="goal-amounts"><span id="goal-fin-current">현재: 0원</span><span id="goal-fin-target">목표: —</span></div>
+  </div>
+
+  <!-- ─── Kiwoom 포트폴리오 요약 ─── -->
+  <div class="section-title">📊 키움 포트폴리오 현황</div>
+  <div class="kiwoom-summary" id="kiwoom-summary">
+    <div class="kiwoom-no-data">⬆ 키움 엑셀 업로드 후 데이터가 표시됩니다</div>
+  </div>
+
+  <!-- Kiwoom 계좌별 카드 -->
+  <div class="grid-4" id="kiwoom-cards">
+    <!-- 동적 생성 -->
+  </div>
+
+  <!-- ─── Portfolio Charts ─── -->
+  <div class="section-title">📈 포트폴리오 분석</div>
+  <div class="grid-2" style="margin-bottom:16px">
+    <div class="chart-card">
+      <div class="chart-title">
+        계좌별 투자금 vs 평가금액
+        <span class="chart-subtitle" id="bar-date">—</span>
+      </div>
+      <div class="chart-container" style="height:220px">
+        <canvas id="bar-chart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">
+        월별 총 평가금액 추이
+        <div>
+          <button class="tab-btn active" id="tab-12m" onclick="setChartRange(12)">12M</button>
+          <button class="tab-btn" id="tab-24m" onclick="setChartRange(24)">24M</button>
+          <button class="tab-btn" id="tab-all" onclick="setChartRange(0)">전체</button>
+        </div>
+      </div>
+      <div class="chart-container" style="height:220px">
+        <canvas id="line-chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── 월별 수익률 차트 ─── -->
+  <div class="chart-card" style="margin-bottom:16px">
+    <div class="chart-title">
+      계좌별 누적 수익률 (%) 추이
+      <span class="chart-subtitle">투자금 대비 평가금액 기준</span>
+    </div>
+    <div class="chart-container" style="height:200px">
+      <canvas id="return-chart"></canvas>
+    </div>
+  </div>
+
+  <!-- ─── 부동산 ─── -->
+  <div class="section-title">🏢 부동산</div>
+  <div class="grid-2">
+    <div class="asset-card" id="card-apt-owned">
+      <button class="edit-trigger" onclick="openEdit('apt-owned')">✎</button>
+      <div class="cat-badge badge-realty">부동산</div>
+      <div class="name">보유 아파트 (비거주)</div>
+      <div class="amount-row"><div class="amount" id="val-apt-owned">0</div><div class="unit">만원</div></div>
+      <div class="sub-info" id="sub-apt-owned">✎ 카드를 눌러 수정</div>
+      <div class="edit-overlay" id="edit-apt-owned">
+        <div><label>현재 시세 (만원)</label><input type="number" id="inp-apt-owned-val" placeholder="예: 80000"></div>
+        <div><label>전세보증금 (만원) <span style="font-size:10px;color:var(--text3)">총 자산에서 차감</span></label><input type="number" id="inp-apt-owned-jeonse" placeholder="예: 65000"></div>
+        <div><label>메모</label><textarea id="inp-apt-owned-memo" placeholder="단지명, 평형 등"></textarea></div>
+        <div class="edit-btns"><button class="btn-save" onclick="saveEdit('apt-owned')">저장</button><button class="btn-cancel" onclick="closeEdit('apt-owned')">취소</button></div>
+      </div>
+    </div>
+    <div class="asset-card" id="card-apt-rent">
+      <button class="edit-trigger" onclick="openEdit('apt-rent')">✎</button>
+      <div class="cat-badge badge-realty">부동산 (임차)</div>
+      <div class="name">임차 아파트 (보증금)</div>
+      <div class="amount-row"><div class="amount" id="val-apt-rent">0</div><div class="unit">만원</div></div>
+      <div class="sub-info" id="sub-apt-rent">✎ 카드를 눌러 수정</div>
+      <div class="edit-overlay" id="edit-apt-rent">
+        <div><label>보증금 (만원)</label><input type="number" id="inp-apt-rent-val" placeholder="예: 30000"></div>
+        <div><label>메모</label><textarea id="inp-apt-rent-memo" placeholder="계약 만료일 등"></textarea></div>
+        <div class="edit-btns"><button class="btn-save" onclick="saveEdit('apt-rent')">저장</button><button class="btn-cancel" onclick="closeEdit('apt-rent')">취소</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── 은행/토스 ─── -->
+  <div class="section-title">🏦 은행 / 토스 모으기</div>
+  <div class="grid-4">
+    <div class="asset-card">
+      <div class="cat-badge badge-bank">토스<span class="toss-badge">동기화됨</span></div>
+      <div class="name">오빌모으기</div>
+      <div class="amount-row"><div class="amount" id="val-toss-obil">0</div><div class="unit">원</div></div>
+      <div class="sub-info">토스 모으기 계좌<br><span id="date-toss-obil" style="font-size:10px">—</span></div>
+    </div>
+    <div class="asset-card">
+      <div class="cat-badge badge-bank">토스<span class="toss-badge">동기화됨</span></div>
+      <div class="name">해외자금모으기</div>
+      <div class="amount-row"><div class="amount" id="val-toss-overseas">0</div><div class="unit">원</div></div>
+      <div class="sub-info">토스 모으기 계좌<br><span id="date-toss-overseas" style="font-size:10px">—</span></div>
+    </div>
+    <div class="asset-card">
+      <div class="cat-badge badge-bank">토스<span class="toss-badge">동기화됨</span></div>
+      <div class="name">연습모으기</div>
+      <div class="amount-row"><div class="amount" id="val-toss-practice">0</div><div class="unit">원</div></div>
+      <div class="sub-info">토스 모으기 계좌<br><span id="date-toss-practice" style="font-size:10px">—</span></div>
+    </div>
+    <div class="asset-card" id="card-bank-etc">
+      <button class="edit-trigger" onclick="openEdit('bank-etc')">✎</button>
+      <div class="cat-badge badge-bank">은행</div>
+      <div class="name">기타 은행 계좌</div>
+      <div class="amount-row"><div class="amount" id="val-bank-etc">0</div><div class="unit">만원</div></div>
+      <div class="sub-info" id="sub-bank-etc">✎ 카드를 눌러 수정</div>
+      <div class="edit-overlay" id="edit-bank-etc">
+        <div><label>잔고 합산 (만원)</label><input type="number" id="inp-bank-etc-val" placeholder="예: 2000"></div>
+        <div><label>메모</label><textarea id="inp-bank-etc-memo" placeholder="각 계좌 내역"></textarea></div>
+        <div class="edit-btns"><button class="btn-save" onclick="saveEdit('bank-etc')">저장</button><button class="btn-cancel" onclick="closeEdit('bank-etc')">취소</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── 연금 / IRP ─── -->
+  <div class="section-title">🔑 연금 / IRP / 국민연금</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px">
+    <div class="asset-card" id="card-irp1">
+      <button class="edit-trigger" onclick="openEdit('irp1')">✎</button>
+      <div class="cat-badge badge-irp">IRP</div>
+      <div class="name">퇴직연금 IRP 1</div>
+      <div class="amount-row"><div class="amount" id="val-irp1">0</div><div class="unit">만원</div></div>
+      <div class="sub-info" id="sub-irp1">✎ 카드를 눌러 수정</div>
+      <div class="edit-overlay" id="edit-irp1">
+        <div><label>잔고 (만원)</label><input type="number" id="inp-irp1-val" placeholder="예: 2000"></div>
+        <div><label>메모</label><textarea id="inp-irp1-memo" placeholder="금융사, 상품 등"></textarea></div>
+        <div class="edit-btns"><button class="btn-save" onclick="saveEdit('irp1')">저장</button><button class="btn-cancel" onclick="closeEdit('irp1')">취소</button></div>
+      </div>
+    </div>
+    <div class="asset-card" id="card-irp2">
+      <button class="edit-trigger" onclick="openEdit('irp2')">✎</button>
+      <div class="cat-badge badge-irp">IRP</div>
+      <div class="name">퇴직연금 IRP 2</div>
+      <div class="amount-row"><div class="amount" id="val-irp2">0</div><div class="unit">만원</div></div>
+      <div class="sub-info" id="sub-irp2">✎ 카드를 눌러 수정</div>
+      <div class="edit-overlay" id="edit-irp2">
+        <div><label>잔고 (만원)</label><input type="number" id="inp-irp2-val" placeholder="예: 3000"></div>
+        <div><label>메모</label><textarea id="inp-irp2-memo" placeholder="금융사, 상품 등"></textarea></div>
+        <div class="edit-btns"><button class="btn-save" onclick="saveEdit('irp2')">저장</button><button class="btn-cancel" onclick="closeEdit('irp2')">취소</button></div>
+      </div>
+    </div>
+    <div class="asset-card">
+      <div class="cat-badge badge-bank">토스<span class="toss-badge">동기화됨</span></div>
+      <div class="name">개인연금저축 (토스)</div>
+      <div class="amount-row"><div class="amount" id="val-toss-pension">0</div><div class="unit">원</div></div>
+      <div class="sub-info">개인연금저축모으기<br><span id="date-toss-pension" style="font-size:10px">—</span></div>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div class="asset-card" id="card-pension-natl">
+      <button class="edit-trigger" onclick="openEdit('pension-natl')">✎</button>
+      <div class="cat-badge badge-pension">국민연금</div>
+      <div class="name">국민연금 예상 수령액</div>
+      <div class="amount-row"><div class="amount" id="val-pension-natl">0</div><div class="unit">만원/월</div></div>
+      <div class="sub-info" id="sub-pension-natl"><span style="color:var(--text3)">⚠ 참고용 — 총 자산 합산 제외</span></div>
+      <div class="edit-overlay" id="edit-pension-natl">
+        <div><label>예상 월 수령액 (만원)</label><input type="number" id="inp-pension-natl-val" placeholder="국민연금공단 조회값"></div>
+        <div><label>메모</label><textarea id="inp-pension-natl-memo" placeholder="조회일, 예상 수령 나이 등"></textarea></div>
+        <div class="edit-btns"><button class="btn-save" onclick="saveEdit('pension-natl')">저장</button><button class="btn-cancel" onclick="closeEdit('pension-natl')">취소</button></div>
+      </div>
+    </div>
+    <div class="memo-card">
+      <div class="memo-title">📌 할 일 & 메모</div>
+      <ul class="todo-list" id="todo-list"></ul>
+      <div class="add-todo">
+        <input type="text" id="todo-input" placeholder="할 일 추가..." onkeydown="if(event.key==='Enter')addTodo()">
+        <button onclick="addTodo()">추가</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Goal edit overlay -->
+  <div id="goal-edit-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;align-items:center;justify-content:center">
+    <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:32px;width:400px;max-width:95vw">
+      <div style="font-size:15px;color:var(--text);margin-bottom:20px;font-weight:500">목표 자산 설정</div>
+
+      <div style="font-size:11px;color:var(--gold2);letter-spacing:1px;margin-bottom:10px">📊 총 목표자산</div>
+      <div style="margin-bottom:10px">
+        <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:5px">목표 이름</label>
+        <input id="inp-goal-name" type="text" placeholder="예: 은퇴 준비 10억" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:10px 14px;border-radius:8px;font-size:14px;outline:none;font-family:'Noto Sans KR',sans-serif;box-sizing:border-box">
+      </div>
+      <div style="margin-bottom:18px">
+        <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:5px">목표 금액 (만원)</label>
+        <input id="inp-goal-target" type="number" placeholder="예: 100000" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:10px 14px;border-radius:8px;font-size:14px;outline:none;font-family:'DM Mono',monospace;box-sizing:border-box">
+      </div>
+
+      <hr style="border:none;border-top:1px solid var(--border);margin-bottom:18px">
+
+      <div style="font-size:11px;color:var(--teal);letter-spacing:1px;margin-bottom:10px">💰 금융 목표자산 (부동산 제외)</div>
+      <div style="margin-bottom:10px">
+        <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:5px">목표 이름</label>
+        <input id="inp-goal-fin-name" type="text" placeholder="예: 금융자산 5억" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:10px 14px;border-radius:8px;font-size:14px;outline:none;font-family:'Noto Sans KR',sans-serif;box-sizing:border-box">
+      </div>
+      <div style="margin-bottom:20px">
+        <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:5px">목표 금액 (만원)</label>
+        <input id="inp-goal-fin-target" type="number" placeholder="예: 50000" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:10px 14px;border-radius:8px;font-size:14px;outline:none;font-family:'DM Mono',monospace;box-sizing:border-box">
+      </div>
+
+      <div style="display:flex;gap:10px">
+        <button onclick="saveGoal()" style="flex:1;background:var(--gold);color:#000;border:none;padding:11px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif">저장</button>
+        <button onclick="closeGoalEdit()" style="flex:1;background:var(--bg3);color:var(--text2);border:1px solid var(--border2);padding:11px;border-radius:8px;font-size:13px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">취소</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">데이터는 이 기기의 브라우저에만 저장됩니다 · 토스/키움 엑셀 업로드로 데이터 갱신</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════
+const MANUAL_KEYS = ['apt-owned','apt-rent','bank-etc','stock-kr1','stock-kr2','stock-us','irp1','irp2','pension-natl'];
+const TOSS_KEYS = ['toss-obil','toss-overseas','toss-pension'];
+let state = {};
+let todos = [];
+let goal = { name: '총 목표자산', target: 0, finName: '금융 목표자산', finTarget: 0 };
+let donutChart = null, barChart = null, lineChart = null, returnChart = null;
+
+// Kiwoom data
+const KIWOOM_ACCOUNTS = ['해외', '오빌', '자사주', '개인연금저축', '별동대', '연습', '초빌'];
+const MAIN_ACCOUNTS = ['해외', '오빌', '연습', '개인연금저축', '퇴직연금001', '퇴직연금002']; // 주요 계좌
+const ACCT_COLORS = {
+  '해외': '#6e8efb',
+  '오빌': '#ffb347',
+  '연습': '#4ecdc4',
+  '개인연금저축': '#b089f0',
+  '자사주': '#ff6b6b',
+  '별동대': '#c9a84c',
+  '초빌': '#565a70',
+  '퇴직연금001': '#e07b6a',
+  '퇴직연금002': '#e0a06a'
+};
+
+let kiData = null; // { combined: [{date, invest:[7], eval:[7]}] }
+let chartRange = 12;
+
+// ═══════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════
+function init() {
+  const saved = localStorage.getItem('asset-dashboard-v3');
+  if (saved) state = JSON.parse(saved);
+  const savedTodos = localStorage.getItem('asset-todos');
+  if (savedTodos) todos = JSON.parse(savedTodos);
+  const savedGoal = localStorage.getItem('asset-goal');
+  if (savedGoal) goal = JSON.parse(savedGoal);
+  const savedKiwoom = localStorage.getItem('kiwoom-data');
+  if (savedKiwoom) kiData = JSON.parse(savedKiwoom);
+
+  setDate();
+  initCharts();
+  renderAll();
+  addDefaultTodos(); // localStorage 로드 후 → 저장값 있으면 건드리지 않음
+  renderTodos();
+  if (kiData) renderKiwoom();
+}
+
+function setDate() {
+  const d = new Date();
+  document.getElementById('today-date').textContent = d.toLocaleDateString('ko-KR', { year:'numeric', month:'long', day:'numeric', weekday:'long' });
+}
+
+function save() { localStorage.setItem('asset-dashboard-v3', JSON.stringify(state)); }
+
+// ═══════════════════════════════════════════
+//  FORMAT
+// ═══════════════════════════════════════════
+function fmt(n) { return n ? n.toLocaleString('ko-KR') : '0'; }
+function fmtWon(n) {
+  const abs = Math.abs(n);
+  const sign = n < 0 ? '-' : '';
+  if (abs >= 100000000) return sign + (abs/100000000).toFixed(1) + '억';
+  if (abs >= 10000) return sign + Math.round(abs/10000).toLocaleString() + '만';
+  return sign + abs.toLocaleString() + '원';
+}
+function fmtPct(v) { return (v >= 0 ? '+' : '') + v.toFixed(1) + '%'; }
+
+// ═══════════════════════════════════════════
+//  EDIT MODAL
+// ═══════════════════════════════════════════
+function openEdit(key) {
+  const el = document.getElementById('edit-' + key);
+  if (!el) return;
+  const d = state[key] || {};
+  const vi = document.getElementById('inp-' + key + '-val');
+  const mi = document.getElementById('inp-' + key + '-memo');
+  if (vi) vi.value = d.val || '';
+  if (mi) mi.value = d.memo || '';
+  // 보유 아파트 전세보증금
+  const ji = document.getElementById('inp-' + key + '-jeonse');
+  if (ji) ji.value = d.jeonse || '';
+  el.classList.add('open');
+}
+function closeEdit(key) {
+  const el = document.getElementById('edit-' + key);
+  if (el) el.classList.remove('open');
+}
+function saveEdit(key) {
+  const vi = document.getElementById('inp-' + key + '-val');
+  const mi = document.getElementById('inp-' + key + '-memo');
+  if (!state[key]) state[key] = {};
+  if (vi) state[key].val = parseFloat(vi.value) || 0;
+  if (mi) state[key].memo = mi.value;
+  // 보유 아파트 전세보증금
+  const ji = document.getElementById('inp-' + key + '-jeonse');
+  if (ji) state[key].jeonse = parseFloat(ji.value) || 0;
+  save();
+  renderAll();
+  closeEdit(key);
+}
+
+// ═══════════════════════════════════════════
+//  GOAL
+// ═══════════════════════════════════════════
+function openGoalEdit() {
+  document.getElementById('inp-goal-name').value = goal.name || '';
+  document.getElementById('inp-goal-target').value = goal.target || '';
+  document.getElementById('inp-goal-fin-name').value = goal.finName || '';
+  document.getElementById('inp-goal-fin-target').value = goal.finTarget || '';
+  document.getElementById('goal-edit-overlay').style.display = 'flex';
+}
+function closeGoalEdit() { document.getElementById('goal-edit-overlay').style.display = 'none'; }
+function saveGoal() {
+  goal.name = document.getElementById('inp-goal-name').value || '총 목표자산';
+  goal.target = parseFloat(document.getElementById('inp-goal-target').value) || 0;
+  goal.finName = document.getElementById('inp-goal-fin-name').value || '금융 목표자산';
+  goal.finTarget = parseFloat(document.getElementById('inp-goal-fin-target').value) || 0;
+  localStorage.setItem('asset-goal', JSON.stringify(goal));
+  updateGoal();
+  closeGoalEdit();
+}
+
+// ═══════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════
+function renderAll() {
+  MANUAL_KEYS.forEach(k => {
+    const d = state[k] || {};
+    const el = document.getElementById('val-' + k);
+    if (el) el.textContent = fmt(d.val || 0);
+    const sub = document.getElementById('sub-' + k);
+    if (sub) {
+      if (k === 'pension-natl') {
+        sub.innerHTML = (d.memo ? d.memo.replace(/\n/g,'<br>') + '<br>' : '') + '<span style="color:var(--text3)">⚠ 참고용 — 총 자산 합산 제외</span>';
+      } else if (k === 'irp1' || k === 'irp2') {
+        const idxMap = { 'irp1': 7, 'irp2': 8 };
+        const idx = idxMap[k];
+        const kiEval = (kiData && kiData.combined && kiData.combined.length > 0)
+          ? (kiData.combined[kiData.combined.length-1].eval[idx] || 0) : 0;
+        const invest = (d.val || 0) * 10000;
+        if (kiEval > 0) {
+          // 카드 main 금액을 평가금으로 표시
+          el.textContent = fmt(kiEval / 10000);
+          const pnl = kiEval - invest;
+          const pnlColor = pnl >= 0 ? 'var(--teal)' : '#ff6b6b';
+          const pnlSign = pnl >= 0 ? '+' : '';
+          const memoStr = d.memo ? d.memo.replace(/\n/g,'<br>') + '<br>' : '';
+          sub.innerHTML = memoStr
+            + `투자금 ${fmt(invest/10000)}만 · 평가 <b style="color:var(--gold2)">${fmt(kiEval/10000)}만</b> `
+            + `<span style="color:${pnlColor}">(${pnlSign}${fmt(pnl/10000)}만)</span>`;
+        } else {
+          sub.innerHTML = d.memo ? d.memo.replace(/\n/g,'<br>') : '✎ 카드를 눌러 수정';
+        }
+      } else if (k === 'apt-owned' && d.jeonse > 0) {
+        const net = (d.val || 0) - (d.jeonse || 0);
+        sub.innerHTML = (d.memo ? d.memo.replace(/\n/g,'<br>') + '<br>' : '')
+          + '<span style="color:var(--text3)">전세보증금 -' + (d.jeonse||0).toLocaleString() + '만 → 순자산 <b style=\"color:var(--gold2)\">' + net.toLocaleString() + '만</b></span>';
+      } else {
+        sub.innerHTML = d.memo ? d.memo.replace(/\n/g,'<br>') : '✎ 카드를 눌러 수정';
+      }
+    }
+  });
+  // 토스 잔고 + 날짜 표시 (저장된 isFallback 반영)
+  const TOSS_MAP = {
+    'toss-obil':     ['val-toss-obil',     'date-toss-obil'],
+    'toss-overseas': ['val-toss-overseas',  'date-toss-overseas'],
+    'toss-pension':   ['val-toss-pension',    'date-toss-pension'],
+    'toss-practice':  ['val-toss-practice',  'date-toss-practice'],
+  };
+  Object.entries(TOSS_MAP).forEach(([k, [valId, dateId]]) => {
+    const d = state[k] || {};
+    const valEl = document.getElementById(valId);
+    if (valEl) valEl.textContent = fmt(d.val || 0);
+    const dateEl = document.getElementById(dateId);
+    if (dateEl && d.date) {
+      if (d.isFallback) {
+        dateEl.textContent = '최종 데이터: ' + d.date + ' (이번 달 미조회)';
+        dateEl.style.color = 'var(--orange)';
+      } else {
+        dateEl.textContent = '기준: ' + d.date;
+        dateEl.style.color = '';
+      }
+    }
+  });
+  updateGoal();
+}
+
+function totalOf(key) { return ((state[key] || {}).val || 0) * 10000; }
+
+function updateTotals() {
+  const aptOwnedGross = totalOf('apt-owned');
+  const jeonse = ((state['apt-owned'] || {}).jeonse || 0) * 10000;
+  const realty = (aptOwnedGross - jeonse) + totalOf('apt-rent');
+
+  // 키움 계좌별 평가금액 (최신 데이터 기준)
+  // AI = {해외:0, 오빌:1, 자사주:2, 개인연금저축:3, 별동대:4, 연습:5, 초빌:6}
+  let kiFinancial = 0, kiPension = 0, kiIrp1 = 0, kiIrp2 = 0;
+  if (kiData && kiData.combined && kiData.combined.length > 0) {
+    const latest = kiData.combined[kiData.combined.length - 1];
+    const ev = latest.eval || [];
+    // 금융자산: 해외(0), 오빌(1), 자사주(2), 별동대(4), 연습(5), 초빌(6)
+    [0, 1, 2, 4, 5, 6].forEach(i => { kiFinancial += (ev[i] || 0); });
+    // 연금: 개인연금저축(3)
+    kiPension += (ev[3] || 0);
+    // IRP: 퇴직연금001(7), 퇴직연금002(8)
+    kiIrp1 = ev[7] || 0;
+    kiIrp2 = ev[8] || 0;
+  }
+
+  const financial = totalOf('bank-etc') + totalOf('stock-kr1') + totalOf('stock-kr2') + totalOf('stock-us')
+    + (state['toss-obil']?.val || 0) + (state['toss-overseas']?.val || 0)
+    + kiFinancial;
+  // IRP 평가금이 있으면 kiData 우선, 없으면 수동입력 투자금으로 폴백
+  const irp1Val = kiIrp1 > 0 ? kiIrp1 : totalOf('irp1');
+  const irp2Val = kiIrp2 > 0 ? kiIrp2 : totalOf('irp2');
+  const pension = irp1Val + irp2Val + (state['toss-pension']?.val || 0) + kiPension;
+  const grand = realty + financial + pension;
+
+  document.getElementById('total-amount').textContent = fmtWon(grand) + ' 원';
+  document.getElementById('financial-total').textContent = fmtWon(financial);
+  document.getElementById('realty-total').textContent = fmtWon(realty);
+  document.getElementById('pension-total').textContent = fmtWon(pension);
+  document.getElementById('chart-count').textContent = fmtWon(grand);
+
+  updateDonut(realty, financial, pension);
+  updateAllocBar(realty, financial, pension, grand);
+  return { grand, nonRealty: financial + pension };
+}
+
+function updateGoal() {
+  const { grand, nonRealty } = updateTotals();
+
+  // 총 목표자산
+  const targetWon = (goal.target || 0) * 10000;
+  const pct = targetWon > 0 ? Math.min(100, (grand / targetWon) * 100) : 0;
+  document.getElementById('goal-name').textContent = goal.name || '총 목표자산';
+  document.getElementById('goal-pct').textContent = pct.toFixed(1) + '%';
+  document.getElementById('goal-bar').style.width = pct + '%';
+  document.getElementById('goal-current').textContent = '현재: ' + fmtWon(grand);
+  document.getElementById('goal-target').textContent = goal.target
+    ? '목표: ' + (goal.target >= 10000 ? (goal.target/10000).toFixed(0) + '억' : goal.target.toLocaleString() + '만')
+    : '목표 미설정';
+
+  // 금융 목표자산 (부동산 제외)
+  const finTargetWon = (goal.finTarget || 0) * 10000;
+  const finPct = finTargetWon > 0 ? Math.min(100, (nonRealty / finTargetWon) * 100) : 0;
+  document.getElementById('goal-fin-name').textContent = goal.finName || '금융 목표자산';
+  document.getElementById('goal-fin-pct').textContent = finPct.toFixed(1) + '%';
+  document.getElementById('goal-fin-bar').style.width = finPct + '%';
+  document.getElementById('goal-fin-current').textContent = '현재: ' + fmtWon(nonRealty);
+  document.getElementById('goal-fin-target').textContent = goal.finTarget
+    ? '목표: ' + (goal.finTarget >= 10000 ? (goal.finTarget/10000).toFixed(0) + '억' : goal.finTarget.toLocaleString() + '만')
+    : '목표 미설정';
+}
+
+// ═══════════════════════════════════════════
+//  DONUT + ALLOC
+// ═══════════════════════════════════════════
+const CAT_LABELS = ['부동산', '금융자산', '연금/IRP'];
+const CAT_COLORS = ['#6e8efb', '#4ecdc4', '#c9a84c'];
+
+function initCharts() {
+  // Donut
+  const ctx = document.getElementById('donut-chart').getContext('2d');
+  donutChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels: CAT_LABELS, datasets: [{ data: [1,1,1], backgroundColor: CAT_COLORS, borderWidth: 0, hoverOffset: 4 }] },
+    options: {
+      cutout: '72%',
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + fmtWon(c.raw) + ' (' + ((c.raw/c.dataset.data.reduce((a,b)=>a+b,0))*100).toFixed(1) + '%)' } } },
+      animation: { duration: 600 }
+    }
+  });
+
+  // Bar chart (계좌별 투자금 vs 평가금액)
+  const bCtx = document.getElementById('bar-chart').getContext('2d');
+  barChart = new Chart(bCtx, {
+    type: 'bar',
+    data: {
+      labels: [],
+      datasets: [
+        { label: '투자금', data: [], backgroundColor: 'rgba(144,149,168,0.35)', borderColor: 'rgba(144,149,168,0.6)', borderWidth: 1, borderRadius: 3 },
+        { label: '평가금액', data: [], backgroundColor: [], borderWidth: 0, borderRadius: 3 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, position: 'top', labels: { color: '#9095a8', font: { size: 11 }, boxWidth: 10, padding: 12 } },
+        tooltip: { callbacks: { label: c => ' ' + c.dataset.label + ': ' + fmtWon(c.raw) } }
+      },
+      scales: {
+        x: { ticks: { color: '#9095a8', font: { size: 11 } }, grid: { color: '#1e2030' } },
+        y: { ticks: { color: '#9095a8', font: { size: 10 }, callback: v => fmtWon(v) }, grid: { color: '#1e2030' } }
+      }
+    }
+  });
+
+  // Line chart (월별 총 평가금액)
+  const lCtx = document.getElementById('line-chart').getContext('2d');
+  lineChart = new Chart(lCtx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [
+        { label: '총 평가금액', data: [], borderColor: '#c9a84c', backgroundColor: 'rgba(201,168,76,0.08)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 2, pointHoverRadius: 5 },
+        { label: '총 투자금', data: [], borderColor: '#565a70', backgroundColor: 'transparent', borderWidth: 1.5, borderDash: [4,3], fill: false, tension: 0.3, pointRadius: 0 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, position: 'top', labels: { color: '#9095a8', font: { size: 11 }, boxWidth: 10, padding: 12 } },
+        tooltip: { callbacks: {
+          label: c => ' ' + c.dataset.label + ': ' + fmtWon(c.raw),
+          afterBody: (items) => {
+            if (items.length >= 2) {
+              const eval_ = items[0].raw, inv = items[1].raw;
+              if (inv > 0) return ['  수익률: ' + fmtPct((eval_/inv - 1)*100)];
+            }
+            return [];
+          }
+        } }
+      },
+      scales: {
+        x: { ticks: { color: '#9095a8', font: { size: 10 }, maxTicksLimit: 8 }, grid: { color: '#1e2030' } },
+        y: { ticks: { color: '#9095a8', font: { size: 10 }, callback: v => fmtWon(v) }, grid: { color: '#1e2030' } }
+      }
+    }
+  });
+
+  // Return rate chart
+  const rCtx = document.getElementById('return-chart').getContext('2d');
+  returnChart = new Chart(rCtx, {
+    type: 'line',
+    data: { labels: [], datasets: [] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, position: 'top', labels: { color: '#9095a8', font: { size: 11 }, boxWidth: 10, padding: 12 } },
+        tooltip: { callbacks: { label: c => ' ' + c.dataset.label + ': ' + fmtPct(c.raw) } }
+      },
+      scales: {
+        x: { ticks: { color: '#9095a8', font: { size: 10 }, maxTicksLimit: 10 }, grid: { color: '#1e2030' } },
+        y: {
+          ticks: { color: '#9095a8', font: { size: 10 }, callback: v => v + '%' },
+          grid: { color: '#1e2030' },
+          afterDataLimits: scale => { scale.min = Math.floor(scale.min/10)*10 - 5; scale.max = Math.ceil(scale.max/10)*10 + 5; }
+        }
+      }
+    }
+  });
+}
+
+function updateDonut(r, f, p) {
+  if (!donutChart) return;
+  const data = [r, f, p];
+  const total = data.reduce((a,b)=>a+b,0);
+  donutChart.data.datasets[0].data = total > 0 ? data : [1,1,1];
+  donutChart.update();
+  const lg = document.getElementById('legend');
+  const pct = v => total > 0 ? ' ' + ((v/total)*100).toFixed(0) + '%' : '';
+  lg.innerHTML = CAT_LABELS.map((l,i) => `<div class="legend-item"><div class="legend-dot" style="background:${CAT_COLORS[i]}"></div>${l}${pct([r,f,p][i])}</div>`).join('');
+}
+
+function updateAllocBar(r, f, p, total) {
+  const bar = document.getElementById('alloc-bar');
+  if (!bar || total === 0) return;
+  bar.innerHTML = [r,f,p].map((v,i) => `<div class="alloc-seg" style="width:${((v/total)*100).toFixed(1)}%;background:${CAT_COLORS[i]}"></div>`).join('');
+}
+
+// ═══════════════════════════════════════════
+//  KIWOOM DATA RENDER
+// ═══════════════════════════════════════════
+function renderKiwoom() {
+  if (!kiData || !kiData.combined || kiData.combined.length === 0) return;
+  const latest = kiData.combined[kiData.combined.length - 1];
+  const prev = kiData.combined.length > 1 ? kiData.combined[kiData.combined.length - 2] : null;
+
+  // 계좌 인덱스: 해외=0, 오빌=1, 자사주=2, 개인연금저축=3, 별동대=4, 연습=5, 초빌=6
+  const AI = { '해외':0, '오빌':1, '자사주':2, '개인연금저축':3, '별동대':4, '연습':5, '초빌':6, '퇴직연금001':7, '퇴직연금002':8 };
+
+  // 총합 계산 (주요 계좌만)
+  const mainAccounts = MAIN_ACCOUNTS;
+  let totalInvest = 0, totalEval = 0;
+  const IRP_INVEST_KEY_S = { '퇴직연금001': 'irp1', '퇴직연금002': 'irp2' };
+  mainAccounts.forEach(a => {
+    const i = AI[a];
+    const irpKey = IRP_INVEST_KEY_S[a];
+    totalInvest += irpKey
+      ? ((state[irpKey] || {}).val || 0) * 10000
+      : (latest.invest[i] || 0);
+    totalEval += (latest.eval[i] || 0);
+  });
+
+  const totalPnl = totalEval - totalInvest;
+  const totalPct = totalInvest > 0 ? (totalEval / totalInvest - 1) * 100 : 0;
+  const pctClass = totalPct >= 0 ? 'pct-pos' : 'pct-neg';
+
+  // 전월 대비
+  let momEval = 0;
+  if (prev) {
+    mainAccounts.forEach(a => { const i = AI[a]; momEval += (latest.eval[i] || 0) - (prev.eval[i] || 0); });
+  }
+
+  // Summary bar
+  const summary = document.getElementById('kiwoom-summary');
+  summary.innerHTML = `
+    <div class="ks-item">
+      <div class="ks-label">기준일</div>
+      <div class="ks-val" style="font-size:14px">${latest.date}</div>
+    </div>
+    <div class="ks-div"></div>
+    <div class="ks-item">
+      <div class="ks-label">총 투자금 (주요 6계좌)</div>
+      <div class="ks-val">${fmtWon(totalInvest)}</div>
+    </div>
+    <div class="ks-div"></div>
+    <div class="ks-item">
+      <div class="ks-label">총 평가금액</div>
+      <div class="ks-val" style="color:var(--gold2)">${fmtWon(totalEval)}</div>
+    </div>
+    <div class="ks-div"></div>
+    <div class="ks-item">
+      <div class="ks-label">평가손익</div>
+      <div class="ks-val ${totalPnl >= 0 ? 'pos' : 'neg'}">${fmtWon(totalPnl)}</div>
+    </div>
+    <div class="ks-div"></div>
+    <div class="ks-item">
+      <div class="ks-label">수익률</div>
+      <div class="ks-val"><span class="k-pnl-pct ${pctClass}">${fmtPct(totalPct)}</span></div>
+    </div>
+    ${prev ? `<div class="ks-div"></div><div class="ks-item"><div class="ks-label">전월 대비</div><div class="ks-val ${momEval>=0?'pos':'neg'}">${momEval>=0?'+':''}${fmtWon(momEval)}</div></div>` : ''}
+  `;
+
+  // IRP 계좌명 → 표시명 매핑
+  const ACCT_LABEL = {
+    '퇴직연금001': 'IRP 1',
+    '퇴직연금002': 'IRP 2'
+  };
+  // IRP 투자금 수동입력 매핑 (키움 입출에 없으므로)
+  const IRP_INVEST_KEY = {
+    '퇴직연금001': 'irp1',
+    '퇴직연금002': 'irp2'
+  };
+
+  // 계좌 카드 (주요 6개)
+  const cardContainer = document.getElementById('kiwoom-cards');
+  cardContainer.innerHTML = mainAccounts.map(acct => {
+    const i = AI[acct];
+    // IRP는 invest를 수동입력에서 가져옴
+    const investKey = IRP_INVEST_KEY[acct];
+    const invest = investKey
+      ? ((state[investKey] || {}).val || 0) * 10000
+      : (latest.invest[i] || 0);
+    const evalu = latest.eval[i] || 0;
+    const pnl = evalu - invest;
+    const pct = invest > 0 ? (evalu / invest - 1) * 100 : 0;
+    const color = ACCT_COLORS[acct];
+    const pctCls = pct > 1 ? 'pct-pos' : pct < -1 ? 'pct-neg' : 'pct-neu';
+    const pnlCls = pnl > 0 ? 'pos' : pnl < 0 ? 'neg' : '';
+    const label = ACCT_LABEL[acct] || acct;
+    const badge = investKey ? 'IRP' : '키움';
+
+    // 비율 바 (투자금 대비 평가금액 비율)
+    const evalPct = invest > 0 ? Math.min(Math.abs(evalu / invest) * 100, 200) : 0;
+    const investPct = 100;
+    const barBase = Math.max(evalPct, investPct);
+
+    return `
+      <div class="kiwoom-card" style="border-top: 2px solid ${color}">
+        <div class="k-acct">${label} 계좌<span class="kiwoom-badge">${badge}</span></div>
+        <div class="k-eval">${fmtWon(evalu)}<span class="k-unit">평가</span></div>
+        <div class="k-invest-row">
+          <div style="font-size:11px;color:var(--text3);display:flex;justify-content:space-between">
+            <span>투자금</span><span style="color:var(--text2)">${fmtWon(invest)}</span>
+          </div>
+          <div style="position:relative;height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;margin-top:2px">
+            <div style="position:absolute;top:0;left:0;height:100%;width:${(investPct/barBase*100).toFixed(1)}%;background:var(--text3);border-radius:4px;opacity:0.5"></div>
+            <div style="position:absolute;top:0;left:0;height:100%;width:${(evalPct/barBase*100).toFixed(1)}%;background:${color};border-radius:4px;opacity:0.7"></div>
+          </div>
+        </div>
+        <div class="k-pnl">
+          <div class="k-pnl-amt ${pnlCls}">${pnl >= 0 ? '+' : ''}${fmtWon(pnl)}</div>
+          <div class="k-pnl-pct ${pctCls}">${fmtPct(pct)}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Bar chart 업데이트
+  updateBarChart(latest, AI);
+
+  // Line/Return charts
+  updateLineChart();
+  updateReturnChart();
+}
+
+function updateBarChart(latest, AI) {
+  if (!barChart) return;
+  const accounts = MAIN_ACCOUNTS;
+  const labels = accounts;
+  const IRP_INVEST_BAR = { '퇴직연금001': 'irp1', '퇴직연금002': 'irp2' };
+  const investData = accounts.map(a => {
+    const irpKey = IRP_INVEST_BAR[a];
+    return irpKey ? ((state[irpKey] || {}).val || 0) * 10000 : (latest.invest[AI[a]] || 0);
+  });
+  const evalData = accounts.map(a => latest.eval[AI[a]] || 0);
+  const bgColors = accounts.map(a => ACCT_COLORS[a] + 'bb');
+
+  const IRP_LABEL_B = { '퇴직연금001': 'IRP 1', '퇴직연금002': 'IRP 2' };
+  barChart.data.labels = labels.map(a => IRP_LABEL_B[a] || a);
+  barChart.data.datasets[0].data = investData;
+  barChart.data.datasets[1].data = evalData;
+  barChart.data.datasets[1].backgroundColor = bgColors;
+  barChart.update();
+
+  document.getElementById('bar-date').textContent = latest.date + ' 기준';
+}
+
+function setChartRange(months) {
+  chartRange = months;
+  ['tab-12m','tab-24m','tab-all'].forEach(id => document.getElementById(id)?.classList.remove('active'));
+  const tabId = months === 12 ? 'tab-12m' : months === 24 ? 'tab-24m' : 'tab-all';
+  document.getElementById(tabId)?.classList.add('active');
+  updateLineChart();
+  updateReturnChart();
+}
+
+function getFilteredData() {
+  if (!kiData) return [];
+  const combined = kiData.combined;
+  if (chartRange === 0) return combined;
+  return combined.slice(-chartRange);
+}
+
+function updateLineChart() {
+  if (!lineChart || !kiData) return;
+  const data = getFilteredData();
+  const labels = data.map(r => r.date.slice(0, 7));
+
+  // 총 평가금액 / 총 투자금 (주요 6계좌)
+  const AI = { '해외':0, '오빌':1, '자사주':2, '개인연금저축':3, '별동대':4, '연습':5, '초빌':6, '퇴직연금001':7, '퇴직연금002':8 };
+  const evalTotals = data.map(r => MAIN_ACCOUNTS.reduce((s, a) => s + (r.eval[AI[a]] || 0), 0));
+  const investTotals = data.map(r => MAIN_ACCOUNTS.reduce((s, a) => s + (r.invest[AI[a]] || 0), 0));
+
+  lineChart.data.labels = labels;
+  lineChart.data.datasets[0].data = evalTotals;
+  lineChart.data.datasets[1].data = investTotals;
+  lineChart.update();
+}
+
+function updateReturnChart() {
+  if (!returnChart || !kiData) return;
+  const data = getFilteredData();
+  const labels = data.map(r => r.date.slice(0, 7));
+  const AI = { '해외':0, '오빌':1, '자사주':2, '개인연금저축':3, '별동대':4, '연습':5, '초빌':6, '퇴직연금001':7, '퇴직연금002':8 };
+
+  // IRP는 키움 입출에 없으므로 수동 입력값을 고정 투자금으로 사용
+  const IRP_INVEST_RC = { '퇴직연금001': 'irp1', '퇴직연금002': 'irp2' };
+  const IRP_LABEL_RC  = { '퇴직연금001': 'IRP 1', '퇴직연금002': 'IRP 2' };
+
+  const datasets = MAIN_ACCOUNTS.map(acct => {
+    const color = ACCT_COLORS[acct];
+    const irpKey = IRP_INVEST_RC[acct];
+    const fixedInvest = irpKey ? ((state[irpKey] || {}).val || 0) * 10000 : 0;
+
+    const returns = data.map(r => {
+      const invest = irpKey ? fixedInvest : (r.invest[AI[acct]] || 0);
+      const evalu = r.eval[AI[acct]] || 0;
+      if (invest <= 0 || evalu <= 0) return null;
+      return parseFloat(((evalu / invest - 1) * 100).toFixed(2));
+    });
+    return {
+      label: IRP_LABEL_RC[acct] || acct,
+      data: returns,
+      borderColor: color,
+      backgroundColor: 'transparent',
+      borderWidth: 2,
+      tension: 0.3,
+      pointRadius: 2,
+      pointHoverRadius: 5,
+      spanGaps: true
+    };
+  });
+
+  returnChart.data.labels = labels;
+  returnChart.data.datasets = datasets;
+  returnChart.update();
+}
+
+// ═══════════════════════════════════════════
+//  TOSS EXCEL UPLOAD
+// ═══════════════════════════════════════════
+document.getElementById('toss-input').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    try {
+      const wb = XLSX.read(evt.target.result, { type: 'array', cellDates: true });
+      [['오빌모으기', 'toss-obil', 'val-toss-obil', 'date-toss-obil'],
+       ['해외자금모으기', 'toss-overseas', 'val-toss-overseas', 'date-toss-overseas'],
+       ['개인연금저축모으기', 'toss-pension', 'val-toss-pension', 'date-toss-pension'],
+       ['연습모으기', 'toss-practice', 'val-toss-practice', 'date-toss-practice']
+      ].forEach(([sheet, key, valId, dateId]) => {
+        const r = parseTossBalance(wb, sheet);
+        if (r) {
+          state[key] = { val: r.balance, date: r.date, isFallback: !!r.isFallback };
+          document.getElementById(valId).textContent = r.balance.toLocaleString('ko-KR');
+          const de = document.getElementById(dateId);
+          if (de) {
+            if (r.date) {
+              de.textContent = r.isFallback
+                ? '최종 데이터: ' + r.date + ' (이번 달 미조회)'
+                : '기준: ' + r.date;
+              de.style.color = r.isFallback ? 'var(--orange)' : '';
+            } else {
+              de.textContent = '';
+            }
+          }
+        }
+      });
+      save();
+      renderAll();
+      const st = document.getElementById('toss-sync-status');
+      st.textContent = '✓ 토스 동기화 완료';
+      setTimeout(() => st.textContent = '', 4000);
+    } catch(err) { alert('토스 파일 오류: ' + err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+function parseTossBalance(wb, sheetName) {
+  const ws = wb.Sheets[sheetName];
+  if (!ws) return null;
+
+  // cellDates:true → 날짜 셀을 JS Date 객체로 받음
+  const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: true, cellDates: true });
+
+  // ① 헤더 행 탐색 — '잔고'/'잔액' 컬럼 위치
+  let headerRowIdx = -1, balCol = -1, dateCol = -1;
+  for (let i = 0; i < data.length; i++) {
+    const row = data[i]; if (!row) continue;
+    for (let j = 0; j < row.length; j++) {
+      if (row[j] === '잔고' || row[j] === '잔액') { headerRowIdx = i; balCol = j; break; }
+    }
+    if (headerRowIdx >= 0) {
+      for (let j = 0; j < data[headerRowIdx].length; j++) {
+        if (data[headerRowIdx][j] === '일자' || data[headerRowIdx][j] === '날짜') { dateCol = j; break; }
+      }
+      break;
+    }
+  }
+  if (headerRowIdx < 0 || balCol < 0) return null;
+
+  // ② 유효 행 수집 (잔고 > 0인 행만)
+  const entries = [];
+  for (let i = headerRowIdx + 1; i < data.length; i++) {
+    const row = data[i]; if (!row) continue;
+    const balRaw = row[balCol];
+    const bal = typeof balRaw === 'string'
+      ? parseFloat(balRaw.replace(/,/g, ''))
+      : Number(balRaw);
+    if (isNaN(bal) || bal <= 0) continue;
+
+    // 날짜 파싱 — Date 객체 / 숫자(엑셀 시리얼) / 문자열 모두 처리
+    let dateObj = null;
+    if (dateCol >= 0 && row[dateCol] != null) {
+      const raw = row[dateCol];
+      if (raw instanceof Date) {
+        dateObj = raw;
+      } else if (typeof raw === 'number') {
+        // 엑셀 시리얼 → JS Date (1900-01-01 기준)
+        dateObj = new Date(Math.round((raw - 25569) * 86400 * 1000));
+      } else if (typeof raw === 'string' && raw.trim()) {
+        dateObj = new Date(raw.trim());
+      }
+    }
+
+    entries.push({
+      balance: Math.round(bal),
+      dateObj,                                         // 정렬·비교용
+      dateStr: dateObj ? dateObj.toISOString().slice(0, 10) : null  // 표시용 YYYY-MM-DD
+    });
+  }
+  if (entries.length === 0) return null;
+
+  // ③ 날짜 내림차순 정렬 → entries[0] 이 항상 가장 최신
+  entries.sort((a, b) => {
+    if (!a.dateObj && !b.dateObj) return 0;
+    if (!a.dateObj) return 1;   // 날짜 없는 행을 뒤로
+    if (!b.dateObj) return -1;
+    return b.dateObj - a.dateObj;   // 최신 → 오래됨
+  });
+
+  // ④ 이번 달(YYYY-MM) 데이터 존재 여부 확인
+  const now = new Date();
+  const thisYM = now.getFullYear() * 100 + (now.getMonth() + 1); // 예: 202603
+
+  const hasThisMonth = entries.some(e =>
+    e.dateObj &&
+    e.dateObj.getFullYear() * 100 + (e.dateObj.getMonth() + 1) === thisYM
+  );
+
+  // ⑤ 이번 달 데이터가 있으면 해당 월의 첫 번째(최신) 행,
+  //    없으면 전체 최신 행을 사용하고 isFallback = true 표시
+  const pick = hasThisMonth
+    ? entries.find(e => e.dateObj &&
+        e.dateObj.getFullYear() * 100 + (e.dateObj.getMonth() + 1) === thisYM)
+    : entries[0];
+
+  return {
+    balance: pick.balance,
+    date:    pick.dateStr,
+    isFallback: !hasThisMonth   // 이번 달 데이터가 없어서 최종 데이터로 대체됨
+  };
+}
+
+// ═══════════════════════════════════════════
+//  KIWOOM EXCEL UPLOAD
+// ═══════════════════════════════════════════
+document.getElementById('kiwoom-input').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    try {
+      const wb = XLSX.read(evt.target.result, { type: 'array', cellDates: true });
+      const investData = parseKiwoomPivot(wb, '키움입출+토스');
+      const evalData = parseKiwoomPivot(wb, '키움평가+토스');
+      if (!investData || !evalData) throw new Error('필요한 시트를 찾을 수 없습니다 (키움입출+토스, 키움평가+토스)');
+
+      const investMap = {};
+      investData.forEach(r => investMap[r[0]] = r.slice(1));
+      const evalMap = {};
+      evalData.forEach(r => evalMap[r[0]] = r.slice(1));
+
+      const commonDates = Object.keys(investMap).filter(d => evalMap[d]).sort();
+      const combined = commonDates.map(d => ({ date: d, invest: investMap[d], eval: evalMap[d] }));
+
+      kiData = { combined };
+      localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
+      renderKiwoom();
+      updateGoal(); // 키움 평가금액 → 총 자산 반영
+
+      const st = document.getElementById('kiwoom-sync-status');
+      st.textContent = '✓ 키움 동기화 완료 (' + combined.length + '개월)';
+      setTimeout(() => st.textContent = '', 5000);
+    } catch(err) { alert('키움 파일 오류: ' + err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+function parseKiwoomPivot(wb, sheetName) {
+  const ws = wb.Sheets[sheetName];
+  if (!ws) return null;
+  const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: true });
+  // Pivot header at row index 1, columns 4-11
+  // row[1][4] = '행 레이블', row[1][5..11] = account names
+  // Data rows: row[i][4] = date serial/date, row[i][5..11] = values
+  const results = [];
+  for (let i = 2; i < raw.length; i++) {
+    const row = raw[i];
+    if (!row || row[4] == null) continue;
+    let dateVal = row[4];
+    let dateStr;
+    if (dateVal instanceof Date) {
+      dateStr = dateVal.toISOString().slice(0,10);
+    } else if (typeof dateVal === 'number') {
+      // Excel serial date
+      const d = new Date(Math.round((dateVal - 25569) * 86400 * 1000));
+      dateStr = d.toISOString().slice(0,10);
+    } else if (typeof dateVal === 'string' && dateVal.match(/\d{4}/)) {
+      dateStr = dateVal.slice(0,10);
+    } else continue;
+
+    const vals = [];
+    for (let j = 5; j <= 13; j++) {
+      vals.push(typeof row[j] === 'number' ? row[j] : 0);
+    }
+    results.push([dateStr, ...vals]);
+  }
+  results.sort((a,b) => a[0].localeCompare(b[0]));
+  return results;
+}
+
+// ═══════════════════════════════════════════
+//  TODOS
+// ═══════════════════════════════════════════
+let editingTodo = -1; // 현재 편집 중인 인덱스
+
+function renderTodos() {
+  const list = document.getElementById('todo-list');
+  if (!todos.length) { list.innerHTML = '<li style="font-size:12px;color:var(--text3);padding:8px 12px">할 일을 추가해 보세요</li>'; return; }
+  list.innerHTML = todos.map((t, i) => {
+    if (i === editingTodo) {
+      // 편집 모드 — 인라인 input
+      return `<li class="todo-item" style="cursor:default">
+        <div class="todo-check" style="visibility:hidden"></div>
+        <input class="todo-edit-input" id="todo-edit-${i}" value="${t.text.replace(/"/g,'&quot;')}"
+          onkeydown="if(event.key==='Enter')saveTodoEdit(${i});if(event.key==='Escape')cancelTodoEdit();"
+        >
+        <div class="todo-actions" style="opacity:1">
+          <button class="todo-btn edit" onclick="saveTodoEdit(${i})" title="저장">✓</button>
+          <button class="todo-btn del"  onclick="cancelTodoEdit()"  title="취소">✕</button>
+        </div>
+      </li>`;
+    }
+    return `<li class="todo-item ${t.done?'done':''}"
+        draggable="true"
+        data-idx="${i}"
+        onclick="toggleTodo(${i})"
+        ondragstart="todoDragStart(event,${i})"
+        ondragover="todoDragOver(event)"
+        ondragleave="todoDragLeave(event)"
+        ondrop="todoDrop(event,${i})"
+        ondragend="todoDragEnd(event)">
+      <span class="todo-drag-handle" onclick="event.stopPropagation()" title="드래그하여 순서 변경">⋮⋮</span>
+      <div class="todo-check"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="white" stroke-width="2"><polyline points="1 5 4 8 9 2"/></svg></div>
+      <div class="todo-text">${t.text}</div>
+      <div class="todo-actions">
+        <button class="todo-btn edit" onclick="event.stopPropagation();startTodoEdit(${i})" title="수정">✏</button>
+        <button class="todo-btn del"  onclick="event.stopPropagation();deleteTodo(${i})"   title="삭제">🗑</button>
+      </div>
+    </li>`;
+  }).join('');
+
+  // 편집 모드면 input에 포커스
+  if (editingTodo >= 0) {
+    const inp = document.getElementById('todo-edit-' + editingTodo);
+    if (inp) { inp.focus(); inp.select(); }
+  }
+}
+function addTodo() {
+  const inp = document.getElementById('todo-input');
+  const text = inp.value.trim(); if (!text) return;
+  todos.push({ text, done: false }); inp.value = '';
+  localStorage.setItem('asset-todos', JSON.stringify(todos));
+  renderTodos();
+}
+function toggleTodo(i) {
+  if (editingTodo >= 0) return; // 편집 중엔 토글 무시
+  todos[i].done = !todos[i].done;
+  localStorage.setItem('asset-todos', JSON.stringify(todos));
+  renderTodos();
+}
+function startTodoEdit(i) {
+  editingTodo = i;
+  renderTodos();
+}
+function saveTodoEdit(i) {
+  const inp = document.getElementById('todo-edit-' + i);
+  if (!inp) return;
+  const text = inp.value.trim();
+  if (text) todos[i].text = text;
+  editingTodo = -1;
+  localStorage.setItem('asset-todos', JSON.stringify(todos));
+  renderTodos();
+}
+function cancelTodoEdit() {
+  editingTodo = -1;
+  renderTodos();
+}
+
+// ─── 드래그 앤 드롭 순서 변경 ───
+let dragSrcIdx = -1;
+function todoDragStart(e, i) {
+  dragSrcIdx = i;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => { const el = e.currentTarget; if (el) el.classList.add('dragging'); }, 0);
+}
+function todoDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  e.currentTarget.classList.add('drag-over');
+}
+function todoDragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+function todoDrop(e, targetIdx) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (dragSrcIdx === -1 || dragSrcIdx === targetIdx) return;
+  const moved = todos.splice(dragSrcIdx, 1)[0];
+  todos.splice(targetIdx, 0, moved);
+  dragSrcIdx = -1;
+  localStorage.setItem('asset-todos', JSON.stringify(todos));
+  renderTodos();
+}
+function todoDragEnd(e) {
+  dragSrcIdx = -1;
+  document.querySelectorAll('.todo-item').forEach(el => {
+    el.classList.remove('dragging', 'drag-over');
+  });
+}
+function deleteTodo(i) {
+  todos.splice(i, 1);
+  if (editingTodo === i) editingTodo = -1;
+  localStorage.setItem('asset-todos', JSON.stringify(todos));
+  renderTodos();
+}
+
+// ═══════════════════════════════════════════
+//  BOOT
+// ═══════════════════════════════════════════
+function addDefaultTodos() {
+  if (todos.length === 0) {
+    todos = [
+      { text: '키움 엑셀 업로드 (키움토스차트.xlsx)', done: false },
+      { text: '토스 엑셀 업로드 (토스모으기.xlsx)', done: false },
+      { text: '부동산 시세 확인 및 업데이트', done: false },
+      { text: '국민연금 예상 수령액 조회', done: false },
+    ];
+    localStorage.setItem('asset-todos', JSON.stringify(todos));
+  }
+}
+init();
+</script>
+</body>
+</html>
