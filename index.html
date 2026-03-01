@@ -386,7 +386,7 @@
 
   <!-- ─── 은행/토스 ─── -->
   <div class="section-title">🏦 은행 / 토스 모으기</div>
-  <div class="grid-4">
+  <div class="grid-3">
     <div class="asset-card">
       <div class="cat-badge badge-bank">토스<span class="toss-badge">동기화됨</span></div>
       <div class="name">오빌모으기</div>
@@ -405,16 +405,43 @@
       <div class="amount-row"><div class="amount" id="val-toss-practice">0</div><div class="unit">원</div></div>
       <div class="sub-info">토스 모으기 계좌<br><span id="date-toss-practice" style="font-size:10px">—</span></div>
     </div>
-    <div class="asset-card" id="card-bank-etc">
-      <button class="edit-trigger" onclick="openEdit('bank-etc')">✎</button>
-      <div class="cat-badge badge-bank">은행</div>
-      <div class="name">기타 은행 계좌</div>
-      <div class="amount-row"><div class="amount" id="val-bank-etc">0</div><div class="unit">만원</div></div>
-      <div class="sub-info" id="sub-bank-etc">✎ 카드를 눌러 수정</div>
-      <div class="edit-overlay" id="edit-bank-etc">
-        <div><label>잔고 합산 (만원)</label><input type="number" id="inp-bank-etc-val" placeholder="예: 2000"></div>
-        <div><label>메모</label><textarea id="inp-bank-etc-memo" placeholder="각 계좌 내역"></textarea></div>
-        <div class="edit-btns"><button class="btn-save" onclick="saveEdit('bank-etc')">저장</button><button class="btn-cancel" onclick="closeEdit('bank-etc')">취소</button></div>
+    <!-- 주택자금: 부동산으로 분류 -->
+    <div class="asset-card" id="card-bank-housing">
+      <button class="edit-trigger" onclick="openEdit('bank-housing')">✎</button>
+      <div class="cat-badge badge-realty">은행 <span style="opacity:.6;font-size:9px">→ 부동산</span></div>
+      <div class="name">주택자금</div>
+      <div class="amount-row"><div class="amount" id="val-bank-housing">0</div><div class="unit">만원</div></div>
+      <div class="sub-info" id="sub-bank-housing">✎ 카드를 눌러 수정</div>
+      <div class="edit-overlay" id="edit-bank-housing">
+        <div><label>잔고 (만원)</label><input type="number" id="inp-bank-housing-val" placeholder="예: 5000"></div>
+        <div><label>메모</label><textarea id="inp-bank-housing-memo" placeholder="주택청약, 주택담보 등"></textarea></div>
+        <div class="edit-btns"><button class="btn-save" onclick="saveEdit('bank-housing')">저장</button><button class="btn-cancel" onclick="closeEdit('bank-housing')">취소</button></div>
+      </div>
+    </div>
+    <!-- 월세: 금융자산으로 분류 -->
+    <div class="asset-card" id="card-bank-rent">
+      <button class="edit-trigger" onclick="openEdit('bank-rent')">✎</button>
+      <div class="cat-badge badge-bank">은행 <span style="opacity:.6;font-size:9px">→ 금융</span></div>
+      <div class="name">월세</div>
+      <div class="amount-row"><div class="amount" id="val-bank-rent">0</div><div class="unit">만원</div></div>
+      <div class="sub-info" id="sub-bank-rent">✎ 카드를 눌러 수정</div>
+      <div class="edit-overlay" id="edit-bank-rent">
+        <div><label>잔고 (만원)</label><input type="number" id="inp-bank-rent-val" placeholder="예: 500"></div>
+        <div><label>메모</label><textarea id="inp-bank-rent-memo" placeholder="월세 계좌 등"></textarea></div>
+        <div class="edit-btns"><button class="btn-save" onclick="saveEdit('bank-rent')">저장</button><button class="btn-cancel" onclick="closeEdit('bank-rent')">취소</button></div>
+      </div>
+    </div>
+    <!-- 일반계좌: 금융자산으로 분류 -->
+    <div class="asset-card" id="card-bank-general">
+      <button class="edit-trigger" onclick="openEdit('bank-general')">✎</button>
+      <div class="cat-badge badge-bank">은행 <span style="opacity:.6;font-size:9px">→ 금융</span></div>
+      <div class="name">일반계좌</div>
+      <div class="amount-row"><div class="amount" id="val-bank-general">0</div><div class="unit">만원</div></div>
+      <div class="sub-info" id="sub-bank-general">✎ 카드를 눌러 수정</div>
+      <div class="edit-overlay" id="edit-bank-general">
+        <div><label>잔고 합산 (만원)</label><input type="number" id="inp-bank-general-val" placeholder="예: 1000"></div>
+        <div><label>메모</label><textarea id="inp-bank-general-memo" placeholder="각 계좌 내역"></textarea></div>
+        <div class="edit-btns"><button class="btn-save" onclick="saveEdit('bank-general')">저장</button><button class="btn-cancel" onclick="closeEdit('bank-general')">취소</button></div>
       </div>
     </div>
   </div>
@@ -527,7 +554,7 @@
 // ═══════════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════════
-const MANUAL_KEYS = ['apt-owned','apt-rent','bank-etc','stock-kr1','stock-kr2','stock-us','irp1','irp2','pension-natl'];
+const MANUAL_KEYS = ['apt-owned','apt-rent','bank-housing','bank-rent','bank-general','stock-kr1','stock-kr2','stock-us','irp1','irp2','pension-natl'];
 const TOSS_KEYS = ['toss-obil','toss-overseas','toss-pension'];
 let state = {};
 let todos = [];
@@ -751,6 +778,12 @@ function renderAll() {
         const net = (d.val || 0) - (d.jeonse || 0);
         sub.innerHTML = (d.memo ? d.memo.replace(/\n/g,'<br>') + '<br>' : '')
           + '<span style="color:var(--text3)">전세보증금 -' + (d.jeonse||0).toLocaleString() + '만 → 순자산 <b style=\"color:var(--gold2)\">' + net.toLocaleString() + '만</b></span>';
+      } else if (k === 'bank-housing') {
+        const memoStr = d.memo ? d.memo.replace(/\n/g,'<br>') + '<br>' : '';
+        sub.innerHTML = memoStr + '<span style="color:var(--blue);font-size:10px">🏢 부동산 자산으로 분류됨</span>';
+      } else if (k === 'bank-rent' || k === 'bank-general') {
+        const memoStr = d.memo ? d.memo.replace(/\n/g,'<br>') + '<br>' : '';
+        sub.innerHTML = memoStr + '<span style="color:var(--teal);font-size:10px">💰 금융자산으로 분류됨</span>';
       } else {
         sub.innerHTML = d.memo ? d.memo.replace(/\n/g,'<br>') : '✎ 카드를 눌러 수정';
       }
@@ -786,7 +819,8 @@ function totalOf(key) { return ((state[key] || {}).val || 0) * 10000; }
 function updateTotals() {
   const aptOwnedGross = totalOf('apt-owned');
   const jeonse = ((state['apt-owned'] || {}).jeonse || 0) * 10000;
-  const realty = (aptOwnedGross - jeonse) + totalOf('apt-rent');
+  // 부동산 = 보유아파트(전세차감) + 임차보증금 + 주택자금
+  const realty = (aptOwnedGross - jeonse) + totalOf('apt-rent') + totalOf('bank-housing');
 
   // 키움 계좌별 평가금액 (최신 데이터 기준)
   // AI = {해외:0, 오빌:1, 자사주:2, 개인연금저축:3, 별동대:4, 연습:5, 초빌:6}
@@ -803,7 +837,9 @@ function updateTotals() {
     kiIrp2 = ev[8] || 0;
   }
 
-  const financial = totalOf('bank-etc') + totalOf('stock-kr1') + totalOf('stock-kr2') + totalOf('stock-us')
+  // 금융자산 = 월세계좌 + 일반계좌 + 주식 + 토스모으기 + 키움평가금
+  const financial = totalOf('bank-rent') + totalOf('bank-general')
+    + totalOf('stock-kr1') + totalOf('stock-kr2') + totalOf('stock-us')
     + (state['toss-obil']?.val || 0) + (state['toss-overseas']?.val || 0)
     + kiFinancial;
   // IRP 평가금이 있으면 kiData 우선, 없으면 수동입력 투자금으로 폴백
