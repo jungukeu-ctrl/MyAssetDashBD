@@ -42,10 +42,50 @@
   .upload-btn:hover { background: rgba(201,168,76,0.2); border-color: var(--gold); }
   .upload-btn.kiwoom { background: rgba(110,142,251,0.1); border-color: rgba(110,142,251,0.3); color: var(--blue); }
   .upload-btn.kiwoom:hover { background: rgba(110,142,251,0.2); border-color: var(--blue); }
+  /* ★ NEW: 토스 이미지 버튼 */
+  .upload-btn.toss-img { background: rgba(54,211,153,0.1); border-color: rgba(54,211,153,0.3); color: var(--teal); }
+  .upload-btn.toss-img:hover { background: rgba(54,211,153,0.2); border-color: var(--teal); }
   .upload-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
-  #file-input, #kiwoom-input { display: none; }
+  #toss-input, #toss-img-input, #kiwoom-input { display: none; }
   .sync-status { font-size: 11px; color: var(--teal); margin-top: 4px; text-align: right; min-height: 14px; }
   .sync-status.kiwoom-sync { color: var(--blue); }
+
+  /* ─── AI 분석 모달 ─── */
+  #ai-modal {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+    z-index: 200; align-items: center; justify-content: center;
+  }
+  #ai-modal.open { display: flex; }
+  .ai-modal-box {
+    background: var(--bg2); border: 1px solid rgba(54,211,153,0.3);
+    border-radius: 16px; padding: 28px; width: 480px; max-width: 95vw;
+    max-height: 90vh; overflow-y: auto;
+  }
+  .ai-modal-title { font-size: 15px; color: var(--teal); margin-bottom: 4px; font-weight: 500; }
+  .ai-modal-sub { font-size: 12px; color: var(--text3); margin-bottom: 16px; line-height: 1.6; }
+  .ai-preview { width: 100%; max-height: 200px; object-fit: contain; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 16px; }
+  .ai-log {
+    background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 14px; font-size: 12px; color: var(--text2); line-height: 1.8;
+    min-height: 60px; font-family: 'DM Mono', monospace; white-space: pre-wrap;
+    margin-bottom: 14px;
+  }
+  .ai-result-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 13px; }
+  .ai-result-table th { background: var(--bg3); color: var(--text3); padding: 6px 10px; text-align: left; font-weight: 400; font-size: 11px; letter-spacing: 1px; }
+  .ai-result-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); color: var(--text); font-family: 'DM Mono', monospace; }
+  .ai-result-table tr:last-child td { border-bottom: none; }
+  .ai-apply-btn {
+    width: 100%; background: var(--teal); color: #000; border: none;
+    padding: 11px; border-radius: 8px; font-size: 13px; font-weight: 700;
+    cursor: pointer; font-family: 'Noto Sans KR', sans-serif; margin-bottom: 8px;
+  }
+  .ai-apply-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .ai-cancel-btn {
+    width: 100%; background: var(--bg3); color: var(--text2); border: 1px solid var(--border2);
+    padding: 9px; border-radius: 8px; font-size: 12px; cursor: pointer; font-family: 'Noto Sans KR', sans-serif;
+  }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(54,211,153,0.3); border-top-color: var(--teal); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
   /* ─── Hero ─── */
   .hero {
@@ -141,12 +181,6 @@
   .kiwoom-card .k-eval { font-family: 'DM Mono', monospace; font-size: 20px; color: var(--text); font-weight: 500; }
   .kiwoom-card .k-unit { font-size: 11px; color: var(--text3); margin-left: 3px; }
   .kiwoom-card .k-invest-row { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
-  .k-bar-wrap { height: 4px; background: var(--bg3); border-radius: 2px; overflow: hidden; margin-top: 4px; }
-  .k-bar-invest { height: 100%; background: var(--text3); border-radius: 2px; }
-  .k-bar-eval { height: 100%; border-radius: 2px; margin-top: -4px; opacity: 0.7; }
-  .k-compare { display: flex; justify-content: space-between; font-size: 11px; margin-top: 8px; }
-  .k-compare .k-label { color: var(--text3); }
-  .k-compare .k-val { font-family: 'DM Mono', monospace; color: var(--text2); }
   .k-pnl { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
   .k-pnl-amt { font-family: 'DM Mono', monospace; font-size: 13px; }
   .k-pnl-pct { font-size: 11px; font-family: 'DM Mono', monospace; padding: 2px 7px; border-radius: 4px; }
@@ -240,8 +274,18 @@
       <div class="date" id="today-date"></div>
     </div>
     <div class="upload-btns">
+      <!-- ★ 방법1: 이미지로 토스 잔고 자동 추출 (Claude AI) -->
       <div>
-        <label class="upload-btn" for="toss-input">
+        <label class="upload-btn toss-img" for="toss-img-input" title="토스 앱 스크린샷을 업로드하면 AI가 자동으로 잔고를 읽어옵니다">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          토스 이미지 분석
+        </label>
+        <input type="file" id="toss-img-input" accept="image/*">
+        <div class="sync-status" id="toss-img-sync-status"></div>
+      </div>
+      <!-- 기존 엑셀 업로드 (폴백) -->
+      <div>
+        <label class="upload-btn" for="toss-input" title="토스모으기.xlsx 엑셀 파일 직접 업로드">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           토스 엑셀
         </label>
@@ -255,8 +299,25 @@
         </label>
         <input type="file" id="kiwoom-input" accept=".xlsx,.xls">
         <div class="sync-status kiwoom-sync" id="kiwoom-sync-status"></div>
-
       </div>
+    </div>
+  </div>
+
+  <!-- ★ AI 분석 모달 -->
+  <div id="ai-modal">
+    <div class="ai-modal-box">
+      <div class="ai-modal-title">🤖 토스 이미지 AI 분석</div>
+      <div class="ai-modal-sub">스크린샷에서 계좌별 잔고를 자동으로 추출합니다.<br>결과를 확인한 후 "대시보드 적용" 버튼을 눌러주세요.</div>
+      <img id="ai-preview" class="ai-preview" src="" alt="미리보기">
+      <div class="ai-log" id="ai-log">분석 준비 중...</div>
+      <div id="ai-result-area" style="display:none">
+        <table class="ai-result-table">
+          <thead><tr><th>계좌명</th><th style="text-align:right">잔고 (원)</th><th>기준일</th></tr></thead>
+          <tbody id="ai-result-tbody"></tbody>
+        </table>
+      </div>
+      <button class="ai-apply-btn" id="ai-apply-btn" disabled onclick="applyAiResult()">대시보드 적용</button>
+      <button class="ai-cancel-btn" onclick="closeAiModal()">닫기</button>
     </div>
   </div>
 
@@ -292,9 +353,7 @@
     </div>
     <div class="goal-bar-wrap"><div class="goal-bar-fill" id="goal-bar" style="width:0%"></div></div>
     <div class="goal-amounts"><span id="goal-current">현재: 0원</span><span id="goal-target">목표: —</span></div>
-
     <hr class="goal-divider">
-
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">
       <div class="goal-header" style="flex:1">
         <span class="goal-name" id="goal-fin-name">금융 목표자산</span>
@@ -310,23 +369,14 @@
   <div class="kiwoom-summary" id="kiwoom-summary">
     <div class="kiwoom-no-data">⬆ 키움 엑셀 업로드 후 데이터가 표시됩니다</div>
   </div>
-
-  <!-- Kiwoom 계좌별 카드 -->
-  <div class="grid-4" id="kiwoom-cards">
-    <!-- 동적 생성 -->
-  </div>
+  <div class="grid-4" id="kiwoom-cards"></div>
 
   <!-- ─── Portfolio Charts ─── -->
   <div class="section-title">📈 포트폴리오 분석</div>
   <div class="grid-2" style="margin-bottom:16px">
     <div class="chart-card">
-      <div class="chart-title">
-        계좌별 투자금 vs 평가금액
-        <span class="chart-subtitle" id="bar-date">—</span>
-      </div>
-      <div class="chart-container" style="height:220px">
-        <canvas id="bar-chart"></canvas>
-      </div>
+      <div class="chart-title">계좌별 투자금 vs 평가금액<span class="chart-subtitle" id="bar-date">—</span></div>
+      <div class="chart-container" style="height:220px"><canvas id="bar-chart"></canvas></div>
     </div>
     <div class="chart-card">
       <div class="chart-title">
@@ -337,21 +387,12 @@
           <button class="tab-btn" id="tab-all" onclick="setChartRange(0)">전체</button>
         </div>
       </div>
-      <div class="chart-container" style="height:220px">
-        <canvas id="line-chart"></canvas>
-      </div>
+      <div class="chart-container" style="height:220px"><canvas id="line-chart"></canvas></div>
     </div>
   </div>
-
-  <!-- ─── 월별 수익률 차트 ─── -->
   <div class="chart-card" style="margin-bottom:16px">
-    <div class="chart-title">
-      계좌별 누적 수익률 (%) 추이
-      <span class="chart-subtitle">투자금 대비 평가금액 기준</span>
-    </div>
-    <div class="chart-container" style="height:200px">
-      <canvas id="return-chart"></canvas>
-    </div>
+    <div class="chart-title">계좌별 누적 수익률 (%) 추이<span class="chart-subtitle">투자금 대비 평가금액 기준</span></div>
+    <div class="chart-container" style="height:200px"><canvas id="return-chart"></canvas></div>
   </div>
 
   <!-- ─── 부동산 ─── -->
@@ -405,7 +446,6 @@
       <div class="amount-row"><div class="amount" id="val-toss-practice">0</div><div class="unit">원</div></div>
       <div class="sub-info">토스 모으기 계좌<br><span id="date-toss-practice" style="font-size:10px">—</span></div>
     </div>
-    <!-- 주택자금: 부동산으로 분류 -->
     <div class="asset-card" id="card-bank-housing">
       <button class="edit-trigger" onclick="openEdit('bank-housing')">✎</button>
       <div class="cat-badge badge-realty">은행 <span style="opacity:.6;font-size:9px">→ 부동산</span></div>
@@ -418,7 +458,6 @@
         <div class="edit-btns"><button class="btn-save" onclick="saveEdit('bank-housing')">저장</button><button class="btn-cancel" onclick="closeEdit('bank-housing')">취소</button></div>
       </div>
     </div>
-    <!-- 월세: 금융자산으로 분류 -->
     <div class="asset-card" id="card-bank-rent">
       <button class="edit-trigger" onclick="openEdit('bank-rent')">✎</button>
       <div class="cat-badge badge-bank">은행 <span style="opacity:.6;font-size:9px">→ 금융</span></div>
@@ -431,7 +470,6 @@
         <div class="edit-btns"><button class="btn-save" onclick="saveEdit('bank-rent')">저장</button><button class="btn-cancel" onclick="closeEdit('bank-rent')">취소</button></div>
       </div>
     </div>
-    <!-- 일반계좌: 금융자산으로 분류 -->
     <div class="asset-card" id="card-bank-general">
       <button class="edit-trigger" onclick="openEdit('bank-general')">✎</button>
       <div class="cat-badge badge-bank">은행 <span style="opacity:.6;font-size:9px">→ 금융</span></div>
@@ -507,7 +545,6 @@
   <div id="goal-edit-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;align-items:center;justify-content:center">
     <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:32px;width:400px;max-width:95vw">
       <div style="font-size:15px;color:var(--text);margin-bottom:20px;font-weight:500">목표 자산 설정</div>
-
       <div style="font-size:11px;color:var(--gold2);letter-spacing:1px;margin-bottom:10px">📊 총 목표자산</div>
       <div style="margin-bottom:10px">
         <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:5px">목표 이름</label>
@@ -517,9 +554,7 @@
         <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:5px">목표 금액 (만원)</label>
         <input id="inp-goal-target" type="number" placeholder="예: 100000" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:10px 14px;border-radius:8px;font-size:14px;outline:none;font-family:'DM Mono',monospace;box-sizing:border-box">
       </div>
-
       <hr style="border:none;border-top:1px solid var(--border);margin-bottom:18px">
-
       <div style="font-size:11px;color:var(--teal);letter-spacing:1px;margin-bottom:10px">💰 금융 목표자산 (부동산 제외)</div>
       <div style="margin-bottom:10px">
         <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:5px">목표 이름</label>
@@ -529,7 +564,6 @@
         <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:5px">목표 금액 (만원)</label>
         <input id="inp-goal-fin-target" type="number" placeholder="예: 50000" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:10px 14px;border-radius:8px;font-size:14px;outline:none;font-family:'DM Mono',monospace;box-sizing:border-box">
       </div>
-
       <div style="display:flex;gap:10px">
         <button onclick="saveGoal()" style="flex:1;background:var(--gold);color:#000;border:none;padding:11px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif">저장</button>
         <button onclick="closeGoalEdit()" style="flex:1;background:var(--bg3);color:var(--text2);border:1px solid var(--border2);padding:11px;border-radius:8px;font-size:13px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">취소</button>
@@ -555,29 +589,176 @@
 //  STATE
 // ═══════════════════════════════════════════
 const MANUAL_KEYS = ['apt-owned','apt-rent','bank-housing','bank-rent','bank-general','stock-kr1','stock-kr2','stock-us','irp1','irp2','pension-natl'];
-const TOSS_KEYS = ['toss-obil','toss-overseas','toss-pension'];
+const TOSS_KEYS = ['toss-obil','toss-overseas','toss-pension','toss-practice'];
 let state = {};
 let todos = [];
 let goal = { name: '총 목표자산', target: 0, finName: '금융 목표자산', finTarget: 0 };
 let donutChart = null, barChart = null, lineChart = null, returnChart = null;
 
-// Kiwoom data
 const KIWOOM_ACCOUNTS = ['해외', '오빌', '자사주', '개인연금저축', '별동대', '연습', '초빌'];
-const MAIN_ACCOUNTS = ['해외', '오빌', '연습', '개인연금저축', '퇴직연금001', '퇴직연금002']; // 주요 계좌
+const MAIN_ACCOUNTS = ['해외', '오빌', '연습', '개인연금저축', '퇴직연금001', '퇴직연금002'];
 const ACCT_COLORS = {
-  '해외': '#6e8efb',
-  '오빌': '#ffb347',
-  '연습': '#4ecdc4',
-  '개인연금저축': '#b089f0',
-  '자사주': '#ff6b6b',
-  '별동대': '#c9a84c',
-  '초빌': '#565a70',
-  '퇴직연금001': '#e07b6a',
-  '퇴직연금002': '#e0a06a'
+  '해외': '#6e8efb', '오빌': '#ffb347', '연습': '#4ecdc4',
+  '개인연금저축': '#b089f0', '자사주': '#ff6b6b', '별동대': '#c9a84c',
+  '초빌': '#565a70', '퇴직연금001': '#e07b6a', '퇴직연금002': '#e0a06a'
 };
 
-let kiData = null; // { combined: [{date, invest:[7], eval:[7]}] }
+let kiData = null;
 let chartRange = 12;
+
+// ★ AI 분석 결과 임시 저장
+let aiPendingResult = null;
+
+// ═══════════════════════════════════════════
+//  ★ 방법1: Claude API 이미지 분석
+// ═══════════════════════════════════════════
+document.getElementById('toss-img-input').addEventListener('change', async function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  e.target.value = '';
+
+  // 모달 열기
+  const modal = document.getElementById('ai-modal');
+  const log = document.getElementById('ai-log');
+  const resultArea = document.getElementById('ai-result-area');
+  const applyBtn = document.getElementById('ai-apply-btn');
+  const preview = document.getElementById('ai-preview');
+
+  modal.classList.add('open');
+  resultArea.style.display = 'none';
+  applyBtn.disabled = true;
+  aiPendingResult = null;
+
+  // 이미지 미리보기
+  const objectUrl = URL.createObjectURL(file);
+  preview.src = objectUrl;
+
+  // base64 변환
+  log.innerHTML = '<span class="spinner"></span> 이미지 변환 중...';
+  let base64Data, mediaType;
+  try {
+    base64Data = await fileToBase64(file);
+    mediaType = file.type || 'image/jpeg';
+  } catch(err) {
+    log.textContent = '❌ 이미지 변환 실패: ' + err.message;
+    return;
+  }
+
+  // Claude API 호출
+  log.innerHTML = '<span class="spinner"></span> Claude AI 분석 중... (잠시만 기다려 주세요)';
+
+  const prompt = `이 이미지는 토스(Toss) 앱의 모으기 계좌 목록 화면입니다.
+
+각 계좌의 이름과 현재 잔고를 추출해서 다음 JSON 형식으로만 응답해주세요.
+다른 설명 없이 JSON만 출력하세요.
+
+추출 대상 계좌 (이름이 완전히 일치하지 않아도 유사하면 포함):
+- 오빌모으기 → key: "toss-obil"
+- 해외자금모으기 → key: "toss-overseas"  
+- 연습모으기 → key: "toss-practice"
+- 개인연금저축모으기 → key: "toss-pension"
+
+응답 형식:
+{
+  "date": "YYYY-MM-DD",
+  "accounts": [
+    { "key": "toss-obil", "name": "오빌모으기", "balance": 8290000 },
+    { "key": "toss-overseas", "name": "해외자금모으기", "balance": 2430000 }
+  ]
+}
+
+date는 이미지에서 날짜를 찾을 수 없으면 오늘 날짜(${new Date().toISOString().slice(0,10)})로 설정하세요.
+balance는 원(₩) 단위 숫자로, 콤마나 기호 없이 정수만 넣으세요.
+이미지에서 보이는 계좌만 포함하세요.`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64Data } },
+            { type: 'text', text: prompt }
+          ]
+        }]
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(`API 오류 (${response.status}): ${err.error?.message || response.statusText}`);
+    }
+
+    const data = await response.json();
+    const rawText = data.content?.find(b => b.type === 'text')?.text || '';
+    log.textContent = '✅ AI 분석 완료';
+
+    // JSON 파싱
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('JSON 파싱 실패: ' + rawText.slice(0, 200));
+    const parsed = JSON.parse(jsonMatch[0]);
+
+    if (!parsed.accounts || !parsed.accounts.length) {
+      log.textContent = '⚠ 인식된 계좌가 없습니다. 다른 이미지를 시도해보세요.';
+      return;
+    }
+
+    // 결과 테이블 표시
+    aiPendingResult = parsed;
+    const tbody = document.getElementById('ai-result-tbody');
+    tbody.innerHTML = parsed.accounts.map(a =>
+      `<tr>
+        <td>${a.name || a.key}</td>
+        <td style="text-align:right;color:var(--teal)">${a.balance.toLocaleString('ko-KR')}</td>
+        <td style="color:var(--text3)">${parsed.date || '—'}</td>
+      </tr>`
+    ).join('');
+    resultArea.style.display = 'block';
+    applyBtn.disabled = false;
+    log.textContent = `✅ ${parsed.accounts.length}개 계좌 인식 완료. 아래 결과를 확인하고 "대시보드 적용"을 눌러주세요.`;
+
+  } catch(err) {
+    log.textContent = '❌ 분석 실패: ' + err.message;
+    console.error(err);
+  }
+});
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      const base64 = result.split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function applyAiResult() {
+  if (!aiPendingResult) return;
+  const { date, accounts } = aiPendingResult;
+  accounts.forEach(a => {
+    if (!a.key || !TOSS_KEYS.includes(a.key)) return;
+    state[a.key] = { val: a.balance, date: date, isFallback: false };
+  });
+  save();
+  renderAll();
+  closeAiModal();
+  const st = document.getElementById('toss-img-sync-status');
+  st.textContent = `✓ AI 적용 완료 (${accounts.length}개 계좌)`;
+  setTimeout(() => st.textContent = '', 5000);
+}
+
+function closeAiModal() {
+  document.getElementById('ai-modal').classList.remove('open');
+  aiPendingResult = null;
+}
 
 // ═══════════════════════════════════════════
 //  데이터 내보내기 / 가져오기
@@ -595,8 +776,7 @@ function exportData() {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  const today = new Date().toISOString().slice(0,10).replace(/-/g,'');
-  a.href = url; a.download = `data.json`; // GitHub에 올릴 때 이 이름 그대로 사용
+  a.href = url; a.download = `data.json`;
   a.click(); URL.revokeObjectURL(url);
 }
 
@@ -614,19 +794,16 @@ function importData(event) {
       if (data.kiwoom) localStorage.setItem('kiwoom-data', JSON.stringify(data.kiwoom));
       alert('✅ 데이터를 성공적으로 불러왔습니다. 페이지를 새로고침합니다.');
       location.reload();
-    } catch(err) {
-      alert('❌ 파일을 읽는 중 오류가 발생했습니다: ' + err.message);
-    }
+    } catch(err) { alert('❌ 파일을 읽는 중 오류가 발생했습니다: ' + err.message); }
   };
   reader.readAsText(file);
-  event.target.value = ''; // 같은 파일 재선택 허용
+  event.target.value = '';
 }
 
 // ═══════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════
 function init() {
-  // GitHub Pages에서 data.json 자동 로드 (있을 경우)
   fetch('./data.json?t=' + Date.now())
     .then(r => { if (!r.ok) throw new Error('no file'); return r.json(); })
     .then(data => {
@@ -644,10 +821,7 @@ function init() {
       } catch(e) { console.warn('data.json 적용 오류:', e); }
       _initCore();
     })
-    .catch(e => {
-      console.log('data.json 없음 또는 로컬 실행 → localStorage 사용');
-      _initCore();
-    });
+    .catch(() => { console.log('data.json 없음 → localStorage 사용'); _initCore(); });
 }
 
 function _initCore() {
@@ -663,7 +837,7 @@ function _initCore() {
   setDate();
   initCharts();
   renderAll();
-  addDefaultTodos(); // localStorage 로드 후 → 저장값 있으면 건드리지 않음
+  addDefaultTodos();
   renderTodos();
   if (kiData) renderKiwoom();
 }
@@ -672,7 +846,6 @@ function setDate() {
   const d = new Date();
   document.getElementById('today-date').textContent = d.toLocaleDateString('ko-KR', { year:'numeric', month:'long', day:'numeric', weekday:'long' });
 }
-
 function save() { localStorage.setItem('asset-dashboard-v3', JSON.stringify(state)); }
 
 // ═══════════════════════════════════════════
@@ -699,7 +872,6 @@ function openEdit(key) {
   const mi = document.getElementById('inp-' + key + '-memo');
   if (vi) vi.value = d.val || '';
   if (mi) mi.value = d.memo || '';
-  // 보유 아파트 전세보증금
   const ji = document.getElementById('inp-' + key + '-jeonse');
   if (ji) ji.value = d.jeonse || '';
   el.classList.add('open');
@@ -714,7 +886,6 @@ function saveEdit(key) {
   if (!state[key]) state[key] = {};
   if (vi) state[key].val = parseFloat(vi.value) || 0;
   if (mi) state[key].memo = mi.value;
-  // 보유 아파트 전세보증금
   const ji = document.getElementById('inp-' + key + '-jeonse');
   if (ji) state[key].jeonse = parseFloat(ji.value) || 0;
   save();
@@ -758,26 +929,21 @@ function renderAll() {
       } else if (k === 'irp1' || k === 'irp2') {
         const idxMap = { 'irp1': 7, 'irp2': 8 };
         const idx = idxMap[k];
-        const kiEval = (kiData && kiData.combined && kiData.combined.length > 0)
-          ? (kiData.combined[kiData.combined.length-1].eval[idx] || 0) : 0;
+        const kiEval = (kiData && kiData.combined && kiData.combined.length > 0) ? (kiData.combined[kiData.combined.length-1].eval[idx] || 0) : 0;
         const invest = (d.val || 0) * 10000;
         if (kiEval > 0) {
-          // 카드 main 금액을 평가금으로 표시
           el.textContent = fmt(kiEval / 10000);
           const pnl = kiEval - invest;
           const pnlColor = pnl >= 0 ? 'var(--teal)' : '#ff6b6b';
           const pnlSign = pnl >= 0 ? '+' : '';
           const memoStr = d.memo ? d.memo.replace(/\n/g,'<br>') + '<br>' : '';
-          sub.innerHTML = memoStr
-            + `투자금 ${fmt(invest/10000)}만 · 평가 <b style="color:var(--gold2)">${fmt(kiEval/10000)}만</b> `
-            + `<span style="color:${pnlColor}">(${pnlSign}${fmt(pnl/10000)}만)</span>`;
+          sub.innerHTML = memoStr + `투자금 ${fmt(invest/10000)}만 · 평가 <b style="color:var(--gold2)">${fmt(kiEval/10000)}만</b> <span style="color:${pnlColor}">(${pnlSign}${fmt(pnl/10000)}만)</span>`;
         } else {
           sub.innerHTML = d.memo ? d.memo.replace(/\n/g,'<br>') : '✎ 카드를 눌러 수정';
         }
       } else if (k === 'apt-owned' && d.jeonse > 0) {
         const net = (d.val || 0) - (d.jeonse || 0);
-        sub.innerHTML = (d.memo ? d.memo.replace(/\n/g,'<br>') + '<br>' : '')
-          + '<span style="color:var(--text3)">전세보증금 -' + (d.jeonse||0).toLocaleString() + '만 → 순자산 <b style=\"color:var(--gold2)\">' + net.toLocaleString() + '만</b></span>';
+        sub.innerHTML = (d.memo ? d.memo.replace(/\n/g,'<br>') + '<br>' : '') + '<span style="color:var(--text3)">전세보증금 -' + (d.jeonse||0).toLocaleString() + '만 → 순자산 <b style="color:var(--gold2)">' + net.toLocaleString() + '만</b></span>';
       } else if (k === 'bank-housing') {
         const memoStr = d.memo ? d.memo.replace(/\n/g,'<br>') + '<br>' : '';
         sub.innerHTML = memoStr + '<span style="color:var(--blue);font-size:10px">🏢 부동산 자산으로 분류됨</span>';
@@ -789,12 +955,12 @@ function renderAll() {
       }
     }
   });
-  // 토스 잔고 + 날짜 표시 (저장된 isFallback 반영)
+
   const TOSS_MAP = {
-    'toss-obil':     ['val-toss-obil',     'date-toss-obil'],
-    'toss-overseas': ['val-toss-overseas',  'date-toss-overseas'],
-    'toss-pension':   ['val-toss-pension',    'date-toss-pension'],
-    'toss-practice':  ['val-toss-practice',  'date-toss-practice'],
+    'toss-obil':     ['val-toss-obil',    'date-toss-obil'],
+    'toss-overseas': ['val-toss-overseas', 'date-toss-overseas'],
+    'toss-pension':  ['val-toss-pension',  'date-toss-pension'],
+    'toss-practice': ['val-toss-practice', 'date-toss-practice'],
   };
   Object.entries(TOSS_MAP).forEach(([k, [valId, dateId]]) => {
     const d = state[k] || {};
@@ -819,30 +985,22 @@ function totalOf(key) { return ((state[key] || {}).val || 0) * 10000; }
 function updateTotals() {
   const aptOwnedGross = totalOf('apt-owned');
   const jeonse = ((state['apt-owned'] || {}).jeonse || 0) * 10000;
-  // 부동산 = 보유아파트(전세차감) + 임차보증금 + 주택자금
   const realty = (aptOwnedGross - jeonse) + totalOf('apt-rent') + totalOf('bank-housing');
 
-  // 키움 계좌별 평가금액 (최신 데이터 기준)
-  // AI = {해외:0, 오빌:1, 자사주:2, 개인연금저축:3, 별동대:4, 연습:5, 초빌:6}
   let kiFinancial = 0, kiPension = 0, kiIrp1 = 0, kiIrp2 = 0;
   if (kiData && kiData.combined && kiData.combined.length > 0) {
     const latest = kiData.combined[kiData.combined.length - 1];
     const ev = latest.eval || [];
-    // 금융자산: 해외(0), 오빌(1), 자사주(2), 별동대(4), 연습(5), 초빌(6)
     [0, 1, 2, 4, 5, 6].forEach(i => { kiFinancial += (ev[i] || 0); });
-    // 연금: 개인연금저축(3)
     kiPension += (ev[3] || 0);
-    // IRP: 퇴직연금001(7), 퇴직연금002(8)
     kiIrp1 = ev[7] || 0;
     kiIrp2 = ev[8] || 0;
   }
 
-  // 금융자산 = 월세계좌 + 일반계좌 + 주식 + 토스모으기 + 키움평가금
   const financial = totalOf('bank-rent') + totalOf('bank-general')
     + totalOf('stock-kr1') + totalOf('stock-kr2') + totalOf('stock-us')
     + (state['toss-obil']?.val || 0) + (state['toss-overseas']?.val || 0)
     + kiFinancial;
-  // IRP 평가금이 있으면 kiData 우선, 없으면 수동입력 투자금으로 폴백
   const irp1Val = kiIrp1 > 0 ? kiIrp1 : totalOf('irp1');
   const irp2Val = kiIrp2 > 0 ? kiIrp2 : totalOf('irp2');
   const pension = irp1Val + irp2Val + (state['toss-pension']?.val || 0) + kiPension;
@@ -861,28 +1019,21 @@ function updateTotals() {
 
 function updateGoal() {
   const { grand, nonRealty } = updateTotals();
-
-  // 총 목표자산
   const targetWon = (goal.target || 0) * 10000;
   const pct = targetWon > 0 ? Math.min(100, (grand / targetWon) * 100) : 0;
   document.getElementById('goal-name').textContent = goal.name || '총 목표자산';
   document.getElementById('goal-pct').textContent = pct.toFixed(1) + '%';
   document.getElementById('goal-bar').style.width = pct + '%';
   document.getElementById('goal-current').textContent = '현재: ' + fmtWon(grand);
-  document.getElementById('goal-target').textContent = goal.target
-    ? '목표: ' + (goal.target >= 10000 ? (goal.target/10000).toFixed(0) + '억' : goal.target.toLocaleString() + '만')
-    : '목표 미설정';
+  document.getElementById('goal-target').textContent = goal.target ? '목표: ' + (goal.target >= 10000 ? (goal.target/10000).toFixed(0) + '억' : goal.target.toLocaleString() + '만') : '목표 미설정';
 
-  // 금융 목표자산 (부동산 제외)
   const finTargetWon = (goal.finTarget || 0) * 10000;
   const finPct = finTargetWon > 0 ? Math.min(100, (nonRealty / finTargetWon) * 100) : 0;
   document.getElementById('goal-fin-name').textContent = goal.finName || '금융 목표자산';
   document.getElementById('goal-fin-pct').textContent = finPct.toFixed(1) + '%';
   document.getElementById('goal-fin-bar').style.width = finPct + '%';
   document.getElementById('goal-fin-current').textContent = '현재: ' + fmtWon(nonRealty);
-  document.getElementById('goal-fin-target').textContent = goal.finTarget
-    ? '목표: ' + (goal.finTarget >= 10000 ? (goal.finTarget/10000).toFixed(0) + '억' : goal.finTarget.toLocaleString() + '만')
-    : '목표 미설정';
+  document.getElementById('goal-fin-target').textContent = goal.finTarget ? '목표: ' + (goal.finTarget >= 10000 ? (goal.finTarget/10000).toFixed(0) + '억' : goal.finTarget.toLocaleString() + '만') : '목표 미설정';
 }
 
 // ═══════════════════════════════════════════
@@ -892,94 +1043,46 @@ const CAT_LABELS = ['부동산', '금융자산', '연금/IRP'];
 const CAT_COLORS = ['#6e8efb', '#4ecdc4', '#c9a84c'];
 
 function initCharts() {
-  // Donut
   const ctx = document.getElementById('donut-chart').getContext('2d');
   donutChart = new Chart(ctx, {
     type: 'doughnut',
     data: { labels: CAT_LABELS, datasets: [{ data: [1,1,1], backgroundColor: CAT_COLORS, borderWidth: 0, hoverOffset: 4 }] },
-    options: {
-      cutout: '72%',
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + fmtWon(c.raw) + ' (' + ((c.raw/c.dataset.data.reduce((a,b)=>a+b,0))*100).toFixed(1) + '%)' } } },
-      animation: { duration: 600 }
-    }
+    options: { cutout: '72%', plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + fmtWon(c.raw) + ' (' + ((c.raw/c.dataset.data.reduce((a,b)=>a+b,0))*100).toFixed(1) + '%)' } } }, animation: { duration: 600 } }
   });
 
-  // Bar chart (계좌별 투자금 vs 평가금액)
   const bCtx = document.getElementById('bar-chart').getContext('2d');
   barChart = new Chart(bCtx, {
     type: 'bar',
-    data: {
-      labels: [],
-      datasets: [
-        { label: '투자금', data: [], backgroundColor: 'rgba(144,149,168,0.35)', borderColor: 'rgba(144,149,168,0.6)', borderWidth: 1, borderRadius: 3 },
-        { label: '평가금액', data: [], backgroundColor: [], borderWidth: 0, borderRadius: 3 }
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: true, position: 'top', labels: { color: '#9095a8', font: { size: 11 }, boxWidth: 10, padding: 12 } },
-        tooltip: { callbacks: { label: c => ' ' + c.dataset.label + ': ' + fmtWon(c.raw) } }
-      },
-      scales: {
-        x: { ticks: { color: '#9095a8', font: { size: 11 } }, grid: { color: '#1e2030' } },
-        y: { ticks: { color: '#9095a8', font: { size: 10 }, callback: v => fmtWon(v) }, grid: { color: '#1e2030' } }
-      }
+    data: { labels: [], datasets: [
+      { label: '투자금', data: [], backgroundColor: 'rgba(144,149,168,0.35)', borderColor: 'rgba(144,149,168,0.6)', borderWidth: 1, borderRadius: 3 },
+      { label: '평가금액', data: [], backgroundColor: [], borderWidth: 0, borderRadius: 3 }
+    ]},
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, position: 'top', labels: { color: '#9095a8', font: { size: 11 }, boxWidth: 10, padding: 12 } }, tooltip: { callbacks: { label: c => ' ' + c.dataset.label + ': ' + fmtWon(c.raw) } } },
+      scales: { x: { ticks: { color: '#9095a8', font: { size: 11 } }, grid: { color: '#1e2030' } }, y: { ticks: { color: '#9095a8', font: { size: 10 }, callback: v => fmtWon(v) }, grid: { color: '#1e2030' } } }
     }
   });
 
-  // Line chart (월별 총 평가금액)
   const lCtx = document.getElementById('line-chart').getContext('2d');
   lineChart = new Chart(lCtx, {
     type: 'line',
-    data: {
-      labels: [],
-      datasets: [
-        { label: '총 평가금액', data: [], borderColor: '#c9a84c', backgroundColor: 'rgba(201,168,76,0.08)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 2, pointHoverRadius: 5 },
-        { label: '총 투자금', data: [], borderColor: '#565a70', backgroundColor: 'transparent', borderWidth: 1.5, borderDash: [4,3], fill: false, tension: 0.3, pointRadius: 0 }
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: true, position: 'top', labels: { color: '#9095a8', font: { size: 11 }, boxWidth: 10, padding: 12 } },
-        tooltip: { callbacks: {
-          label: c => ' ' + c.dataset.label + ': ' + fmtWon(c.raw),
-          afterBody: (items) => {
-            if (items.length >= 2) {
-              const eval_ = items[0].raw, inv = items[1].raw;
-              if (inv > 0) return ['  수익률: ' + fmtPct((eval_/inv - 1)*100)];
-            }
-            return [];
-          }
-        } }
-      },
-      scales: {
-        x: { ticks: { color: '#9095a8', font: { size: 10 }, maxTicksLimit: 8 }, grid: { color: '#1e2030' } },
-        y: { ticks: { color: '#9095a8', font: { size: 10 }, callback: v => fmtWon(v) }, grid: { color: '#1e2030' } }
-      }
+    data: { labels: [], datasets: [
+      { label: '총 평가금액', data: [], borderColor: '#c9a84c', backgroundColor: 'rgba(201,168,76,0.08)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 2, pointHoverRadius: 5 },
+      { label: '총 투자금', data: [], borderColor: '#565a70', backgroundColor: 'transparent', borderWidth: 1.5, borderDash: [4,3], fill: false, tension: 0.3, pointRadius: 0 }
+    ]},
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, position: 'top', labels: { color: '#9095a8', font: { size: 11 }, boxWidth: 10, padding: 12 } }, tooltip: { callbacks: { label: c => ' ' + c.dataset.label + ': ' + fmtWon(c.raw), afterBody: (items) => { if (items.length >= 2) { const eval_ = items[0].raw, inv = items[1].raw; if (inv > 0) return ['  수익률: ' + fmtPct((eval_/inv-1)*100)]; } return []; } } } },
+      scales: { x: { ticks: { color: '#9095a8', font: { size: 10 }, maxTicksLimit: 8 }, grid: { color: '#1e2030' } }, y: { ticks: { color: '#9095a8', font: { size: 10 }, callback: v => fmtWon(v) }, grid: { color: '#1e2030' } } }
     }
   });
 
-  // Return rate chart
   const rCtx = document.getElementById('return-chart').getContext('2d');
   returnChart = new Chart(rCtx, {
     type: 'line',
     data: { labels: [], datasets: [] },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: true, position: 'top', labels: { color: '#9095a8', font: { size: 11 }, boxWidth: 10, padding: 12 } },
-        tooltip: { callbacks: { label: c => ' ' + c.dataset.label + ': ' + fmtPct(c.raw) } }
-      },
-      scales: {
-        x: { ticks: { color: '#9095a8', font: { size: 10 }, maxTicksLimit: 10 }, grid: { color: '#1e2030' } },
-        y: {
-          ticks: { color: '#9095a8', font: { size: 10 }, callback: v => v + '%' },
-          grid: { color: '#1e2030' },
-          afterDataLimits: scale => { scale.min = Math.floor(scale.min/10)*10 - 5; scale.max = Math.ceil(scale.max/10)*10 + 5; }
-        }
-      }
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, position: 'top', labels: { color: '#9095a8', font: { size: 11 }, boxWidth: 10, padding: 12 } }, tooltip: { callbacks: { label: c => ' ' + c.dataset.label + ': ' + fmtPct(c.raw) } } },
+      scales: { x: { ticks: { color: '#9095a8', font: { size: 10 }, maxTicksLimit: 10 }, grid: { color: '#1e2030' } }, y: { ticks: { color: '#9095a8', font: { size: 10 }, callback: v => v + '%' }, grid: { color: '#1e2030' }, afterDataLimits: scale => { scale.min = Math.floor(scale.min/10)*10 - 5; scale.max = Math.ceil(scale.max/10)*10 + 5; } } }
     }
   });
 }
@@ -994,7 +1097,6 @@ function updateDonut(r, f, p) {
   const pct = v => total > 0 ? ' ' + ((v/total)*100).toFixed(0) + '%' : '';
   lg.innerHTML = CAT_LABELS.map((l,i) => `<div class="legend-item"><div class="legend-dot" style="background:${CAT_COLORS[i]}"></div>${l}${pct([r,f,p][i])}</div>`).join('');
 }
-
 function updateAllocBar(r, f, p, total) {
   const bar = document.getElementById('alloc-bar');
   if (!bar || total === 0) return;
@@ -1008,83 +1110,41 @@ function renderKiwoom() {
   if (!kiData || !kiData.combined || kiData.combined.length === 0) return;
   const latest = kiData.combined[kiData.combined.length - 1];
   const prev = kiData.combined.length > 1 ? kiData.combined[kiData.combined.length - 2] : null;
-
-  // 계좌 인덱스: 해외=0, 오빌=1, 자사주=2, 개인연금저축=3, 별동대=4, 연습=5, 초빌=6
   const AI = { '해외':0, '오빌':1, '자사주':2, '개인연금저축':3, '별동대':4, '연습':5, '초빌':6, '퇴직연금001':7, '퇴직연금002':8 };
-
-  // 총합 계산 (주요 계좌만)
   const mainAccounts = MAIN_ACCOUNTS;
   let totalInvest = 0, totalEval = 0;
   const IRP_INVEST_KEY_S = { '퇴직연금001': 'irp1', '퇴직연금002': 'irp2' };
   mainAccounts.forEach(a => {
     const i = AI[a];
     const irpKey = IRP_INVEST_KEY_S[a];
-    totalInvest += irpKey
-      ? ((state[irpKey] || {}).val || 0) * 10000
-      : (latest.invest[i] || 0);
+    totalInvest += irpKey ? ((state[irpKey] || {}).val || 0) * 10000 : (latest.invest[i] || 0);
     totalEval += (latest.eval[i] || 0);
   });
-
   const totalPnl = totalEval - totalInvest;
   const totalPct = totalInvest > 0 ? (totalEval / totalInvest - 1) * 100 : 0;
   const pctClass = totalPct >= 0 ? 'pct-pos' : 'pct-neg';
-
-  // 전월 대비
   let momEval = 0;
-  if (prev) {
-    mainAccounts.forEach(a => { const i = AI[a]; momEval += (latest.eval[i] || 0) - (prev.eval[i] || 0); });
-  }
+  if (prev) mainAccounts.forEach(a => { const i = AI[a]; momEval += (latest.eval[i] || 0) - (prev.eval[i] || 0); });
 
-  // Summary bar
-  const summary = document.getElementById('kiwoom-summary');
-  summary.innerHTML = `
-    <div class="ks-item">
-      <div class="ks-label">기준일</div>
-      <div class="ks-val" style="font-size:14px">${latest.date}</div>
-    </div>
+  document.getElementById('kiwoom-summary').innerHTML = `
+    <div class="ks-item"><div class="ks-label">기준일</div><div class="ks-val" style="font-size:14px">${latest.date}</div></div>
     <div class="ks-div"></div>
-    <div class="ks-item">
-      <div class="ks-label">총 투자금 (주요 6계좌)</div>
-      <div class="ks-val">${fmtWon(totalInvest)}</div>
-    </div>
+    <div class="ks-item"><div class="ks-label">총 투자금 (주요 6계좌)</div><div class="ks-val">${fmtWon(totalInvest)}</div></div>
     <div class="ks-div"></div>
-    <div class="ks-item">
-      <div class="ks-label">총 평가금액</div>
-      <div class="ks-val" style="color:var(--gold2)">${fmtWon(totalEval)}</div>
-    </div>
+    <div class="ks-item"><div class="ks-label">총 평가금액</div><div class="ks-val" style="color:var(--gold2)">${fmtWon(totalEval)}</div></div>
     <div class="ks-div"></div>
-    <div class="ks-item">
-      <div class="ks-label">평가손익</div>
-      <div class="ks-val ${totalPnl >= 0 ? 'pos' : 'neg'}">${fmtWon(totalPnl)}</div>
-    </div>
+    <div class="ks-item"><div class="ks-label">평가손익</div><div class="ks-val ${totalPnl >= 0 ? 'pos' : 'neg'}">${fmtWon(totalPnl)}</div></div>
     <div class="ks-div"></div>
-    <div class="ks-item">
-      <div class="ks-label">수익률</div>
-      <div class="ks-val"><span class="k-pnl-pct ${pctClass}">${fmtPct(totalPct)}</span></div>
-    </div>
+    <div class="ks-item"><div class="ks-label">수익률</div><div class="ks-val"><span class="k-pnl-pct ${pctClass}">${fmtPct(totalPct)}</span></div></div>
     ${prev ? `<div class="ks-div"></div><div class="ks-item"><div class="ks-label">전월 대비</div><div class="ks-val ${momEval>=0?'pos':'neg'}">${momEval>=0?'+':''}${fmtWon(momEval)}</div></div>` : ''}
   `;
 
-  // IRP 계좌명 → 표시명 매핑
-  const ACCT_LABEL = {
-    '퇴직연금001': 'IRP 1',
-    '퇴직연금002': 'IRP 2'
-  };
-  // IRP 투자금 수동입력 매핑 (키움 입출에 없으므로)
-  const IRP_INVEST_KEY = {
-    '퇴직연금001': 'irp1',
-    '퇴직연금002': 'irp2'
-  };
-
-  // 계좌 카드 (주요 6개)
-  const cardContainer = document.getElementById('kiwoom-cards');
-  cardContainer.innerHTML = mainAccounts.map(acct => {
+  const ACCT_LABEL = { '퇴직연금001': 'IRP 1', '퇴직연금002': 'IRP 2' };
+  const IRP_INVEST_KEY = { '퇴직연금001': 'irp1', '퇴직연금002': 'irp2' };
+  document.getElementById('kiwoom-cards').innerHTML = mainAccounts.map(acct => {
     const i = AI[acct];
-    // IRP는 invest를 수동입력에서 가져옴
     const investKey = IRP_INVEST_KEY[acct];
-    const invest = investKey
-      ? ((state[investKey] || {}).val || 0) * 10000
-      : (latest.invest[i] || 0);
+    const invest = investKey ? ((state[investKey] || {}).val || 0) * 10000 : (latest.invest[i] || 0);
     const evalu = latest.eval[i] || 0;
     const pnl = evalu - invest;
     const pct = invest > 0 ? (evalu / invest - 1) * 100 : 0;
@@ -1093,136 +1153,85 @@ function renderKiwoom() {
     const pnlCls = pnl > 0 ? 'pos' : pnl < 0 ? 'neg' : '';
     const label = ACCT_LABEL[acct] || acct;
     const badge = investKey ? 'IRP' : '키움';
-
-    // 비율 바 (투자금 대비 평가금액 비율)
     const evalPct = invest > 0 ? Math.min(Math.abs(evalu / invest) * 100, 200) : 0;
-    const investPct = 100;
-    const barBase = Math.max(evalPct, investPct);
-
-    return `
-      <div class="kiwoom-card" style="border-top: 2px solid ${color}">
-        <div class="k-acct">${label} 계좌<span class="kiwoom-badge">${badge}</span></div>
-        <div class="k-eval">${fmtWon(evalu)}<span class="k-unit">평가</span></div>
-        <div class="k-invest-row">
-          <div style="font-size:11px;color:var(--text3);display:flex;justify-content:space-between">
-            <span>투자금</span><span style="color:var(--text2)">${fmtWon(invest)}</span>
-          </div>
-          <div style="position:relative;height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;margin-top:2px">
-            <div style="position:absolute;top:0;left:0;height:100%;width:${(investPct/barBase*100).toFixed(1)}%;background:var(--text3);border-radius:4px;opacity:0.5"></div>
-            <div style="position:absolute;top:0;left:0;height:100%;width:${(evalPct/barBase*100).toFixed(1)}%;background:${color};border-radius:4px;opacity:0.7"></div>
-          </div>
-        </div>
-        <div class="k-pnl">
-          <div class="k-pnl-amt ${pnlCls}">${pnl >= 0 ? '+' : ''}${fmtWon(pnl)}</div>
-          <div class="k-pnl-pct ${pctCls}">${fmtPct(pct)}</div>
+    const barBase = Math.max(evalPct, 100);
+    return `<div class="kiwoom-card" style="border-top:2px solid ${color}">
+      <div class="k-acct">${label} 계좌<span class="kiwoom-badge">${badge}</span></div>
+      <div class="k-eval">${fmtWon(evalu)}<span class="k-unit">평가</span></div>
+      <div class="k-invest-row">
+        <div style="font-size:11px;color:var(--text3);display:flex;justify-content:space-between"><span>투자금</span><span style="color:var(--text2)">${fmtWon(invest)}</span></div>
+        <div style="position:relative;height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;margin-top:2px">
+          <div style="position:absolute;top:0;left:0;height:100%;width:${(100/barBase*100).toFixed(1)}%;background:var(--text3);border-radius:4px;opacity:0.5"></div>
+          <div style="position:absolute;top:0;left:0;height:100%;width:${(evalPct/barBase*100).toFixed(1)}%;background:${color};border-radius:4px;opacity:0.7"></div>
         </div>
       </div>
-    `;
+      <div class="k-pnl"><div class="k-pnl-amt ${pnlCls}">${pnl >= 0 ? '+' : ''}${fmtWon(pnl)}</div><div class="k-pnl-pct ${pctCls}">${fmtPct(pct)}</div></div>
+    </div>`;
   }).join('');
 
-  // Bar chart 업데이트
   updateBarChart(latest, AI);
-
-  // Line/Return charts
   updateLineChart();
   updateReturnChart();
 }
 
 function updateBarChart(latest, AI) {
   if (!barChart) return;
-  const accounts = MAIN_ACCOUNTS;
-  const labels = accounts;
   const IRP_INVEST_BAR = { '퇴직연금001': 'irp1', '퇴직연금002': 'irp2' };
-  const investData = accounts.map(a => {
-    const irpKey = IRP_INVEST_BAR[a];
-    return irpKey ? ((state[irpKey] || {}).val || 0) * 10000 : (latest.invest[AI[a]] || 0);
-  });
-  const evalData = accounts.map(a => latest.eval[AI[a]] || 0);
-  const bgColors = accounts.map(a => ACCT_COLORS[a] + 'bb');
-
   const IRP_LABEL_B = { '퇴직연금001': 'IRP 1', '퇴직연금002': 'IRP 2' };
-  barChart.data.labels = labels.map(a => IRP_LABEL_B[a] || a);
+  const investData = MAIN_ACCOUNTS.map(a => { const k = IRP_INVEST_BAR[a]; return k ? ((state[k]||{}).val||0)*10000 : (latest.invest[AI[a]]||0); });
+  const evalData = MAIN_ACCOUNTS.map(a => latest.eval[AI[a]] || 0);
+  barChart.data.labels = MAIN_ACCOUNTS.map(a => IRP_LABEL_B[a] || a);
   barChart.data.datasets[0].data = investData;
   barChart.data.datasets[1].data = evalData;
-  barChart.data.datasets[1].backgroundColor = bgColors;
+  barChart.data.datasets[1].backgroundColor = MAIN_ACCOUNTS.map(a => ACCT_COLORS[a] + 'bb');
   barChart.update();
-
   document.getElementById('bar-date').textContent = latest.date + ' 기준';
 }
 
 function setChartRange(months) {
   chartRange = months;
   ['tab-12m','tab-24m','tab-all'].forEach(id => document.getElementById(id)?.classList.remove('active'));
-  const tabId = months === 12 ? 'tab-12m' : months === 24 ? 'tab-24m' : 'tab-all';
-  document.getElementById(tabId)?.classList.add('active');
+  document.getElementById(months === 12 ? 'tab-12m' : months === 24 ? 'tab-24m' : 'tab-all')?.classList.add('active');
   updateLineChart();
   updateReturnChart();
 }
 
 function getFilteredData() {
   if (!kiData) return [];
-  const combined = kiData.combined;
-  if (chartRange === 0) return combined;
-  return combined.slice(-chartRange);
+  return chartRange === 0 ? kiData.combined : kiData.combined.slice(-chartRange);
 }
 
 function updateLineChart() {
   if (!lineChart || !kiData) return;
   const data = getFilteredData();
-  const labels = data.map(r => r.date.slice(0, 7));
-
-  // 총 평가금액 / 총 투자금 (주요 6계좌)
-  const AI = { '해외':0, '오빌':1, '자사주':2, '개인연금저축':3, '별동대':4, '연습':5, '초빌':6, '퇴직연금001':7, '퇴직연금002':8 };
-  const evalTotals = data.map(r => MAIN_ACCOUNTS.reduce((s, a) => s + (r.eval[AI[a]] || 0), 0));
-  const investTotals = data.map(r => MAIN_ACCOUNTS.reduce((s, a) => s + (r.invest[AI[a]] || 0), 0));
-
-  lineChart.data.labels = labels;
-  lineChart.data.datasets[0].data = evalTotals;
-  lineChart.data.datasets[1].data = investTotals;
+  const AI = { '해외':0,'오빌':1,'자사주':2,'개인연금저축':3,'별동대':4,'연습':5,'초빌':6,'퇴직연금001':7,'퇴직연금002':8 };
+  lineChart.data.labels = data.map(r => r.date.slice(0,7));
+  lineChart.data.datasets[0].data = data.map(r => MAIN_ACCOUNTS.reduce((s,a) => s+(r.eval[AI[a]]||0),0));
+  lineChart.data.datasets[1].data = data.map(r => MAIN_ACCOUNTS.reduce((s,a) => s+(r.invest[AI[a]]||0),0));
   lineChart.update();
 }
 
 function updateReturnChart() {
   if (!returnChart || !kiData) return;
   const data = getFilteredData();
-  const labels = data.map(r => r.date.slice(0, 7));
-  const AI = { '해외':0, '오빌':1, '자사주':2, '개인연금저축':3, '별동대':4, '연습':5, '초빌':6, '퇴직연금001':7, '퇴직연금002':8 };
-
-  // IRP는 키움 입출에 없으므로 수동 입력값을 고정 투자금으로 사용
+  const AI = { '해외':0,'오빌':1,'자사주':2,'개인연금저축':3,'별동대':4,'연습':5,'초빌':6,'퇴직연금001':7,'퇴직연금002':8 };
   const IRP_INVEST_RC = { '퇴직연금001': 'irp1', '퇴직연금002': 'irp2' };
   const IRP_LABEL_RC  = { '퇴직연금001': 'IRP 1', '퇴직연금002': 'IRP 2' };
-
-  const datasets = MAIN_ACCOUNTS.map(acct => {
-    const color = ACCT_COLORS[acct];
+  returnChart.data.labels = data.map(r => r.date.slice(0,7));
+  returnChart.data.datasets = MAIN_ACCOUNTS.map(acct => {
     const irpKey = IRP_INVEST_RC[acct];
-    const fixedInvest = irpKey ? ((state[irpKey] || {}).val || 0) * 10000 : 0;
-
-    const returns = data.map(r => {
-      const invest = irpKey ? fixedInvest : (r.invest[AI[acct]] || 0);
-      const evalu = r.eval[AI[acct]] || 0;
-      if (invest <= 0 || evalu <= 0) return null;
-      return parseFloat(((evalu / invest - 1) * 100).toFixed(2));
-    });
+    const fixedInvest = irpKey ? ((state[irpKey]||{}).val||0)*10000 : 0;
     return {
       label: IRP_LABEL_RC[acct] || acct,
-      data: returns,
-      borderColor: color,
-      backgroundColor: 'transparent',
-      borderWidth: 2,
-      tension: 0.3,
-      pointRadius: 2,
-      pointHoverRadius: 5,
-      spanGaps: true
+      data: data.map(r => { const invest = irpKey ? fixedInvest : (r.invest[AI[acct]]||0); const evalu = r.eval[AI[acct]]||0; if (invest<=0||evalu<=0) return null; return parseFloat(((evalu/invest-1)*100).toFixed(2)); }),
+      borderColor: ACCT_COLORS[acct], backgroundColor: 'transparent', borderWidth: 2, tension: 0.3, pointRadius: 2, pointHoverRadius: 5, spanGaps: true
     };
   });
-
-  returnChart.data.labels = labels;
-  returnChart.data.datasets = datasets;
   returnChart.update();
 }
 
 // ═══════════════════════════════════════════
-//  TOSS EXCEL UPLOAD
+//  TOSS EXCEL UPLOAD (폴백 방법)
 // ═══════════════════════════════════════════
 document.getElementById('toss-input').addEventListener('change', function(e) {
   const file = e.target.files[0];
@@ -1231,32 +1240,22 @@ document.getElementById('toss-input').addEventListener('change', function(e) {
   reader.onload = function(evt) {
     try {
       const wb = XLSX.read(evt.target.result, { type: 'array', cellDates: true });
-      [['오빌모으기', 'toss-obil', 'val-toss-obil', 'date-toss-obil'],
-       ['해외자금모으기', 'toss-overseas', 'val-toss-overseas', 'date-toss-overseas'],
-       ['개인연금저축모으기', 'toss-pension', 'val-toss-pension', 'date-toss-pension'],
-       ['연습모으기', 'toss-practice', 'val-toss-practice', 'date-toss-practice']
+      [['오빌모으기','toss-obil','val-toss-obil','date-toss-obil'],
+       ['해외자금모으기','toss-overseas','val-toss-overseas','date-toss-overseas'],
+       ['개인연금저축모으기','toss-pension','val-toss-pension','date-toss-pension'],
+       ['연습모으기','toss-practice','val-toss-practice','date-toss-practice']
       ].forEach(([sheet, key, valId, dateId]) => {
         const r = parseTossBalance(wb, sheet);
         if (r) {
           state[key] = { val: r.balance, date: r.date, isFallback: !!r.isFallback };
           document.getElementById(valId).textContent = r.balance.toLocaleString('ko-KR');
           const de = document.getElementById(dateId);
-          if (de) {
-            if (r.date) {
-              de.textContent = r.isFallback
-                ? '최종 데이터: ' + r.date + ' (이번 달 미조회)'
-                : '기준: ' + r.date;
-              de.style.color = r.isFallback ? 'var(--orange)' : '';
-            } else {
-              de.textContent = '';
-            }
-          }
+          if (de && r.date) { de.textContent = r.isFallback ? '최종 데이터: ' + r.date + ' (이번 달 미조회)' : '기준: ' + r.date; de.style.color = r.isFallback ? 'var(--orange)' : ''; }
         }
       });
-      save();
-      renderAll();
+      save(); renderAll();
       const st = document.getElementById('toss-sync-status');
-      st.textContent = '✓ 토스 동기화 완료';
+      st.textContent = '✓ 토스 엑셀 동기화 완료';
       setTimeout(() => st.textContent = '', 4000);
     } catch(err) { alert('토스 파일 오류: ' + err.message); }
   };
@@ -1266,11 +1265,7 @@ document.getElementById('toss-input').addEventListener('change', function(e) {
 function parseTossBalance(wb, sheetName) {
   const ws = wb.Sheets[sheetName];
   if (!ws) return null;
-
-  // cellDates:true → 날짜 셀을 JS Date 객체로 받음
   const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: true, cellDates: true });
-
-  // ① 헤더 행 탐색 — '잔고'/'잔액' 컬럼 위치
   let headerRowIdx = -1, balCol = -1, dateCol = -1;
   for (let i = 0; i < data.length; i++) {
     const row = data[i]; if (!row) continue;
@@ -1285,68 +1280,28 @@ function parseTossBalance(wb, sheetName) {
     }
   }
   if (headerRowIdx < 0 || balCol < 0) return null;
-
-  // ② 유효 행 수집 (잔고 > 0인 행만)
   const entries = [];
   for (let i = headerRowIdx + 1; i < data.length; i++) {
     const row = data[i]; if (!row) continue;
     const balRaw = row[balCol];
-    const bal = typeof balRaw === 'string'
-      ? parseFloat(balRaw.replace(/,/g, ''))
-      : Number(balRaw);
+    const bal = typeof balRaw === 'string' ? parseFloat(balRaw.replace(/,/g,'')) : Number(balRaw);
     if (isNaN(bal) || bal <= 0) continue;
-
-    // 날짜 파싱 — Date 객체 / 숫자(엑셀 시리얼) / 문자열 모두 처리
     let dateObj = null;
     if (dateCol >= 0 && row[dateCol] != null) {
       const raw = row[dateCol];
-      if (raw instanceof Date) {
-        dateObj = raw;
-      } else if (typeof raw === 'number') {
-        // 엑셀 시리얼 → JS Date (1900-01-01 기준)
-        dateObj = new Date(Math.round((raw - 25569) * 86400 * 1000));
-      } else if (typeof raw === 'string' && raw.trim()) {
-        dateObj = new Date(raw.trim());
-      }
+      if (raw instanceof Date) dateObj = raw;
+      else if (typeof raw === 'number') dateObj = new Date(Math.round((raw - 25569) * 86400 * 1000));
+      else if (typeof raw === 'string' && raw.trim()) dateObj = new Date(raw.trim());
     }
-
-    entries.push({
-      balance: Math.round(bal),
-      dateObj,                                         // 정렬·비교용
-      dateStr: dateObj ? dateObj.toISOString().slice(0, 10) : null  // 표시용 YYYY-MM-DD
-    });
+    entries.push({ balance: Math.round(bal), dateObj, dateStr: dateObj ? dateObj.toISOString().slice(0,10) : null });
   }
   if (entries.length === 0) return null;
-
-  // ③ 날짜 내림차순 정렬 → entries[0] 이 항상 가장 최신
-  entries.sort((a, b) => {
-    if (!a.dateObj && !b.dateObj) return 0;
-    if (!a.dateObj) return 1;   // 날짜 없는 행을 뒤로
-    if (!b.dateObj) return -1;
-    return b.dateObj - a.dateObj;   // 최신 → 오래됨
-  });
-
-  // ④ 이번 달(YYYY-MM) 데이터 존재 여부 확인
+  entries.sort((a, b) => { if (!a.dateObj && !b.dateObj) return 0; if (!a.dateObj) return 1; if (!b.dateObj) return -1; return b.dateObj - a.dateObj; });
   const now = new Date();
-  const thisYM = now.getFullYear() * 100 + (now.getMonth() + 1); // 예: 202603
-
-  const hasThisMonth = entries.some(e =>
-    e.dateObj &&
-    e.dateObj.getFullYear() * 100 + (e.dateObj.getMonth() + 1) === thisYM
-  );
-
-  // ⑤ 이번 달 데이터가 있으면 해당 월의 첫 번째(최신) 행,
-  //    없으면 전체 최신 행을 사용하고 isFallback = true 표시
-  const pick = hasThisMonth
-    ? entries.find(e => e.dateObj &&
-        e.dateObj.getFullYear() * 100 + (e.dateObj.getMonth() + 1) === thisYM)
-    : entries[0];
-
-  return {
-    balance: pick.balance,
-    date:    pick.dateStr,
-    isFallback: !hasThisMonth   // 이번 달 데이터가 없어서 최종 데이터로 대체됨
-  };
+  const thisYM = now.getFullYear() * 100 + (now.getMonth() + 1);
+  const hasThisMonth = entries.some(e => e.dateObj && e.dateObj.getFullYear() * 100 + (e.dateObj.getMonth() + 1) === thisYM);
+  const pick = hasThisMonth ? entries.find(e => e.dateObj && e.dateObj.getFullYear() * 100 + (e.dateObj.getMonth() + 1) === thisYM) : entries[0];
+  return { balance: pick.balance, date: pick.dateStr, isFallback: !hasThisMonth };
 }
 
 // ═══════════════════════════════════════════
@@ -1361,23 +1316,17 @@ document.getElementById('kiwoom-input').addEventListener('change', function(e) {
       const wb = XLSX.read(evt.target.result, { type: 'array', cellDates: true });
       const investData = parseKiwoomPivot(wb, '키움입출+토스');
       const evalData = parseKiwoomPivot(wb, '키움평가+토스');
-      if (!investData || !evalData) throw new Error('필요한 시트를 찾을 수 없습니다 (키움입출+토스, 키움평가+토스)');
-
-      const investMap = {};
+      if (!investData || !evalData) throw new Error('필요한 시트를 찾을 수 없습니다');
+      const investMap = {}, evalMap = {};
       investData.forEach(r => investMap[r[0]] = r.slice(1));
-      const evalMap = {};
       evalData.forEach(r => evalMap[r[0]] = r.slice(1));
-
       const commonDates = Object.keys(investMap).filter(d => evalMap[d]).sort();
-      const combined = commonDates.map(d => ({ date: d, invest: investMap[d], eval: evalMap[d] }));
-
-      kiData = { combined };
+      kiData = { combined: commonDates.map(d => ({ date: d, invest: investMap[d], eval: evalMap[d] })) };
       localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
       renderKiwoom();
-      updateGoal(); // 키움 평가금액 → 총 자산 반영
-
+      updateGoal();
       const st = document.getElementById('kiwoom-sync-status');
-      st.textContent = '✓ 키움 동기화 완료 (' + combined.length + '개월)';
+      st.textContent = '✓ 키움 동기화 완료 (' + kiData.combined.length + '개월)';
       setTimeout(() => st.textContent = '', 5000);
     } catch(err) { alert('키움 파일 오류: ' + err.message); }
   };
@@ -1388,29 +1337,17 @@ function parseKiwoomPivot(wb, sheetName) {
   const ws = wb.Sheets[sheetName];
   if (!ws) return null;
   const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: true });
-  // Pivot header at row index 1, columns 4-11
-  // row[1][4] = '행 레이블', row[1][5..11] = account names
-  // Data rows: row[i][4] = date serial/date, row[i][5..11] = values
   const results = [];
   for (let i = 2; i < raw.length; i++) {
     const row = raw[i];
     if (!row || row[4] == null) continue;
-    let dateVal = row[4];
-    let dateStr;
-    if (dateVal instanceof Date) {
-      dateStr = dateVal.toISOString().slice(0,10);
-    } else if (typeof dateVal === 'number') {
-      // Excel serial date
-      const d = new Date(Math.round((dateVal - 25569) * 86400 * 1000));
-      dateStr = d.toISOString().slice(0,10);
-    } else if (typeof dateVal === 'string' && dateVal.match(/\d{4}/)) {
-      dateStr = dateVal.slice(0,10);
-    } else continue;
-
+    let dateVal = row[4], dateStr;
+    if (dateVal instanceof Date) dateStr = dateVal.toISOString().slice(0,10);
+    else if (typeof dateVal === 'number') { const d = new Date(Math.round((dateVal - 25569) * 86400 * 1000)); dateStr = d.toISOString().slice(0,10); }
+    else if (typeof dateVal === 'string' && dateVal.match(/\d{4}/)) dateStr = dateVal.slice(0,10);
+    else continue;
     const vals = [];
-    for (let j = 5; j <= 13; j++) {
-      vals.push(typeof row[j] === 'number' ? row[j] : 0);
-    }
+    for (let j = 5; j <= 13; j++) vals.push(typeof row[j] === 'number' ? row[j] : 0);
     results.push([dateStr, ...vals]);
   }
   results.sort((a,b) => a[0].localeCompare(b[0]));
@@ -1420,127 +1357,41 @@ function parseKiwoomPivot(wb, sheetName) {
 // ═══════════════════════════════════════════
 //  TODOS
 // ═══════════════════════════════════════════
-let editingTodo = -1; // 현재 편집 중인 인덱스
-
+let editingTodo = -1;
 function renderTodos() {
   const list = document.getElementById('todo-list');
   if (!todos.length) { list.innerHTML = '<li style="font-size:12px;color:var(--text3);padding:8px 12px">할 일을 추가해 보세요</li>'; return; }
   list.innerHTML = todos.map((t, i) => {
     if (i === editingTodo) {
-      // 편집 모드 — 인라인 input
-      return `<li class="todo-item" style="cursor:default">
-        <div class="todo-check" style="visibility:hidden"></div>
-        <input class="todo-edit-input" id="todo-edit-${i}" value="${t.text.replace(/"/g,'&quot;')}"
-          onkeydown="if(event.key==='Enter')saveTodoEdit(${i});if(event.key==='Escape')cancelTodoEdit();"
-        >
-        <div class="todo-actions" style="opacity:1">
-          <button class="todo-btn edit" onclick="saveTodoEdit(${i})" title="저장">✓</button>
-          <button class="todo-btn del"  onclick="cancelTodoEdit()"  title="취소">✕</button>
-        </div>
-      </li>`;
+      return `<li class="todo-item" style="cursor:default"><div class="todo-check" style="visibility:hidden"></div><input class="todo-edit-input" id="todo-edit-${i}" value="${t.text.replace(/"/g,'&quot;')}" onkeydown="if(event.key==='Enter')saveTodoEdit(${i});if(event.key==='Escape')cancelTodoEdit();"><div class="todo-actions" style="opacity:1"><button class="todo-btn edit" onclick="saveTodoEdit(${i})">✓</button><button class="todo-btn del" onclick="cancelTodoEdit()">✕</button></div></li>`;
     }
-    return `<li class="todo-item ${t.done?'done':''}"
-        draggable="true"
-        data-idx="${i}"
-        onclick="toggleTodo(${i})"
-        ondragstart="todoDragStart(event,${i})"
-        ondragover="todoDragOver(event)"
-        ondragleave="todoDragLeave(event)"
-        ondrop="todoDrop(event,${i})"
-        ondragend="todoDragEnd(event)">
-      <span class="todo-drag-handle" onclick="event.stopPropagation()" title="드래그하여 순서 변경">⋮⋮</span>
+    return `<li class="todo-item ${t.done?'done':''}" draggable="true" data-idx="${i}" onclick="toggleTodo(${i})" ondragstart="todoDragStart(event,${i})" ondragover="todoDragOver(event)" ondragleave="todoDragLeave(event)" ondrop="todoDrop(event,${i})" ondragend="todoDragEnd(event)">
+      <span class="todo-drag-handle" onclick="event.stopPropagation()">⋮⋮</span>
       <div class="todo-check"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="white" stroke-width="2"><polyline points="1 5 4 8 9 2"/></svg></div>
       <div class="todo-text">${t.text}</div>
-      <div class="todo-actions">
-        <button class="todo-btn edit" onclick="event.stopPropagation();startTodoEdit(${i})" title="수정">✏</button>
-        <button class="todo-btn del"  onclick="event.stopPropagation();deleteTodo(${i})"   title="삭제">🗑</button>
-      </div>
+      <div class="todo-actions"><button class="todo-btn edit" onclick="event.stopPropagation();startTodoEdit(${i})">✏</button><button class="todo-btn del" onclick="event.stopPropagation();deleteTodo(${i})">🗑</button></div>
     </li>`;
   }).join('');
-
-  // 편집 모드면 input에 포커스
-  if (editingTodo >= 0) {
-    const inp = document.getElementById('todo-edit-' + editingTodo);
-    if (inp) { inp.focus(); inp.select(); }
-  }
+  if (editingTodo >= 0) { const inp = document.getElementById('todo-edit-' + editingTodo); if (inp) { inp.focus(); inp.select(); } }
 }
-function addTodo() {
-  const inp = document.getElementById('todo-input');
-  const text = inp.value.trim(); if (!text) return;
-  todos.push({ text, done: false }); inp.value = '';
-  localStorage.setItem('asset-todos', JSON.stringify(todos));
-  renderTodos();
-}
-function toggleTodo(i) {
-  if (editingTodo >= 0) return; // 편집 중엔 토글 무시
-  todos[i].done = !todos[i].done;
-  localStorage.setItem('asset-todos', JSON.stringify(todos));
-  renderTodos();
-}
-function startTodoEdit(i) {
-  editingTodo = i;
-  renderTodos();
-}
-function saveTodoEdit(i) {
-  const inp = document.getElementById('todo-edit-' + i);
-  if (!inp) return;
-  const text = inp.value.trim();
-  if (text) todos[i].text = text;
-  editingTodo = -1;
-  localStorage.setItem('asset-todos', JSON.stringify(todos));
-  renderTodos();
-}
-function cancelTodoEdit() {
-  editingTodo = -1;
-  renderTodos();
-}
-
-// ─── 드래그 앤 드롭 순서 변경 ───
+function addTodo() { const inp = document.getElementById('todo-input'); const text = inp.value.trim(); if (!text) return; todos.push({ text, done: false }); inp.value = ''; localStorage.setItem('asset-todos', JSON.stringify(todos)); renderTodos(); }
+function toggleTodo(i) { if (editingTodo >= 0) return; todos[i].done = !todos[i].done; localStorage.setItem('asset-todos', JSON.stringify(todos)); renderTodos(); }
+function startTodoEdit(i) { editingTodo = i; renderTodos(); }
+function saveTodoEdit(i) { const inp = document.getElementById('todo-edit-' + i); if (!inp) return; const text = inp.value.trim(); if (text) todos[i].text = text; editingTodo = -1; localStorage.setItem('asset-todos', JSON.stringify(todos)); renderTodos(); }
+function cancelTodoEdit() { editingTodo = -1; renderTodos(); }
 let dragSrcIdx = -1;
-function todoDragStart(e, i) {
-  dragSrcIdx = i;
-  e.dataTransfer.effectAllowed = 'move';
-  setTimeout(() => { const el = e.currentTarget; if (el) el.classList.add('dragging'); }, 0);
-}
-function todoDragOver(e) {
-  e.preventDefault();
-  e.dataTransfer.dropEffect = 'move';
-  e.currentTarget.classList.add('drag-over');
-}
-function todoDragLeave(e) {
-  e.currentTarget.classList.remove('drag-over');
-}
-function todoDrop(e, targetIdx) {
-  e.preventDefault();
-  e.currentTarget.classList.remove('drag-over');
-  if (dragSrcIdx === -1 || dragSrcIdx === targetIdx) return;
-  const moved = todos.splice(dragSrcIdx, 1)[0];
-  todos.splice(targetIdx, 0, moved);
-  dragSrcIdx = -1;
-  localStorage.setItem('asset-todos', JSON.stringify(todos));
-  renderTodos();
-}
-function todoDragEnd(e) {
-  dragSrcIdx = -1;
-  document.querySelectorAll('.todo-item').forEach(el => {
-    el.classList.remove('dragging', 'drag-over');
-  });
-}
-function deleteTodo(i) {
-  todos.splice(i, 1);
-  if (editingTodo === i) editingTodo = -1;
-  localStorage.setItem('asset-todos', JSON.stringify(todos));
-  renderTodos();
-}
+function todoDragStart(e, i) { dragSrcIdx = i; e.dataTransfer.effectAllowed = 'move'; setTimeout(() => { const el = e.currentTarget; if (el) el.classList.add('dragging'); }, 0); }
+function todoDragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; e.currentTarget.classList.add('drag-over'); }
+function todoDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+function todoDrop(e, targetIdx) { e.preventDefault(); e.currentTarget.classList.remove('drag-over'); if (dragSrcIdx === -1 || dragSrcIdx === targetIdx) return; const moved = todos.splice(dragSrcIdx, 1)[0]; todos.splice(targetIdx, 0, moved); dragSrcIdx = -1; localStorage.setItem('asset-todos', JSON.stringify(todos)); renderTodos(); }
+function todoDragEnd(e) { dragSrcIdx = -1; document.querySelectorAll('.todo-item').forEach(el => el.classList.remove('dragging','drag-over')); }
+function deleteTodo(i) { todos.splice(i, 1); if (editingTodo === i) editingTodo = -1; localStorage.setItem('asset-todos', JSON.stringify(todos)); renderTodos(); }
 
-// ═══════════════════════════════════════════
-//  BOOT
-// ═══════════════════════════════════════════
 function addDefaultTodos() {
   if (todos.length === 0) {
     todos = [
+      { text: '토스 앱 스크린샷 → 이미지 분석으로 자동 추출 (방법1)', done: false },
       { text: '키움 엑셀 업로드 (키움토스차트.xlsx)', done: false },
-      { text: '토스 엑셀 업로드 (토스모으기.xlsx)', done: false },
       { text: '부동산 시세 확인 및 업데이트', done: false },
       { text: '국민연금 예상 수령액 조회', done: false },
     ];
