@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>키움 평가금액 추출기</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap');
+:root{
+  --bg:#0d0f18;--bg2:#131520;--bg3:#1a1d2a;
+  --border:#252838;--border2:#2e3145;
+  --teal:#36d399;--gold:#e8c97a;--blue:#6e8efb;
+  --red:#ff6b6b;--text:#e8eaf0;--text2:#9095a8;--text3:#565a70;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:28px 16px 60px;display:flex;flex-direction:column;align-items:center}
+.wrap{width:100%;max-width:480px}
+.header{margin-bottom:22px}
+.header h1{font-size:20px;color:var(--blue);margin-bottom:4px}
+.header p{font-size:12px;color:var(--text3);line-height:1.7}
+.badge{display:inline-flex;align-items:center;gap:4px;background:rgba(54,211,153,.1);border:1px solid rgba(54,211,153,.25);color:var(--teal);font-size:10px;padding:2px 8px;border-radius:20px;margin-left:6px;font-family:'DM Mono',monospace}
+
+.dash-link{display:flex;align-items:center;gap:8px;background:rgba(110,142,251,.07);border:1px solid rgba(110,142,251,.18);border-radius:10px;padding:11px 14px;margin-bottom:18px;font-size:12px;color:var(--text2);text-decoration:none;transition:all .2s}
+.dash-link:hover{background:rgba(110,142,251,.14);color:var(--text)}
+.dash-link .arr{margin-left:auto;color:var(--blue);font-family:'DM Mono',monospace;font-size:11px}
+
+.tabs{display:flex;gap:6px;margin-bottom:14px}
+.tab-btn{flex:1;padding:9px;background:var(--bg3);border:1px solid var(--border2);color:var(--text3);border-radius:8px;font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .2s}
+.tab-btn.active{background:rgba(110,142,251,.1);border-color:rgba(110,142,251,.3);color:var(--blue)}
+
+.drop-zone{border:2px dashed var(--border2);border-radius:14px;padding:36px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg2);position:relative;overflow:hidden;margin-bottom:14px}
+.drop-zone:hover,.drop-zone.drag{border-color:var(--blue);background:rgba(110,142,251,.04)}
+.drop-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.drop-icon{font-size:32px;margin-bottom:8px}
+.drop-text{font-size:14px;color:var(--text2);font-weight:500}
+.drop-hint{font-size:11px;color:var(--text3);margin-top:5px}
+
+.preview-wrap{border-radius:10px;overflow:hidden;border:1px solid var(--border);margin-bottom:14px;display:none;position:relative}
+.preview-wrap img{width:100%;max-height:300px;object-fit:contain;background:#fff;display:block}
+.preview-change{position:absolute;bottom:8px;right:8px;background:rgba(13,15,24,.85);border:1px solid var(--border2);color:var(--text3);padding:5px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-family:'Noto Sans KR',sans-serif}
+
+.extract-btn{width:100%;padding:14px;background:var(--blue);color:#fff;border:none;border-radius:11px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;margin-bottom:14px;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.extract-btn:disabled{opacity:.35;cursor:not-allowed}
+
+.progress-wrap{display:none;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px}
+.progress-label{font-size:12px;color:var(--text2);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.progress-bar-bg{background:var(--border);border-radius:4px;height:6px;overflow:hidden}
+.progress-bar{height:100%;background:var(--blue);border-radius:4px;transition:width .3s;width:0%}
+.progress-log{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:8px;min-height:16px}
+
+/* 수동 입력 */
+.manual-section{display:none;background:var(--bg2);border:1px solid rgba(110,142,251,.2);border-radius:12px;padding:18px;margin-bottom:14px}
+.manual-title{font-size:13px;color:var(--blue);margin-bottom:4px;font-weight:500}
+.manual-desc{font-size:11px;color:var(--text3);margin-bottom:14px;line-height:1.6}
+.date-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.date-label{font-size:12px;color:var(--text2);width:100px;flex-shrink:0}
+.date-input{flex:1;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:9px 12px;border-radius:7px;font-size:13px;font-family:'DM Mono',monospace;outline:none}
+.date-input:focus{border-color:var(--blue)}
+.input-group{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.input-row{display:flex;align-items:center;gap:8px}
+.input-acct{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;width:72px;flex-shrink:0}
+.input-name{font-size:12px;color:var(--text2);width:60px;flex-shrink:0}
+.balance-input{flex:1;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:9px 12px;border-radius:7px;font-size:13px;font-family:'DM Mono',monospace;outline:none;text-align:right}
+.balance-input:focus{border-color:var(--blue)}
+.input-unit{font-size:11px;color:var(--text3);width:14px;flex-shrink:0}
+.gen-btn{width:100%;padding:11px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif}
+
+/* 결과 */
+.result-section{display:none}
+.result-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.result-label{font-size:11px;color:var(--text3);letter-spacing:1px}
+.copy-btn{background:rgba(110,142,251,.1);border:1px solid rgba(110,142,251,.3);color:var(--blue);padding:5px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .2s}
+.copy-btn:hover{background:rgba(110,142,251,.2)}
+.copy-btn.copied{background:rgba(54,211,153,.12);border-color:rgba(54,211,153,.3);color:var(--teal)}
+.account-cards{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.account-card{background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:13px 15px;display:flex;justify-content:space-between;align-items:center}
+.acc-left .acc-name{font-size:13px;color:var(--text2)}
+.acc-left .acc-acct{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:2px}
+.acc-right{text-align:right}
+.acc-balance{font-family:'DM Mono',monospace;font-size:16px;color:var(--blue);font-weight:500}
+.acc-date{font-size:10px;color:var(--text3);margin-top:2px}
+.json-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.json-label{font-size:11px;color:var(--text3)}
+.json-box{background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:13px 15px;font-size:11px;font-family:'DM Mono',monospace;color:var(--gold);line-height:1.7;word-break:break-all;white-space:pre-wrap;margin-bottom:14px;max-height:180px;overflow-y:auto}
+
+.how-to{background:rgba(110,142,251,.06);border:1px solid rgba(110,142,251,.15);border-radius:9px;padding:13px 15px;font-size:12px;color:var(--text3);line-height:1.9;margin-bottom:14px}
+.how-to strong{color:var(--blue)}
+.how-to ol{padding-left:16px;margin-top:4px}
+
+.reset-btn{width:100%;padding:10px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);border-radius:9px;font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .2s}
+.reset-btn:hover{border-color:var(--text3);color:var(--text)}
+
+.spinner{display:inline-block;width:15px;height:15px;border:2.5px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <h1>📊 키움 평가금액 추출기 <span class="badge">FREE</span></h1>
+    <p>MY페이지 스크린샷 → OCR 자동 추출 → JSON 복사<br>대시보드 <strong>키움 스냅샷</strong> 버튼에 붙여넣으면 반영됩니다</p>
+  </div>
+
+  <a class="dash-link" href="./index.html">
+    🏠 My Asset Dashboard로 이동
+    <span class="arr">대시보드 →</span>
+  </a>
+
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-ocr" onclick="switchTab('ocr')">📷 이미지 자동 추출</button>
+    <button class="tab-btn" id="tab-manual" onclick="switchTab('manual')">✏️ 직접 입력</button>
+  </div>
+
+  <!-- OCR 탭 -->
+  <div id="ocr-section">
+    <div class="drop-zone" id="drop-zone">
+      <input type="file" id="img-input" accept="image/*">
+      <div class="drop-icon">📱</div>
+      <div class="drop-text">MY페이지 스크린샷 업로드</div>
+      <div class="drop-hint">키움 앱 → MY페이지 → MY키움자산 → 계좌별 자산</div>
+    </div>
+    <div class="preview-wrap" id="preview-wrap">
+      <img id="preview-img" src="" alt="">
+      <button class="preview-change" onclick="document.getElementById('img-input').click()">이미지 변경</button>
+    </div>
+    <button class="extract-btn" id="extract-btn" disabled onclick="runOCR()">
+      🔍 평가금액 자동 추출
+    </button>
+    <div class="progress-wrap" id="progress-wrap">
+      <div class="progress-label">
+        <span class="spinner" style="border-top-color:var(--blue);border-color:rgba(110,142,251,.2)"></span>
+        <span id="progress-label-text">OCR 엔진 로딩 중...</span>
+      </div>
+      <div class="progress-bar-bg"><div class="progress-bar" id="progress-bar"></div></div>
+      <div class="progress-log" id="progress-log"></div>
+    </div>
+  </div>
+
+  <!-- 수동 입력 탭 -->
+  <div class="manual-section" id="manual-section">
+    <div class="manual-title">✏️ 평가금액 직접 입력</div>
+    <div class="manual-desc">MY페이지를 보며 각 계좌의 <strong>평가금액</strong>을 입력하세요. 비어있는 계좌는 제외됩니다.</div>
+    <div class="date-row">
+      <span class="date-label">기준일</span>
+      <input class="date-input" type="date" id="manual-date">
+    </div>
+    <div class="input-group" id="manual-inputs"></div>
+    <button class="gen-btn" onclick="generateFromManual()">📋 JSON 생성</button>
+  </div>
+
+  <!-- 결과 (공통) -->
+  <div class="result-section" id="result-section">
+    <div class="result-header">
+      <div class="result-label">추출 결과 (평가금액)</div>
+      <button class="copy-btn" id="copy-btn" onclick="copyJson()">📋 복사</button>
+    </div>
+    <div class="account-cards" id="account-cards"></div>
+    <div class="json-header">
+      <div class="json-label">대시보드 붙여넣기용 JSON</div>
+    </div>
+    <div class="json-box" id="json-box"></div>
+    <div class="how-to">
+      <strong>📌 대시보드 적용 방법</strong>
+      <ol>
+        <li>위 JSON 📋 복사</li>
+        <li>대시보드(index.html) 접속</li>
+        <li>헤더의 <strong>키움 스냅샷</strong> 버튼 클릭</li>
+        <li>붙여넣기 후 <strong>대시보드 적용</strong></li>
+      </ol>
+    </div>
+    <button class="reset-btn" onclick="resetAll()">↺ 다시 추출하기</button>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script>
+// 계좌번호 → key/name 매핑
+const ACCT_MAP = [
+  { acct:'5211-3751', key:'kiwoom-overseas', name:'해외',  color:'#6e8efb' },
+  { acct:'5128-4051', key:'kiwoom-obil',     name:'오빌',  color:'#ffb347' },
+  { acct:'5806-1320', key:'kiwoom-practice', name:'연습',  color:'#4ecdc4' },
+  { acct:'6139-5535', key:'kiwoom-jasaju',   name:'자사주', color:'#ff6b6b' },
+  { acct:'5845-3671', key:'kiwoom-byuldong', name:'별동대', color:'#c9a84c' },
+  { acct:'5185-9447', key:'kiwoom-chobil',   name:'초빌',  color:'#565a70' },
+];
+// 이미지에서 인식될 수 있는 다른 형태도 등록
+const ACCT_ALIAS = {}; // 계좌번호 정확히 일치
+
+let selectedFile = null, resultJson = null;
+
+// ── 탭 전환
+function switchTab(tab){
+  document.getElementById('tab-ocr').classList.toggle('active',tab==='ocr');
+  document.getElementById('tab-manual').classList.toggle('active',tab==='manual');
+  document.getElementById('ocr-section').style.display=tab==='ocr'?'block':'none';
+  document.getElementById('manual-section').style.display=tab==='manual'?'block':'none';
+  document.getElementById('result-section').style.display='none';
+}
+
+// ── 수동 입력 필드 생성
+function buildManualInputs(){
+  document.getElementById('manual-inputs').innerHTML = ACCT_MAP.map(a=>`
+    <div class="input-row">
+      <span class="input-acct" style="color:${a.color}">${a.acct}</span>
+      <span class="input-name">${a.name}</span>
+      <input class="balance-input" type="number" id="in-${a.key}" placeholder="0">
+      <span class="input-unit">원</span>
+    </div>`).join('');
+}
+buildManualInputs();
+document.getElementById('manual-date').value = new Date().toISOString().slice(0,10);
+
+// ── 파일 선택
+const dz=document.getElementById('drop-zone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag');const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('image/'))setFile(f)});
+document.getElementById('img-input').addEventListener('change',function(){if(this.files[0])setFile(this.files[0])});
+
+function setFile(file){
+  selectedFile=file;
+  document.getElementById('preview-img').src=URL.createObjectURL(file);
+  document.getElementById('preview-wrap').style.display='block';
+  document.getElementById('extract-btn').disabled=false;
+  document.getElementById('result-section').style.display='none';
+  document.getElementById('progress-wrap').style.display='none';
+}
+
+// ── OCR
+async function runOCR(){
+  if(!selectedFile) return;
+  const btn=document.getElementById('extract-btn');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span> 분석 중...';
+  document.getElementById('result-section').style.display='none';
+  document.getElementById('progress-wrap').style.display='block';
+  setProgress(5,'OCR 엔진 로딩 중...','한국어+숫자 인식 (최초 1회 다운로드)');
+
+  try {
+    // 영어+숫자로 계좌번호와 금액 인식 (한국어 혼합)
+    const result = await Tesseract.recognize(selectedFile, 'kor+eng', {
+      workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
+      langPath: 'https://tessdata.projectnaptha.com/4.0.0',
+      corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core-simd-lstm.wasm.js',
+      logger: m=>{
+        if(m.status==='loading tesseract core') setProgress(10,'엔진 로딩...','');
+        if(m.status==='loading language traineddata') setProgress(30,'언어 데이터 로딩...','');
+        if(m.status==='recognizing text') setProgress(40+Math.round(m.progress*55),'텍스트 인식 중...', Math.round(m.progress*100)+'%');
+      }
+    });
+
+    setProgress(100,'분석 완료!','');
+    const text = result.data.text;
+    console.log('OCR 원문:\n', text);
+
+    const parsed = parseKiwoomOCR(text);
+
+    if(!parsed || !parsed.accounts.length){
+      setProgress(100,'⚠ 자동 인식 실패','직접 입력 탭을 이용해주세요');
+      document.getElementById('progress-label-text').style.color='var(--gold)';
+      setTimeout(()=>{
+        if(confirm('자동 인식에 실패했습니다.\n직접 입력 탭으로 전환할까요?')){
+          switchTab('manual'); document.getElementById('progress-wrap').style.display='none';
+        }
+      },600);
+      resetBtn(); return;
+    }
+
+    resultJson=parsed; showResult(parsed);
+    setProgress(100,`✅ ${parsed.accounts.length}개 계좌 추출 완료`,'');
+    document.getElementById('progress-label-text').style.color='var(--teal)';
+
+  } catch(e){
+    setProgress(0,'❌ 오류: '+e.message,'');
+    document.getElementById('progress-label-text').style.color='var(--red)';
+    console.error(e);
+  }
+  resetBtn();
+}
+
+function setProgress(pct,label,log){
+  document.getElementById('progress-bar').style.width=pct+'%';
+  document.getElementById('progress-label-text').textContent=label;
+  if(log!==undefined) document.getElementById('progress-log').textContent=log;
+}
+
+// ── OCR 파싱: 키움 MY페이지 계좌별 자산 화면
+function parseKiwoomOCR(text){
+  const today = new Date().toISOString().slice(0,10);
+  const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
+  const accounts = [];
+
+  // 금액 파싱 헬퍼
+  function parseAmt(s){
+    const m = s.match(/([0-9][0-9,]*)\s*원/);
+    if(m) return parseInt(m[1].replace(/,/g,''));
+    return null;
+  }
+
+  // 계좌번호 정규화 (OCR 오인식 보정)
+  function normalizeAcct(s){
+    // OCR이 O→0, l→1 등 오인식할 수 있음
+    return s.replace(/[oO]/g,'0').replace(/[lI]/g,'1').replace(/\s/g,'');
+  }
+
+  // 각 라인에서 계좌번호와 이후 라인들에서 평가금액 찾기
+  for(let i=0;i<lines.length;i++){
+    const line = lines[i];
+
+    // 계좌번호 패턴: XXXX-XXXX
+    const acctMatch = line.match(/(\d{4}[-\s]\d{4})/);
+    if(!acctMatch) continue;
+
+    const rawAcct = normalizeAcct(acctMatch[1]);
+    const canonAcct = rawAcct.replace(/\s/g,'');
+
+    // 매핑 찾기
+    let found = ACCT_MAP.find(a => a.acct === canonAcct);
+    if(!found && ACCT_ALIAS[canonAcct]){
+      const key = ACCT_ALIAS[canonAcct];
+      found = ACCT_MAP.find(a=>a.key===key);
+    }
+    if(!found) continue;
+
+    // 이미 추가된 계좌 스킵
+    if(accounts.find(a=>a.key===found.key)) continue;
+
+    // 다음 1~8줄 내에서 "평가금액" 줄 다음 금액 또는 패턴 찾기
+    let balance = null;
+    let lookForEval = false;
+    for(let j=i+1;j<=Math.min(i+10,lines.length-1);j++){
+      const l2 = lines[j];
+
+      // 다음 계좌번호 나오면 중지
+      if(l2.match(/\d{4}[-\s]\d{4}/) && j > i+1) break;
+
+      if(l2.includes('평가금액') || l2.includes('평가')){
+        lookForEval = true;
+        // 같은 줄에 금액이 있을 수도
+        const a = parseAmt(l2);
+        if(a !== null){ balance = a; break; }
+        continue;
+      }
+
+      if(lookForEval){
+        const a = parseAmt(l2);
+        if(a !== null){ balance = a; break; }
+      }
+    }
+
+    // 평가금액 못 찾으면 총자산에서 시도
+    if(balance === null){
+      for(let j=i+1;j<=Math.min(i+6,lines.length-1);j++){
+        const l2 = lines[j];
+        if(l2.match(/\d{4}[-\s]\d{4}/) && j>i+1) break;
+        if(l2.includes('총자산') || l2.includes('총 자산')){
+          const a = parseAmt(l2);
+          if(a!==null){ balance=a; break; }
+          const next = lines[j+1]||'';
+          const a2 = parseAmt(next);
+          if(a2!==null){ balance=a2; break; }
+        }
+      }
+    }
+
+    if(balance !== null){
+      accounts.push({ key: found.key, name: found.name, balance });
+    }
+  }
+
+  if(!accounts.length) return null;
+  return { date: today, accounts };
+}
+
+// ── 수동 입력
+function generateFromManual(){
+  const date=document.getElementById('manual-date').value||new Date().toISOString().slice(0,10);
+  const accounts=ACCT_MAP
+    .map(a=>({key:a.key,name:a.name,balance:parseInt(document.getElementById('in-'+a.key).value)||0}))
+    .filter(a=>a.balance>0);
+  if(!accounts.length){alert('최소 하나의 금액을 입력해주세요');return;}
+  resultJson={date,accounts};
+  showResult(resultJson);
+}
+
+// ── 결과 표시
+function showResult(parsed){
+  const COLORS={'kiwoom-overseas':'#6e8efb','kiwoom-obil':'#ffb347','kiwoom-practice':'#4ecdc4','kiwoom-jasaju':'#ff6b6b','kiwoom-byuldong':'#c9a84c','kiwoom-chobil':'#565a70'};
+  const ACCTS={'kiwoom-overseas':'5211-3751','kiwoom-obil':'5128-4051','kiwoom-practice':'5806-1320','kiwoom-jasaju':'6139-5535','kiwoom-byuldong':'5845-3671','kiwoom-chobil':'5185-9447'};
+  document.getElementById('account-cards').innerHTML=parsed.accounts.map(a=>`
+    <div class="account-card" style="border-left:3px solid ${COLORS[a.key]||'#6e8efb'}40">
+      <div class="acc-left">
+        <div class="acc-name" style="color:${COLORS[a.key]||'var(--blue)'}">${a.name}</div>
+        <div class="acc-acct">${ACCTS[a.key]||''}</div>
+      </div>
+      <div class="acc-right">
+        <div class="acc-balance">${a.balance.toLocaleString('ko-KR')}원</div>
+        <div class="acc-date">${parsed.date}</div>
+      </div>
+    </div>`).join('');
+  document.getElementById('json-box').textContent=JSON.stringify(parsed,null,2);
+  document.getElementById('result-section').style.display='block';
+  document.getElementById('result-section').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function copyJson(){
+  if(!resultJson) return;
+  const text=JSON.stringify(resultJson,null,2);
+  navigator.clipboard.writeText(text).then(()=>{
+    const b=document.getElementById('copy-btn');b.innerHTML='✅ 복사됨!';b.classList.add('copied');
+    setTimeout(()=>{b.innerHTML='📋 복사';b.classList.remove('copied')},2000);
+  }).catch(()=>{
+    const el=document.getElementById('json-box');
+    const r=document.createRange();r.selectNodeContents(el);
+    window.getSelection().removeAllRanges();window.getSelection().addRange(r);
+    document.execCommand('copy');
+    document.getElementById('copy-btn').textContent='✅ 복사됨!';
+    setTimeout(()=>document.getElementById('copy-btn').textContent='📋 복사',2000);
+  });
+}
+
+function resetBtn(){
+  const b=document.getElementById('extract-btn');
+  b.disabled=false;b.innerHTML='🔄 다시 추출';
+}
+function resetAll(){
+  selectedFile=null;resultJson=null;
+  document.getElementById('img-input').value='';
+  document.getElementById('preview-wrap').style.display='none';
+  document.getElementById('preview-img').src='';
+  document.getElementById('extract-btn').disabled=true;
+  document.getElementById('extract-btn').innerHTML='🔍 평가금액 자동 추출';
+  document.getElementById('result-section').style.display='none';
+  document.getElementById('progress-wrap').style.display='none';
+  ACCT_MAP.forEach(a=>{ const el=document.getElementById('in-'+a.key); if(el) el.value=''; });
+}
+</script>
+</body>
+</html>

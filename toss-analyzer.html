@@ -245,6 +245,9 @@ async function runOCR(){
 
   try {
     const result = await Tesseract.recognize(selectedFile, 'kor', {
+      workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
+      langPath: 'https://tessdata.projectnaptha.com/4.0.0',
+      corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core-simd-lstm.wasm.js',
       logger: m => {
         if(m.status==='loading tesseract core') setProgress(10,'엔진 로딩...','');
         if(m.status==='initializing tesseract') setProgress(20,'초기화 중...','');
