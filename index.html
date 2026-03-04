@@ -306,6 +306,14 @@
         </button>
         <div class="sync-status kiwoom-sync" id="kiwoom-snap-status"></div>
       </div>
+      <!-- ★ 연금 스냅샷 -->
+      <div>
+        <button class="upload-btn" style="background:rgba(176,137,240,0.1);border-color:rgba(176,137,240,0.3);color:#b089f0" onclick="openPensionPasteModal()" title="토스 연금 스크린샷 추출 결과 JSON 붙여넣기">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          연금 스냅샷
+        </button>
+        <div class="sync-status" style="color:#b089f0" id="pension-snap-status"></div>
+      </div>
     </div>
   </div>
 
@@ -351,6 +359,27 @@
       </div>
       <button class="ai-apply-btn" id="kiwoom-apply-btn" style="background:var(--blue)" disabled onclick="applyKiwoomResult()">대시보드 적용</button>
       <button class="ai-cancel-btn" onclick="closeKiwoomModal()">닫기</button>
+    </div>
+  </div>
+
+  <!-- ★ 연금 스냅샷 JSON 붙여넣기 모달 -->
+  <div id="pension-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:200;align-items:center;justify-content:center">
+    <div class="ai-modal-box">
+      <div class="ai-modal-title" style="color:#b089f0">💜 연금 평가금액 JSON 붙여넣기</div>
+      <div class="ai-modal-sub">pension-analyzer에서 추출한 JSON을 붙여넣으세요.<br>IRP 1·2·개인연금저축(+토스) 평가금액이 반영됩니다.</div>
+      <textarea id="pension-paste-area"
+        placeholder='{"date":"2026-03-04","accounts":[{"key":"pension-irp1","name":"유정욱_IRP","balance":6347371}]}'
+        style="width:100%;height:130px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);padding:12px 14px;font-size:12px;font-family:'DM Mono',monospace;outline:none;resize:none;box-sizing:border-box;margin-bottom:10px;line-height:1.6"
+        oninput="parsePensionPaste()"></textarea>
+      <div class="ai-log" id="pension-log" style="display:none"></div>
+      <div id="pension-result-area" style="display:none">
+        <table class="ai-result-table">
+          <thead><tr><th>계좌</th><th style="text-align:right">평가금액 (원)</th><th>기준일</th></tr></thead>
+          <tbody id="pension-result-tbody"></tbody>
+        </table>
+      </div>
+      <button class="ai-apply-btn" id="pension-apply-btn" style="background:#b089f0" disabled onclick="applyPensionResult()">대시보드 적용</button>
+      <button class="ai-cancel-btn" onclick="closePensionModal()">닫기</button>
     </div>
   </div>
 
@@ -527,6 +556,14 @@
 
   <!-- ─── 연금 / IRP ─── -->
   <div class="section-title">🔑 연금 / IRP / 국민연금</div>
+  <!-- ★ 연금 스냅샷 카드 -->
+  <div id="pension-snap-cards" style="display:none;margin-bottom:14px">
+    <div style="font-size:11px;color:var(--text3);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+      <span>📸 토스 연금 스냅샷 (평가금액)</span>
+      <span id="pension-snap-date" style="font-family:'DM Mono',monospace;font-size:10px"></span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px" id="pension-snap-grid"></div>
+  </div>
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px">
     <div class="asset-card" id="card-irp1">
       <button class="edit-trigger" onclick="openEdit('irp1')">✎</button>
@@ -640,6 +677,15 @@ const KIWOOM_SNAP_INFO = {
   'kiwoom-jasaju':   { name:'자사주', acct:'6139-5535', color:'#ff6b6b' },
   'kiwoom-byuldong': { name:'별동대', acct:'5845-3671', color:'#c9a84c' },
   'kiwoom-chobil':   { name:'초빌',  acct:'5185-9447', color:'#565a70' },
+};
+
+// 연금 스냅샷
+// eval[] 인덱스: 개인연금저축=3, 퇴직연금001(IRP1)=7, 퇴직연금002(IRP2)=8
+const PENSION_SNAP_KEYS = ['pension-irp1','pension-irp2','pension-saving'];
+const PENSION_SNAP_INFO = {
+  'pension-irp1':   { name:'퇴직연금 IRP 1', label:'유정욱_IRP',       evalIdx:7, color:'#e07b6a', tossKey:null },
+  'pension-irp2':   { name:'퇴직연금 IRP 2', label:'개인형IRP',        evalIdx:8, color:'#e0a06a', tossKey:null },
+  'pension-saving': { name:'개인연금저축',    label:'연금저축',          evalIdx:3, color:'#b089f0', tossKey:'toss-pension' },
 };
 let state = {};
 let todos = [];
@@ -858,6 +904,148 @@ function closeKiwoomModal() {
   kiwoomPendingResult = null;
 }
 
+// ═══════════════════════════════════════════
+//  ★ 연금 스냅샷 JSON 붙여넣기
+// ═══════════════════════════════════════════
+let pensionPendingResult = null;
+
+function openPensionPasteModal() {
+  document.getElementById('pension-paste-area').value = '';
+  document.getElementById('pension-log').style.display = 'none';
+  document.getElementById('pension-result-area').style.display = 'none';
+  document.getElementById('pension-apply-btn').disabled = true;
+  pensionPendingResult = null;
+  document.getElementById('pension-modal').style.display = 'flex';
+  setTimeout(() => document.getElementById('pension-paste-area').focus(), 100);
+}
+
+function parsePensionPaste() {
+  const raw = document.getElementById('pension-paste-area').value.trim();
+  const log = document.getElementById('pension-log');
+  const resultArea = document.getElementById('pension-result-area');
+  const applyBtn = document.getElementById('pension-apply-btn');
+  pensionPendingResult = null;
+  applyBtn.disabled = true;
+  resultArea.style.display = 'none';
+  if (!raw) { log.style.display = 'none'; return; }
+  log.style.display = 'block';
+  try {
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('JSON 형식이 아닙니다');
+    const parsed = JSON.parse(match[0]);
+    if (!parsed.accounts?.length) throw new Error('accounts 배열이 없습니다');
+
+    pensionPendingResult = parsed;
+    const tbody = document.getElementById('pension-result-tbody');
+    tbody.innerHTML = parsed.accounts.map(a => {
+      const info = PENSION_SNAP_INFO[a.key];
+      const tossVal = info?.tossKey ? (state[info.tossKey]?.val || 0) : 0;
+      const combined = a.balance + tossVal;
+      const note = tossVal > 0 ? ` (+토스 ${tossVal.toLocaleString('ko-KR')})` : '';
+      return `<tr>
+        <td>${info?.name || a.name || a.key}
+          <span style="font-size:10px;color:var(--text3);margin-left:4px">${info?.label||''}</span>
+        </td>
+        <td style="text-align:right;color:#b089f0">${combined.toLocaleString('ko-KR')}${note}</td>
+        <td style="color:var(--text3)">${parsed.date || '—'}</td>
+      </tr>`;
+    }).join('');
+    resultArea.style.display = 'block';
+    applyBtn.disabled = false;
+    log.style.color = 'var(--teal)';
+    log.textContent = `✅ ${parsed.accounts.length}개 계좌 인식됨 · ${parsed.date || '날짜 없음'}`;
+  } catch(e) {
+    log.style.color = '#ff6b6b';
+    log.textContent = '❌ ' + e.message;
+  }
+}
+
+function applyPensionResult() {
+  if (!pensionPendingResult) return;
+  const { date, accounts } = pensionPendingResult;
+  const ym = date.slice(0, 7);
+
+  // 1) state 저장 (원시 연금 값)
+  accounts.forEach(a => {
+    if (!PENSION_SNAP_KEYS.includes(a.key)) return;
+    state[a.key] = { val: a.balance, date };
+  });
+
+  // 2) kiData 월별 eval 반영
+  if (!kiData) kiData = { combined: [] };
+  if (!kiData.combined) kiData.combined = [];
+
+  let entry = kiData.combined.find(e => (e.date || e.month || '').slice(0, 7) === ym);
+  if (!entry) {
+    const prev = kiData.combined[kiData.combined.length - 1];
+    entry = {
+      date,
+      month: ym,
+      invest: prev ? [...(prev.invest || new Array(9).fill(0))] : new Array(9).fill(0),
+      eval: new Array(9).fill(0),
+      _hasToss: true,
+    };
+    kiData.combined.push(entry);
+    kiData.combined.sort((a, b) => (a.date || a.month || '').localeCompare(b.date || b.month || ''));
+  } else {
+    entry.date = date;
+    if (!entry.eval) entry.eval = new Array(9).fill(0);
+    entry._hasToss = true;
+  }
+
+  // eval = 연금 원시값 + 페어 토스값
+  accounts.forEach(a => {
+    const info = PENSION_SNAP_INFO[a.key];
+    if (!info) return;
+    const tossVal = info.tossKey ? (state[info.tossKey]?.val || 0) : 0;
+    entry.eval[info.evalIdx] = a.balance + tossVal;
+  });
+
+  localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
+  save();
+  renderAll();
+  renderPensionSnap();
+  if (kiData) renderKiwoom();
+  closePensionModal();
+  const st = document.getElementById('pension-snap-status');
+  st.textContent = `✓ 연금 적용 (${accounts.length}개 · ${ym})`;
+  setTimeout(() => st.textContent = '', 5000);
+}
+
+function closePensionModal() {
+  document.getElementById('pension-modal').style.display = 'none';
+  pensionPendingResult = null;
+}
+
+// ★ 연금 스냅샷 카드 렌더
+function renderPensionSnap() {
+  const keys = PENSION_SNAP_KEYS.filter(k => state[k]?.val !== undefined);
+  if (!keys.length) {
+    document.getElementById('pension-snap-cards').style.display = 'none';
+    return;
+  }
+  const latestDate = keys.map(k => state[k]?.date || '').sort().pop();
+  document.getElementById('pension-snap-date').textContent = '기준: ' + (latestDate || '—');
+  document.getElementById('pension-snap-grid').innerHTML = keys.map(k => {
+    const info = PENSION_SNAP_INFO[k];
+    const d = state[k];
+    const rawVal = d?.val || 0;
+    const tossVal = info.tossKey ? (state[info.tossKey]?.val || 0) : 0;
+    const combined = rawVal + tossVal;
+    const sub = tossVal > 0
+      ? `연금 ${rawVal.toLocaleString('ko-KR')} + 토스 ${tossVal.toLocaleString('ko-KR')}`
+      : rawVal.toLocaleString('ko-KR') + '원';
+    return `<div class="asset-card" style="border-left:3px solid ${info.color}30;cursor:default">
+      <div class="cat-badge badge-pension">연금</div>
+      <div class="name" style="font-size:12px">${info.name}</div>
+      <div style="font-size:10px;color:var(--text3);margin-bottom:6px">${info.label}</div>
+      <div class="amount-row"><div class="amount" style="font-size:16px;color:${info.color}">${combined.toLocaleString('ko-KR')}</div><div class="unit">원</div></div>
+      <div class="sub-info" style="font-size:10px;line-height:1.5">${sub}<br>${d?.date ? '기준: '+d.date : '—'}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('pension-snap-cards').style.display = 'block';
+}
+
 // ★ 키움 스냅샷 카드 렌더 (평가금액 = 키움 + 토스 합산 표시)
 function renderKiwoomSnap() {
   const keys = KIWOOM_SNAP_KEYS.filter(k => state[k]?.val !== undefined);
@@ -1046,6 +1234,7 @@ function saveGoal() {
 // ═══════════════════════════════════════════
 function renderAll() {
   renderKiwoomSnap();
+  renderPensionSnap();
   MANUAL_KEYS.forEach(k => {
     const d = state[k] || {};
     const el = document.getElementById('val-' + k);
@@ -1139,7 +1328,9 @@ function updateTotals() {
     + kiFinancial;
   const irp1Val = kiIrp1 > 0 ? kiIrp1 : totalOf('irp1');
   const irp2Val = kiIrp2 > 0 ? kiIrp2 : totalOf('irp2');
-  const pension = irp1Val + irp2Val + (state['toss-pension']?.val || 0) + kiPension;
+  // kiPension(_hasToss)에 toss-pension 이미 포함 → 중복 방지
+  const tossPension = (kiHasToss && kiPension > 0) ? 0 : (state['toss-pension']?.val || 0);
+  const pension = irp1Val + irp2Val + tossPension + kiPension;
   const grand = realty + financial + pension;
 
   document.getElementById('total-amount').textContent = fmtWon(grand) + ' 원';
