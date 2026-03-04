@@ -282,14 +282,8 @@
         </button>
       </div>
       <!-- 기존 엑셀 업로드 (폴백) -->
-      <div>
-        <label class="upload-btn" for="toss-input" title="토스모으기.xlsx 엑셀 파일 직접 업로드">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          토스 엑셀
-        </label>
-        <input type="file" id="toss-input" accept=".xlsx,.xls">
-        <div class="sync-status" id="toss-sync-status"></div>
-      </div>
+      <!-- 토스 엑셀 업로드 제거: toss-analyzer.html로 대체됨 -->
+      <input type="file" id="toss-input" accept=".xlsx,.xls" style="display:none">
       <div>
         <label class="upload-btn kiwoom" for="kiwoom-input">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -653,6 +647,9 @@
   <div style="display:flex;gap:10px;justify-content:center;margin-top:32px;margin-bottom:8px;flex-wrap:wrap">
     <button onclick="exportData()" style="background:var(--bg2);border:1px solid var(--border2);color:var(--text2);padding:10px 20px;border-radius:8px;cursor:pointer;font-size:12px;font-family:'Noto Sans KR',sans-serif;display:flex;align-items:center;gap:6px">
       ⬇ 데이터 내보내기 (JSON)
+    </button>
+    <button onclick="exportMonthlyXlsx()" style="background:rgba(54,211,153,.08);border:1px solid rgba(54,211,153,.25);color:var(--teal);padding:10px 20px;border-radius:8px;cursor:pointer;font-size:12px;font-family:'Noto Sans KR',sans-serif;display:flex;align-items:center;gap:6px">
+      📊 월별 데이터 엑셀 다운로드
     </button>
     <label style="background:var(--bg2);border:1px solid var(--border2);color:var(--text2);padding:10px 20px;border-radius:8px;cursor:pointer;font-size:12px;font-family:'Noto Sans KR',sans-serif;display:flex;align-items:center;gap:6px">
       ⬆ 데이터 가져오기 (JSON)
@@ -1093,6 +1090,77 @@ function exportData() {
   const a = document.createElement('a');
   a.href = url; a.download = `data.json`;
   a.click(); URL.revokeObjectURL(url);
+}
+
+function exportMonthlyXlsx() {
+  if (!kiData || !kiData.combined || !kiData.combined.length) {
+    alert('월별 데이터가 없습니다.\n키움 엑셀 업로드 또는 스냅샷 적용 후 사용해주세요.');
+    return;
+  }
+
+  const AI_NAMES = ['해외','오빌','자사주','개인연금저축','별동대','연습','초빌','IRP1(유정욱)','IRP2(개인형)'];
+  const combined = kiData.combined;
+
+  // ── 시트 1: 월별 평가금액
+  const evalHeader = ['날짜', ...AI_NAMES, '합계(주요6계좌)'];
+  const MAIN_IDX = [0,1,5,3,7,8]; // 해외,오빌,연습,개인연금,IRP1,IRP2
+  const evalRows = combined.map(e => {
+    const ev = e.eval || new Array(9).fill(0);
+    const mainSum = MAIN_IDX.reduce((s,i) => s+(ev[i]||0), 0);
+    return [e.date||e.month, ...ev.map(v=>v||0), mainSum];
+  });
+
+  // ── 시트 2: 월별 투자금
+  const investHeader = ['날짜', ...AI_NAMES, '합계(주요6계좌)'];
+  const investRows = combined.map(e => {
+    const inv = e.invest || new Array(9).fill(0);
+    const mainSum = MAIN_IDX.reduce((s,i) => s+(inv[i]||0), 0);
+    return [e.date||e.month, ...inv.map(v=>v||0), mainSum];
+  });
+
+  // ── 시트 3: 월별 수익률
+  const retHeader = ['날짜', ...AI_NAMES, '전체수익률(주요6계좌)'];
+  const retRows = combined.map(e => {
+    const ev = e.eval || new Array(9).fill(0);
+    const inv = e.invest || new Array(9).fill(0);
+    const pcts = AI_NAMES.map((_,i) => inv[i]>0 ? +((ev[i]/inv[i]-1)*100).toFixed(2) : 0);
+    const mainEv = MAIN_IDX.reduce((s,i)=>s+(ev[i]||0),0);
+    const mainIn = MAIN_IDX.reduce((s,i)=>s+(inv[i]||0),0);
+    const mainPct = mainIn>0 ? +((mainEv/mainIn-1)*100).toFixed(2) : 0;
+    return [e.date||e.month, ...pcts, mainPct];
+  });
+
+  // ── 시트 4: 스냅샷 현황 (state)
+  const st = JSON.parse(localStorage.getItem('asset-dashboard-v3')||'{}');
+  const snapRows = [
+    ['항목','값','단위','기준일'],
+    ['오빌모으기', st['toss-obil']?.val||0, '원', st['toss-obil']?.date||''],
+    ['해외자금모으기', st['toss-overseas']?.val||0, '원', st['toss-overseas']?.date||''],
+    ['연습모으기', st['toss-practice']?.val||0, '원', st['toss-practice']?.date||''],
+    ['개인연금저축모으기', st['toss-pension']?.val||0, '원', st['toss-pension']?.date||''],
+    ['키움-해외', st['kiwoom-overseas']?.val||0, '원', st['kiwoom-overseas']?.date||''],
+    ['키움-오빌', st['kiwoom-obil']?.val||0, '원', st['kiwoom-obil']?.date||''],
+    ['키움-연습', st['kiwoom-practice']?.val||0, '원', st['kiwoom-practice']?.date||''],
+    ['키움-자사주', st['kiwoom-jasaju']?.val||0, '원', st['kiwoom-jasaju']?.date||''],
+    ['키움-별동대', st['kiwoom-byuldong']?.val||0, '원', st['kiwoom-byuldong']?.date||''],
+    ['키움-초빌', st['kiwoom-chobil']?.val||0, '원', st['kiwoom-chobil']?.date||''],
+    ['연금-IRP1', st['pension-irp1']?.val||0, '원', st['pension-irp1']?.date||''],
+    ['연금-IRP2', st['pension-irp2']?.val||0, '원', st['pension-irp2']?.date||''],
+    ['연금저축', st['pension-saving']?.val||0, '원', st['pension-saving']?.date||''],
+  ];
+
+  const wb = XLSX.utils.book_new();
+  const wsEval = XLSX.utils.aoa_to_sheet([evalHeader, ...evalRows]);
+  const wsInvest = XLSX.utils.aoa_to_sheet([investHeader, ...investRows]);
+  const wsRet = XLSX.utils.aoa_to_sheet([retHeader, ...retRows]);
+  const wsSnap = XLSX.utils.aoa_to_sheet(snapRows);
+  XLSX.utils.book_append_sheet(wb, wsEval, '월별평가금액');
+  XLSX.utils.book_append_sheet(wb, wsInvest, '월별투자금');
+  XLSX.utils.book_append_sheet(wb, wsRet, '월별수익률(%)');
+  XLSX.utils.book_append_sheet(wb, wsSnap, '스냅샷현황');
+
+  const today = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `asset_monthly_${today}.xlsx`);
 }
 
 function importData(event) {
@@ -1648,7 +1716,25 @@ document.getElementById('kiwoom-input').addEventListener('change', function(e) {
       investData.forEach(r => investMap[r[0]] = r.slice(1));
       evalData.forEach(r => evalMap[r[0]] = r.slice(1));
       const commonDates = Object.keys(investMap).filter(d => evalMap[d]).sort();
-      kiData = { combined: commonDates.map(d => ({ date: d, invest: investMap[d], eval: evalMap[d] })) };
+      kiData = kiData || { combined: [] };
+      // 엑셀 데이터 병합: 스냅샷(_hasToss)이 있는 월은 보존, 없는 월만 엑셀로 덮어씀
+      const existingSnapMap = {};
+      (kiData.combined || []).forEach(e => {
+        if (e._hasToss) existingSnapMap[(e.date || e.month || '').slice(0, 7)] = e;
+      });
+      const excelEntries = commonDates.map(d => ({ date: d, invest: investMap[d], eval: evalMap[d] }));
+      const mergedMap = {};
+      excelEntries.forEach(e => { mergedMap[e.date.slice(0,7)] = e; });
+      // 스냅샷 월은 엑셀 투자금만 가져오고, eval+_hasToss는 유지
+      Object.entries(existingSnapMap).forEach(([ym, snap]) => {
+        if (mergedMap[ym]) {
+          snap.invest = mergedMap[ym].invest; // 투자금은 엑셀 값으로 업데이트
+          mergedMap[ym] = snap;               // eval은 스냅샷 유지
+        } else {
+          mergedMap[ym] = snap; // 엑셀에 없는 월(이번달 등)도 보존
+        }
+      });
+      kiData = { combined: Object.values(mergedMap).sort((a,b) => (a.date||'').localeCompare(b.date||'')) };
       localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
       renderKiwoom();
       updateGoal();
