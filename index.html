@@ -87,6 +87,37 @@
   .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(54,211,153,0.3); border-top-color: var(--teal); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  /* ─── API 키 설정 모달 ─── */
+  #apikey-modal {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+    z-index: 300; align-items: center; justify-content: center;
+  }
+  #apikey-modal.open { display: flex; }
+  .apikey-box {
+    background: var(--bg2); border: 1px solid rgba(201,168,76,0.35);
+    border-radius: 16px; padding: 28px; width: 440px; max-width: 95vw;
+  }
+  .apikey-title { font-size: 15px; color: var(--gold2); margin-bottom: 6px; font-weight: 500; }
+  .apikey-desc { font-size: 12px; color: var(--text3); margin-bottom: 16px; line-height: 1.7; }
+  .apikey-desc a { color: var(--gold2); }
+  .apikey-input-wrap { position: relative; margin-bottom: 10px; }
+  .apikey-input {
+    width: 100%; background: var(--bg3); border: 1px solid var(--border2);
+    color: var(--text); padding: 11px 44px 11px 14px; border-radius: 8px; font-size: 13px;
+    font-family: 'DM Mono', monospace; outline: none; box-sizing: border-box;
+  }
+  .apikey-input:focus { border-color: var(--gold); }
+  .apikey-toggle { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text3); cursor: pointer; font-size: 14px; padding: 2px; }
+  .apikey-warn { font-size: 11px; color: var(--text3); background: rgba(201,168,76,0.06); border: 1px solid rgba(201,168,76,0.15); border-radius: 6px; padding: 8px 10px; margin-bottom: 16px; line-height: 1.6; }
+  .apikey-status { font-size: 11px; min-height: 16px; margin-bottom: 12px; font-family: 'DM Mono', monospace; }
+  .apikey-saved-bar { display: flex; align-items: center; gap: 8px; background: rgba(54,211,153,0.08); border: 1px solid rgba(54,211,153,0.2); border-radius: 8px; padding: 8px 12px; margin-bottom: 14px; font-size: 12px; color: var(--teal); }
+  .apikey-saved-bar button { margin-left: auto; background: none; border: 1px solid rgba(255,107,107,0.3); color: #ff6b6b; padding: 3px 10px; border-radius: 5px; font-size: 11px; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; }
+
+  /* ─── 헤더 API키 버튼 ─── */
+  .apikey-btn { background: rgba(201,168,76,0.08); border: 1px solid rgba(201,168,76,0.2); color: var(--text3); padding: 7px 12px; border-radius: 7px; cursor: pointer; font-size: 11px; font-family: 'Noto Sans KR', sans-serif; transition: all 0.2s; display: flex; align-items: center; gap: 5px; }
+  .apikey-btn:hover { background: rgba(201,168,76,0.15); color: var(--gold2); border-color: rgba(201,168,76,0.4); }
+  .apikey-btn.has-key { color: var(--teal); border-color: rgba(54,211,153,0.3); background: rgba(54,211,153,0.08); }
+
   /* ─── Hero ─── */
   .hero {
     background: linear-gradient(135deg, #131526 0%, #0d0f1a 50%, #111328 100%);
@@ -300,6 +331,12 @@
         <input type="file" id="kiwoom-input" accept=".xlsx,.xls">
         <div class="sync-status kiwoom-sync" id="kiwoom-sync-status"></div>
       </div>
+      <!-- ★ API 키 설정 버튼 -->
+      <div style="display:flex;flex-direction:column;align-items:flex-end">
+        <button class="apikey-btn" id="apikey-btn" onclick="openApikeyModal()" title="Claude API 키 설정 (토스 이미지 분석에 필요)">
+          🔑 <span id="apikey-btn-label">API 키 설정</span>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -318,6 +355,33 @@
       </div>
       <button class="ai-apply-btn" id="ai-apply-btn" disabled onclick="applyAiResult()">대시보드 적용</button>
       <button class="ai-cancel-btn" onclick="closeAiModal()">닫기</button>
+    </div>
+  </div>
+
+  <!-- ★ API 키 설정 모달 -->
+  <div id="apikey-modal">
+    <div class="apikey-box">
+      <div class="apikey-title">🔑 Claude API 키 설정</div>
+      <div class="apikey-desc">
+        토스 이미지 AI 분석 기능을 사용하려면 Anthropic API 키가 필요합니다.<br>
+        키는 이 기기의 브라우저(localStorage)에만 저장되며 외부로 전송되지 않습니다.<br>
+        발급: <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a>
+      </div>
+      <div id="apikey-saved-bar" class="apikey-saved-bar" style="display:none">
+        <span>✅ API 키 저장됨</span>
+        <span id="apikey-masked" style="font-family:'DM Mono',monospace;font-size:11px;opacity:.7"></span>
+        <button onclick="clearApiKey()">삭제</button>
+      </div>
+      <div class="apikey-warn">⚠ 개인 기기에서만 사용하세요. 공용 PC나 타인과 공유하는 환경에서는 입력하지 마세요.</div>
+      <div class="apikey-input-wrap">
+        <input class="apikey-input" type="password" id="apikey-input" placeholder="sk-ant-api03-..." autocomplete="off">
+        <button class="apikey-toggle" onclick="toggleApikeyVis()" id="apikey-toggle-btn">👁</button>
+      </div>
+      <div class="apikey-status" id="apikey-status"></div>
+      <div style="display:flex;gap:10px">
+        <button onclick="saveApiKey()" style="flex:1;background:var(--gold);color:#000;border:none;padding:10px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif">저장</button>
+        <button onclick="closeApikeyModal()" style="flex:1;background:var(--bg3);color:var(--text2);border:1px solid var(--border2);padding:10px;border-radius:8px;font-size:13px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">닫기</button>
+      </div>
     </div>
   </div>
 
@@ -610,12 +674,73 @@ let chartRange = 12;
 let aiPendingResult = null;
 
 // ═══════════════════════════════════════════
+//  ★ API 키 관리
+// ═══════════════════════════════════════════
+function getApiKey() { return localStorage.getItem('anthropic-api-key') || ''; }
+
+function openApikeyModal() {
+  const key = getApiKey();
+  const savedBar = document.getElementById('apikey-saved-bar');
+  const maskedEl = document.getElementById('apikey-masked');
+  const inp = document.getElementById('apikey-input');
+  if (key) {
+    savedBar.style.display = 'flex';
+    maskedEl.textContent = key.slice(0,12) + '...' + key.slice(-4);
+    inp.value = '';
+  } else {
+    savedBar.style.display = 'none';
+  }
+  document.getElementById('apikey-status').textContent = '';
+  document.getElementById('apikey-modal').classList.add('open');
+}
+function closeApikeyModal() { document.getElementById('apikey-modal').classList.remove('open'); }
+function toggleApikeyVis() {
+  const inp = document.getElementById('apikey-input');
+  const btn = document.getElementById('apikey-toggle-btn');
+  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
+  else { inp.type = 'password'; btn.textContent = '👁'; }
+}
+function saveApiKey() {
+  const val = document.getElementById('apikey-input').value.trim();
+  const statusEl = document.getElementById('apikey-status');
+  if (!val) { statusEl.style.color = '#ff6b6b'; statusEl.textContent = '❌ API 키를 입력해주세요'; return; }
+  if (!val.startsWith('sk-ant-')) { statusEl.style.color = '#ff6b6b'; statusEl.textContent = '❌ 올바른 API 키 형식이 아닙니다 (sk-ant-로 시작해야 함)'; return; }
+  localStorage.setItem('anthropic-api-key', val);
+  updateApikeyBtn();
+  statusEl.style.color = 'var(--teal)';
+  statusEl.textContent = '✅ 저장 완료!';
+  setTimeout(() => closeApikeyModal(), 1200);
+}
+function clearApiKey() {
+  if (!confirm('API 키를 삭제하시겠습니까?')) return;
+  localStorage.removeItem('anthropic-api-key');
+  document.getElementById('apikey-saved-bar').style.display = 'none';
+  updateApikeyBtn();
+}
+function updateApikeyBtn() {
+  const btn = document.getElementById('apikey-btn');
+  const lbl = document.getElementById('apikey-btn-label');
+  if (!btn) return;
+  if (getApiKey()) { btn.classList.add('has-key'); lbl.textContent = 'API 키 ✓'; }
+  else { btn.classList.remove('has-key'); lbl.textContent = 'API 키 설정'; }
+}
+
+// ═══════════════════════════════════════════
 //  ★ 방법1: Claude API 이미지 분석
 // ═══════════════════════════════════════════
 document.getElementById('toss-img-input').addEventListener('change', async function(e) {
   const file = e.target.files[0];
   if (!file) return;
   e.target.value = '';
+
+  // API 키 확인
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    openApikeyModal();
+    document.getElementById('apikey-status').style.color = '#ffb347';
+    document.getElementById('apikey-status').textContent = '⚠ API 키를 먼저 입력하고 저장해주세요';
+    return;
+  }
 
   // 모달 열기
   const modal = document.getElementById('ai-modal');
@@ -630,8 +755,7 @@ document.getElementById('toss-img-input').addEventListener('change', async funct
   aiPendingResult = null;
 
   // 이미지 미리보기
-  const objectUrl = URL.createObjectURL(file);
-  preview.src = objectUrl;
+  preview.src = URL.createObjectURL(file);
 
   // base64 변환
   log.innerHTML = '<span class="spinner"></span> 이미지 변환 중...';
@@ -674,7 +798,12 @@ balance는 원(₩) 단위 숫자로, 콤마나 기호 없이 정수만 넣으�
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1000,
@@ -840,6 +969,7 @@ function _initCore() {
   addDefaultTodos();
   renderTodos();
   if (kiData) renderKiwoom();
+  updateApikeyBtn();
 }
 
 function setDate() {
