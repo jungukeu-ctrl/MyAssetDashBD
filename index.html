@@ -1142,15 +1142,28 @@ function applyKiwoomTransferResult() {
   // 전체 날짜 합집합 병합
   const allDates = [...new Set([...Object.keys(existMap), ...Object.keys(newMap)])].sort();
 
+  // eval 상속: 기존 항목이 없는 새 날짜는 직전 항목의 eval을 그대로 사용
+  let lastEval = new Array(9).fill(0);
+  let lastHasToss = false;
   kiData.combined = allDates.map(date => {
-    const ex = existMap[date] || { date, month: date.slice(0,7), invest: new Array(9).fill(0), eval: new Array(9).fill(0) };
+    const ex = existMap[date];
     const nw = newMap[date];
-    if (nw) {
-      if (!ex.invest) ex.invest = new Array(9).fill(0);
-      const idx = KI_TRANSFER_IDX[account];
-      if (idx !== undefined) ex.invest[idx] = nw[account] || 0;
+    let entry;
+    if (ex) {
+      entry = { ...ex };
+      if (entry.eval) lastEval = [...entry.eval];
+      if (entry._hasToss) lastHasToss = true;
+    } else {
+      // 기존 kiData에 없는 날짜 → eval을 직전 값으로 상속 (0으로 덮어쓰지 않음)
+      entry = { date, month: date.slice(0,7), invest: new Array(9).fill(0), eval: [...lastEval] };
+      if (lastHasToss) entry._hasToss = true;
     }
-    return ex;
+    if (nw) {
+      if (!entry.invest) entry.invest = new Array(9).fill(0);
+      const idx = KI_TRANSFER_IDX[account];
+      if (idx !== undefined) entry.invest[idx] = nw[account] || 0;
+    }
+    return entry;
   });
 
   localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
