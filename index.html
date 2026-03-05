@@ -49,6 +49,34 @@
   #toss-input, #toss-img-input { display: none; }
   .sync-status { font-size: 11px; color: var(--teal); margin-top: 4px; text-align: right; min-height: 14px; }
   .sync-status.kiwoom-sync { color: var(--blue); }
+  .btn-pair { display: flex; flex-direction: column; gap: 0; }
+  .btn-pair-row { display: flex; align-items: stretch; }
+  .btn-extract {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--bg3); border: 1px solid var(--border2);
+    color: var(--text3); padding: 7px 12px;
+    border-radius: 8px 0 0 8px; cursor: pointer;
+    font-size: 11px; font-family: 'Noto Sans KR', sans-serif;
+    text-decoration: none; transition: all 0.2s; white-space: nowrap;
+    border-right: none;
+  }
+  .btn-extract:hover { background: var(--border2); color: var(--text); }
+  .btn-extract svg { width: 12px; height: 12px; flex-shrink: 0; }
+  .btn-paste {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 13px; border-radius: 0 8px 8px 0;
+    cursor: pointer; font-size: 11px;
+    font-family: 'Noto Sans KR', sans-serif;
+    transition: all 0.2s; white-space: nowrap; border: 1px solid;
+  }
+  .btn-paste svg { width: 12px; height: 12px; flex-shrink: 0; }
+  .btn-paste.teal  { background: rgba(54,211,153,0.1);  border-color: rgba(54,211,153,0.3);  color: var(--teal); }
+  .btn-paste.teal:hover  { background: rgba(54,211,153,0.22); }
+  .btn-paste.blue  { background: rgba(110,142,251,0.1); border-color: rgba(110,142,251,0.3); color: var(--blue); }
+  .btn-paste.blue:hover  { background: rgba(110,142,251,0.22); }
+  .btn-paste.purple{ background: rgba(176,137,240,0.1); border-color: rgba(176,137,240,0.3); color: var(--purple); }
+  .btn-paste.purple:hover{ background: rgba(176,137,240,0.22); }
+  .pair-divider { width: 1px; background: var(--border2); }
 
   /* ─── AI 분석 모달 ─── */
   #ai-modal {
@@ -274,39 +302,46 @@
       <div class="date" id="today-date"></div>
     </div>
     <div class="upload-btns">
-      <!-- ★ JSON 붙여넣기 버튼 (아티팩트 분석 결과) -->
-      <div>
-        <button class="upload-btn toss-img" onclick="openJsonPasteModal()" title="Claude 아티팩트에서 추출한 JSON을 붙여넣으세요">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-          토스 JSON 붙여넣기
-        </button>
-      </div>
-      <!-- 기존 엑셀 업로드 (폴백) -->
-      <!-- 토스 엑셀 업로드 제거: toss-analyzer.html로 대체됨 -->
       <input type="file" id="toss-input" accept=".xlsx,.xls" style="display:none">
-      <!-- ★ 키움 JSON 붙여넣기 -->
-      <div>
-        <button class="upload-btn kiwoom" onclick="openKiwoomPasteModal()" title="키움 MY페이지 스크린샷 추출 결과 JSON 붙여넣기">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-          키움 스냅샷
-        </button>
+
+      <!-- 토스 -->
+      <div class="btn-pair">
+        <div class="btn-pair-row">
+          <a class="btn-extract" href="./toss-analyzer.html" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>토스_추출하기</a>
+          <div class="pair-divider"></div>
+          <button class="btn-paste teal" onclick="openJsonPasteModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>토스_붙여넣기</button>
+        </div>
+        <div class="sync-status" style="color:var(--teal)" id="toss-sync-status"></div>
+      </div>
+
+      <!-- 키움 평가금액 -->
+      <div class="btn-pair">
+        <div class="btn-pair-row">
+          <a class="btn-extract" href="./kiwoom-analyzer.html" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>키움평가_추출하기</a>
+          <div class="pair-divider"></div>
+          <button class="btn-paste blue" onclick="openKiwoomPasteModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>키움평가_붙여넣기</button>
+        </div>
         <div class="sync-status kiwoom-sync" id="kiwoom-snap-status"></div>
       </div>
-      <!-- ★ 연금 스냅샷 -->
-      <div>
-        <button class="upload-btn" style="background:rgba(176,137,240,0.1);border-color:rgba(176,137,240,0.3);color:#b089f0" onclick="openPensionPasteModal()" title="토스 연금 스크린샷 추출 결과 JSON 붙여넣기">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-          연금 스냅샷
-        </button>
-        <div class="sync-status" style="color:#b089f0" id="pension-snap-status"></div>
-      </div>
-      <!-- ★ 키움 이체내역 JSON -->
-      <div>
-        <button class="upload-btn kiwoom" onclick="openKiwoomTransferModal()" title="kiwoom-transfer-analyzer에서 복사한 이체내역 JSON 붙여넣기">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16V4m0 0L3 8m4-4l4 4"/><path d="M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>
-          키움 이체내역
-        </button>
+
+      <!-- 키움 이체내역 -->
+      <div class="btn-pair">
+        <div class="btn-pair-row">
+          <a class="btn-extract" href="./kiwoom-transfer-analyzer.html" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>키움이체_추출하기</a>
+          <div class="pair-divider"></div>
+          <button class="btn-paste blue" onclick="openKiwoomTransferModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>키움이체_붙여넣기</button>
+        </div>
         <div class="sync-status kiwoom-sync" id="kiwoom-transfer-status"></div>
+      </div>
+
+      <!-- 연금 -->
+      <div class="btn-pair">
+        <div class="btn-pair-row">
+          <a class="btn-extract" href="./pension-analyzer.html" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>연금_추출하기</a>
+          <div class="pair-divider"></div>
+          <button class="btn-paste purple" onclick="openPensionPasteModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>연금_붙여넣기</button>
+        </div>
+        <div class="sync-status" style="color:var(--purple)" id="pension-snap-status"></div>
       </div>
     </div>
   </div>
@@ -663,6 +698,7 @@
       </div>
     </div>
   </div>
+
 
   <!-- 데이터 동기화 -->
   <div style="display:flex;gap:10px;justify-content:center;margin-top:32px;margin-bottom:8px;flex-wrap:wrap">
