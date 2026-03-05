@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>키움 이체내역 분석기</title>
+<style>
+  :root {
+    --bg:      #060a14;
+    --surface: #0d1524;
+    --border:  #1a2235;
+    --border2: #1e3a5f;
+    --text:    #e2e8f0;
+    --muted:   #475569;
+    --dim:     #334155;
+    --blue:    #3b82f6;
+    --green:   #10b981;
+    --red:     #f87171;
+    --yellow:  #f59e0b;
+    --gold:    #e8c97a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; min-height: 100vh; }
+
+  header { background: linear-gradient(90deg, #0a0e1a, #0f172a); border-bottom: 1px solid var(--border); padding: 16px 20px; display: flex; align-items: center; gap: 14px; }
+  .logo  { width: 38px; height: 38px; border-radius: 9px; background: linear-gradient(135deg, #1d4ed8, #3b82f6); display: grid; place-items: center; font-weight: 900; font-size: 17px; color: #fff; flex-shrink: 0; }
+  .h-title { font-size: 17px; font-weight: 700; }
+  .h-sub   { font-size: 11px; color: var(--muted); margin-top: 3px; letter-spacing: .05em; }
+
+  .nav { display: flex; background: #080d18; border-bottom: 1px solid var(--border); padding: 0 16px; }
+  .nav button { padding: 11px 16px; background: none; border: none; border-bottom: 2px solid transparent; color: var(--muted); cursor: pointer; font-size: 13px; font-family: inherit; transition: .15s; }
+  .nav button.active { color: var(--text); border-bottom-color: var(--blue); }
+
+  main { max-width: 720px; margin: 0 auto; padding: 20px 16px 60px; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 14px; }
+  .card-title { font-size: 13px; font-weight: 600; color: #94a3b8; margin-bottom: 14px; letter-spacing: .05em; }
+
+  /* Account selector */
+  .acct-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+  .acct-btn  { padding: 10px 6px; background: #080d18; border: 1px solid var(--border); border-radius: 7px; color: var(--muted); cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; text-align: center; transition: .15s; }
+  .acct-btn.sel { color: var(--blue); border-color: var(--blue); background: #0c1929; }
+  .acct-num  { display: block; font-size: 10px; font-weight: 400; color: var(--dim); margin-top: 3px; }
+
+  /* Buttons */
+  .btn { padding: 10px 22px; border: none; border-radius: 7px; font-size: 13px; font-family: inherit; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: .15s; }
+  .btn-primary { background: linear-gradient(135deg,#1d4ed8,#3b82f6); color: #fff; }
+  .btn-green   { background: linear-gradient(135deg,#065f46,#10b981); color: #fff; }
+  .btn-copy    { background: var(--surface); color: var(--blue); border: 1px solid var(--border2); font-size: 14px; padding: 12px 24px; width: 100%; justify-content: center; margin-top: 10px; }
+  .btn-copy:hover { background: #0c1929; }
+  .btn-ghost   { background: transparent; color: var(--muted); border: 1px solid var(--border); padding: 10px 16px; }
+  .btn-ghost:hover { color: var(--text); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
+  /* Claude 추출 탭 */
+  .step-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; font-weight: 600; color: var(--blue); }
+  .prompt-box { background: #060b14; border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; font-size: 11px; font-family: monospace; color: var(--gold); line-height: 1.8; white-space: pre-wrap; word-break: break-all; margin-bottom: 10px; max-height: 170px; overflow-y: auto; }
+  .step-btns { display: flex; gap: 8px; margin-bottom: 0; }
+  .prompt-copy-btn { flex: 1; padding: 10px; background: rgba(232,201,122,.08); border: 1px solid rgba(232,201,122,.2); color: var(--gold); border-radius: 8px; font-size: 12px; cursor: pointer; font-family: inherit; transition: .15s; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .prompt-copy-btn:hover { background: rgba(232,201,122,.16); }
+  .prompt-copy-btn.copied { background: rgba(16,185,129,.1); border-color: rgba(16,185,129,.3); color: #4ade80; }
+  .claude-open-btn { flex: 1; padding: 10px; background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.25); color: var(--blue); border-radius: 8px; font-size: 12px; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px; transition: .15s; }
+  .claude-open-btn:hover { background: rgba(59,130,246,.2); }
+  .how-claude { background: rgba(59,130,246,.05); border: 1px solid rgba(59,130,246,.12); border-radius: 7px; padding: 12px 14px; font-size: 12px; color: #94a3b8; line-height: 1.9; margin: 12px 0; }
+  .how-claude strong { color: var(--blue); }
+  .how-claude ol { padding-left: 16px; margin-top: 4px; }
+  .paste-area { width: 100%; min-height: 90px; background: #060b14; border: 1px solid var(--border); border-radius: 7px; color: var(--text); padding: 11px 13px; font-size: 11px; font-family: monospace; outline: none; resize: vertical; line-height: 1.6; margin-bottom: 10px; }
+  .paste-area:focus { border-color: var(--blue); }
+  .apply-btn { width: 100%; padding: 12px; background: linear-gradient(135deg,#1d4ed8,#3b82f6); color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .parse-error { font-size: 12px; color: var(--red); margin-top: 8px; font-family: monospace; display: none; }
+
+  /* Spinner */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spin { display: inline-block; animation: spin .9s linear infinite; }
+
+  /* Status */
+  .err-box  { background: #1c0a0a; border: 1px solid #7f1d1d; color: #fca5a5; border-radius: 7px; padding: 10px 14px; font-size: 12px; margin-top: 8px; }
+  .ok-badge { background: #052e16; color: #4ade80; font-size: 11px; padding: 3px 10px; border-radius: 4px; border: 1px solid #166534; }
+
+  /* Extracted table */
+  table    { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th       { padding: 7px 10px; text-align: left; color: var(--muted); border-bottom: 1px solid var(--border); font-size: 11px; font-weight: 500; letter-spacing: .04em; }
+  td       { padding: 7px 10px; border-bottom: 1px solid #080d18; color: #cbd5e1; white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+  .in  { color: #4ade80; font-weight: 600; }
+  .out { color: #f87171; font-weight: 600; }
+
+  /* Changes */
+  .change-row { background: #080d18; border: 1px solid var(--border); border-radius: 6px; padding: 9px 13px; margin-bottom: 7px; font-size: 13px; color: #94a3b8; }
+  .change-warn { background: #120c04; border-color: #78350f; }
+  .cascade-note { font-size: 11px; color: var(--dim); margin-top: 10px; }
+
+  /* Output box */
+  .output-box { background: #060b14; border: 1px solid var(--border); border-radius: 7px; padding: 14px 16px; font-size: 11px; color: #7dd3fc; font-family: monospace; white-space: pre; overflow-x: auto; max-height: 220px; overflow-y: auto; line-height: 1.7; margin-bottom: 4px; }
+
+  /* Manual input */
+  .manual-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+  input[type=number], input[type=date], input[type=time], select {
+    width: 100%; background: #080d18; border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px 10px; color: var(--text); font-size: 13px; font-family: inherit;
+  }
+  input:focus, select:focus { outline: none; border-color: var(--blue); }
+  .radio-row { display: flex; gap: 12px; align-items: center; }
+  .radio-row label { display: flex; align-items: center; gap: 6px; margin: 0; cursor: pointer; }
+  .add-btn { margin-top: 10px; }
+
+  /* Tab content */
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Info box */
+  .info-box { background: #0c1929; border: 1px solid var(--border2); border-radius: 7px; padding: 12px 16px; font-size: 12px; color: #94a3b8; line-height: 1.8; margin-bottom: 14px; }
+  .info-box strong { color: var(--blue); }
+
+  .badge { background: #0c1929; color: var(--blue); font-size: 11px; padding: 3px 10px; border-radius: 4px; border: 1px solid var(--border2); display: inline-block; margin-right: 6px; margin-bottom: 6px; }
+  .badge-acct { color: var(--yellow); border-color: #78350f; background: #120c04; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">K↕</div>
+  <div>
+    <div class="h-title">키움 이체내역 분석기</div>
+    <div class="h-sub">KIWOOM TRANSFER ANALYZER · jungukeu-ctrl.github.io/MyAssetDashBD</div>
+  </div>
+</header>
+
+<nav class="nav">
+  <button class="active" onclick="switchTab('claude',this)">🤖 Claude 추출</button>
+  <button onclick="switchTab('manual',this)">✏️ 직접 입력</button>
+</nav>
+
+<main>
+  <div class="info-box">
+    키움증권 앱 → 이체내역조회 화면 스크린샷을 <strong>Claude.ai</strong>에 업로드하면 거래내역을 정확하게 추출합니다.<br>
+    추출된 JSON을 아래에 붙여넣으면 <strong>월별 입출내역 히스토리를 업데이트한 JSON</strong>이 생성됩니다.<br>
+    최종 JSON을 복사 → 대시보드 헤더의 <strong>키움이체_붙여넣기</strong>에 적용하세요.
+  </div>
+
+  <!-- STEP 1: Account select -->
+  <div class="card">
+    <div class="card-title">STEP 1 · 해당 계좌 선택</div>
+    <div class="acct-grid" id="acctGrid">
+      <button class="acct-btn sel" data-id="해외"   onclick="selectAcct(this)">해외<span class="acct-num">5211-3751</span></button>
+      <button class="acct-btn"     data-id="오빌"   onclick="selectAcct(this)">오빌<span class="acct-num">5128-4051</span></button>
+      <button class="acct-btn"     data-id="자사주" onclick="selectAcct(this)">자사주<span class="acct-num">6139-5535</span></button>
+      <button class="acct-btn"     data-id="별동대" onclick="selectAcct(this)">별동대<span class="acct-num">5845-3671</span></button>
+      <button class="acct-btn"     data-id="연습"   onclick="selectAcct(this)">연습<span class="acct-num">5806-1320</span></button>
+      <button class="acct-btn"     data-id="초빌"   onclick="selectAcct(this)">초빌<span class="acct-num">5185-9447</span></button>
+    </div>
+  </div>
+
+  <!-- TAB: Claude 추출 -->
+  <div id="tab-claude" class="tab-content active">
+
+    <!-- STEP 2: 프롬프트 복사 -->
+    <div class="card">
+      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>STEP 2 · 프롬프트 복사 &amp; Claude.ai 열기</span>
+      </div>
+      <div class="step-label">프롬프트</div>
+      <div class="prompt-box" id="transfer-prompt">이 키움증권 이체내역조회 화면에서 모든 거래내역을 JSON으로만 추출하라 (JSON 외 텍스트 없이):
+{
+  "account_number": "계좌번호",
+  "account_name": "계좌명",
+  "transactions": [
+    {
+      "date": "YYYY-MM-DD",
+      "time": "HH:MM:SS",
+      "type": "입금 또는 출금",
+      "amount": 숫자(원 단위 양수 정수),
+      "counterpart": "상대방명"
+    }
+  ]
+}</div>
+      <div class="step-btns">
+        <button class="prompt-copy-btn" id="copy-prompt-btn" onclick="copyPrompt()">📋 프롬프트 복사</button>
+        <a class="claude-open-btn" href="https://claude.ai" target="_blank">🤖 Claude.ai 열기 ↗</a>
+      </div>
+      <div class="how-claude">
+        <strong>💡 사용 방법</strong>
+        <ol>
+          <li>키움 앱 → 이체내역조회 화면 스크린샷 준비</li>
+          <li>위 프롬프트 복사 후 Claude.ai에서 <strong>스크린샷 + 프롬프트</strong> 붙여넣기</li>
+          <li>Claude가 반환한 JSON을 아래 STEP 3에 붙여넣기</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- STEP 3: Claude 응답 붙여넣기 -->
+    <div class="card">
+      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>STEP 3 · Claude 응답 붙여넣기</span>
+        <span id="savedBadge" class="ok-badge" style="display:none;">✓ JSON 생성됨</span>
+      </div>
+      <textarea class="paste-area" id="claude-response"
+        placeholder='{"account_number":"5211-3751","account_name":"해외","transactions":[{"date":"2026-03-05","time":"09:30:00","type":"입금","amount":500000,"counterpart":"유정욱"}]}'></textarea>
+      <div class="parse-error" id="parse-error"></div>
+      <button class="apply-btn" onclick="applyClaudeResponse()">✅ 거래내역 적용 &amp; JSON 생성</button>
+    </div>
+
+    <!-- STEP 4: 추출된 거래내역 확인 -->
+    <div id="resultSection" style="display:none;">
+      <div class="card">
+        <div class="card-title">STEP 4 · 추출된 거래내역 확인</div>
+        <div id="extractedMeta" style="margin-bottom:12px;"></div>
+        <div style="overflow-x:auto;">
+          <table id="txnTable">
+            <thead><tr><th>날짜</th><th>시간</th><th>구분</th><th>금액</th><th>상대방</th></tr></thead>
+            <tbody id="txnBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">STEP 5 · 월별 변경 사항</div>
+        <div id="changeList"></div>
+        <p class="cascade-note">* 해당 월부터 이후 모든 행에 누적 반영됩니다</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">STEP 6 · JSON 복사 → 대시보드 적용</div>
+        <div class="output-box" id="outputBox"></div>
+        <button class="btn btn-copy" id="copyBtn" onclick="copyJSON()">📋 JSON 복사</button>
+        <div id="copyOk" style="text-align:center;font-size:12px;color:#4ade80;margin-top:8px;display:none;">✓ 클립보드에 복사됨</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: Manual -->
+  <div id="tab-manual" class="tab-content">
+    <div class="card">
+      <div class="card-title">거래내역 직접 입력</div>
+      <div style="margin-bottom:14px;">
+        <div class="manual-grid">
+          <div><label>날짜</label><input type="date" id="m_date"></div>
+          <div><label>시간</label><input type="time" id="m_time" value="09:00" step="1"></div>
+          <div><label>금액 (원)</label><input type="number" id="m_amount" placeholder="예) 350000"></div>
+          <div>
+            <label>구분</label>
+            <div class="radio-row" style="padding-top:4px;">
+              <label><input type="radio" name="m_type" value="입금" checked> 입금</label>
+              <label><input type="radio" name="m_type" value="출금"> 출금</label>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:8px;"><label>상대방</label><input type="text" id="m_counterpart" placeholder="예) 유정욱"></div>
+        <button class="btn btn-primary add-btn" onclick="addManual()">+ 추가</button>
+      </div>
+
+      <div id="manualTableWrap" style="display:none;overflow-x:auto;margin-bottom:14px;">
+        <table><thead><tr><th>날짜</th><th>시간</th><th>구분</th><th>금액</th><th>상대방</th><th></th></tr></thead>
+          <tbody id="manualBody"></tbody>
+        </table>
+      </div>
+
+      <button class="btn btn-green" onclick="applyManual()" id="applyManualBtn" style="display:none;">
+        ▶ 입력 내역으로 JSON 생성
+      </button>
+    </div>
+
+    <div id="manualResultSection" style="display:none;">
+      <div class="card">
+        <div class="card-title">월별 변경 사항</div>
+        <div id="manualChangeList"></div>
+        <p class="cascade-note">* 해당 월부터 이후 모든 행에 누적 반영됩니다</p>
+      </div>
+      <div class="card">
+        <div class="card-title">JSON 복사 → 대시보드 적용</div>
+        <div class="output-box" id="manualOutputBox"></div>
+        <button class="btn btn-copy" onclick="copyManualJSON()">📋 JSON 복사</button>
+        <div id="manualCopyOk" style="text-align:center;font-size:12px;color:#4ade80;margin-top:8px;display:none;">✓ 클립보드에 복사됨</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ─── 기준 월별 데이터 (키움계좌별입출내역월기준_20260305.xlsx 전체) ─────────
+const SEED = [{"date":"2017-08-31","해외":0,"오빌":13426000,"자사주":0,"별동대":0,"연습":0,"초빌":0},{"date":"2017-11-30","해외":0,"오빌":3426000,"자사주":0,"별동대":0,"연습":0,"초빌":0},{"date":"2018-02-28","해외":0,"오빌":3371000,"자사주":0,"별동대":0,"연습":0,"초빌":0},{"date":"2018-05-31","해외":0,"오빌":1571001,"자사주":0,"별동대":0,"연습":0,"초빌":1800000},{"date":"2018-09-30","해외":531340,"오빌":1542532,"자사주":0,"별동대":0,"연습":0,"초빌":1297130},{"date":"2018-11-30","해외":531340,"오빌":542532,"자사주":0,"별동대":0,"연습":0,"초빌":1197130},{"date":"2018-12-31","해외":31340,"오빌":1542532,"자사주":0,"별동대":0,"연습":0,"초빌":1197130},{"date":"2019-01-31","해외":28470,"오빌":1542532,"자사주":0,"별동대":0,"연습":0,"초빌":1200000},{"date":"2019-02-28","해외":28470,"오빌":1535752,"자사주":0,"별동대":0,"연습":0,"초빌":1206780},{"date":"2019-05-31","해외":28470,"오빌":1548212,"자사주":0,"별동대":0,"연습":0,"초빌":1194320},{"date":"2019-06-30","해외":28470,"오빌":1550822,"자사주":0,"별동대":0,"연습":0,"초빌":1191710},{"date":"2019-09-30","해외":28470,"오빌":1526342,"자사주":0,"별동대":0,"연습":0,"초빌":1216190},{"date":"2019-11-30","해외":28470,"오빌":1591820,"자사주":0,"별동대":0,"연습":0,"초빌":1150712},{"date":"2020-01-31","해외":28470,"오빌":1597820,"자사주":0,"별동대":0,"연습":0,"초빌":1144712},{"date":"2020-08-31","해외":28470,"오빌":1734846,"자사주":0,"별동대":0,"연습":0,"초빌":1007686},{"date":"2020-11-30","해외":28470,"오빌":2634846,"자사주":0,"별동대":0,"연습":0,"초빌":1007686},{"date":"2020-12-31","해외":1010150,"오빌":5653166,"자사주":0,"별동대":0,"연습":0,"초빌":1007686},{"date":"2021-01-31","해외":2010150,"오빌":5653166,"자사주":0,"별동대":0,"연습":0,"초빌":2007686},{"date":"2021-02-28","해외":2010150,"오빌":4653166,"자사주":0,"별동대":0,"연습":0,"초빌":3007686},{"date":"2021-03-31","해외":43010150,"오빌":4631466,"자사주":0,"별동대":0,"연습":1421448,"초빌":2607939},{"date":"2021-04-30","해외":45010150,"오빌":4631466,"자사주":0,"별동대":556688,"연습":864761,"초빌":2607939},{"date":"2021-05-31","해외":31395192,"오빌":3588074,"자사주":0,"별동대":3891525,"연습":2594596,"초빌":9905617},{"date":"2021-06-30","해외":33395192,"오빌":38158074,"자사주":0,"별동대":5665551,"연습":2250570,"초빌":19905617},{"date":"2021-07-31","해외":35395192,"오빌":38158074,"자사주":0,"별동대":5665551,"연습":2250570,"초빌":19905617},{"date":"2021-08-31","해외":37395192,"오빌":38158074,"자사주":0,"별동대":5151811,"연습":2764310,"초빌":19905617},{"date":"2021-09-30","해외":39395192,"오빌":38158074,"자사주":0,"별동대":3151811,"연습":4764310,"초빌":19905617},{"date":"2021-10-31","해외":41765192,"오빌":38158074,"자사주":0,"별동대":3151811,"연습":4764310,"초빌":19905617},{"date":"2021-11-30","해외":37764170,"오빌":8139529,"자사주":0,"별동대":3151811,"연습":4764310,"초빌":9787554},{"date":"2021-12-31","해외":37764170,"오빌":2367803,"자사주":0,"별동대":3151811,"연습":4764310,"초빌":9661873},{"date":"2022-01-31","해외":37764170,"오빌":4061570,"자사주":0,"별동대":3151811,"연습":4764310,"초빌":10661873},{"date":"2022-02-28","해외":38864170,"오빌":5061570,"자사주":0,"별동대":941006,"연습":4975115,"초빌":11161873},{"date":"2022-03-31","해외":42843296,"오빌":10465020,"자사주":0,"별동대":941006,"연습":4975115,"초빌":4464695},{"date":"2022-04-30","해외":47848073,"오빌":11939970,"자사주":0,"별동대":941006,"연습":4975115,"초빌":4464695},{"date":"2022-05-31","해외":51988073,"오빌":13939970,"자사주":0,"별동대":941006,"연습":4975115,"초빌":4464695},{"date":"2022-06-30","해외":54864681,"오빌":16489970,"자사주":0,"별동대":941006,"연습":4975115,"초빌":4464695},{"date":"2022-07-31","해외":56764681,"오빌":20007970,"자사주":0,"별동대":941006,"연습":4975115,"초빌":4964695},{"date":"2022-08-31","해외":57764681,"오빌":22007970,"자사주":0,"별동대":835013,"연습":2405328,"초빌":4964695},{"date":"2022-09-30","해외":58764681,"오빌":24107970,"자사주":0,"별동대":935013,"연습":2905328,"초빌":4964695},{"date":"2022-10-31","해외":59764681,"오빌":25407970,"자사주":0,"별동대":1015013,"연습":3105328,"초빌":4964695},{"date":"2022-11-30","해외":60764681,"오빌":27657970,"자사주":0,"별동대":1000750,"연습":3370328,"초빌":5264695},{"date":"2022-12-31","해외":61764681,"오빌":29407970,"자사주":31050585,"별동대":1150750,"연습":3370328,"초빌":5464695},{"date":"2023-01-31","해외":62764681,"오빌":31407970,"자사주":31050585,"별동대":1250750,"연습":4190328,"초빌":5664695},{"date":"2023-02-28","해외":63764681,"오빌":32509210,"자사주":31050585,"별동대":1744922,"연습":4444916,"초빌":5664695},{"date":"2023-03-31","해외":64764681,"오빌":35509210,"자사주":31050585,"별동대":1894922,"연습":1228725,"초빌":5664695},{"date":"2023-04-30","해외":65314681,"오빌":37009210,"자사주":30837815,"별동대":173226,"연습":1228725,"초빌":5664695},{"date":"2023-05-31","해외":66314681,"오빌":39209210,"자사주":24662965,"별동대":173226,"연습":1228725,"초빌":5864695},{"date":"2023-06-30","해외":67314681,"오빌":41109210,"자사주":25162965,"별동대":173226,"연습":1228725,"초빌":5864695},{"date":"2023-07-31","해외":68314681,"오빌":36409210,"자사주":25162965,"별동대":173226,"연습":1228725,"초빌":-621419},{"date":"2023-08-31","해외":69314681,"오빌":38709210,"자사주":23947385,"별동대":173226,"연습":1228725,"초빌":-621419},{"date":"2023-09-30","해외":70314681,"오빌":40709210,"자사주":23947261,"별동대":173226,"연습":1228725,"초빌":-621419},{"date":"2023-10-31","해외":70324681,"오빌":42609210,"자사주":23947261,"별동대":173226,"연습":1228725,"초빌":-621419},{"date":"2023-11-30","해외":70824681,"오빌":44609210,"자사주":23947261,"별동대":173226,"연습":1228725,"초빌":-621419},{"date":"2023-12-31","해외":71424681,"오빌":46309210,"자사주":24147261,"별동대":173226,"연습":1228725,"초빌":-621419},{"date":"2024-01-31","해외":72024681,"오빌":48109210,"자사주":24847261,"별동대":173226,"연습":1228725,"초빌":-621419},{"date":"2024-02-29","해외":72524681,"오빌":49409220,"자사주":24847261,"별동대":173226,"연습":408715,"초빌":-621419},{"date":"2024-03-31","해외":72524681,"오빌":50909220,"자사주":24847261,"별동대":173226,"연습":1108715,"초빌":-621419},{"date":"2024-04-30","해외":73964681,"오빌":52509220,"자사주":24577261,"별동대":173226,"연습":1108715,"초빌":-621419},{"date":"2024-05-31","해외":74464681,"오빌":53709220,"자사주":24439621,"별동대":173226,"연습":1108715,"초빌":-621419},{"date":"2024-06-30","해외":74464681,"오빌":55109220,"자사주":24439621,"별동대":173226,"연습":1108715,"초빌":-621419},{"date":"2024-07-31","해외":75164681,"오빌":56514576,"자사주":19439621,"별동대":173226,"연습":1108715,"초빌":-621419},{"date":"2024-08-31","해외":76267355,"오빌":58004576,"자사주":14284431,"별동대":173226,"연습":1108715,"초빌":-621419},{"date":"2024-09-30","해외":76367355,"오빌":59174576,"자사주":10284431,"별동대":173226,"연습":1108715,"초빌":-621419},{"date":"2024-10-31","해외":76667355,"오빌":60637986,"자사주":9864431,"별동대":173226,"연습":1108715,"초빌":-621419},{"date":"2024-11-30","해외":76667355,"오빌":62037986,"자사주":5739310,"별동대":173226,"연습":1108715,"초빌":-621419},{"date":"2024-12-31","해외":76667355,"오빌":60514676,"자사주":5739310,"별동대":173226,"연습":1132025,"초빌":-621419},{"date":"2025-01-31","해외":76667355,"오빌":61534677,"자사주":5739310,"별동대":173226,"연습":1132025,"초빌":-621419},{"date":"2025-02-28","해외":76817355,"오빌":62914677,"자사주":5739310,"별동대":173226,"연습":1132025,"초빌":-621419},{"date":"2025-03-31","해외":77247355,"오빌":60334677,"자사주":5739310,"별동대":173226,"연습":1132025,"초빌":-621419},{"date":"2025-04-30","해외":77817355,"오빌":61779677,"자사주":5739310,"별동대":173226,"연습":1132025,"초빌":-621419},{"date":"2025-05-31","해외":78357355,"오빌":61929677,"자사주":5739310,"별동대":173226,"연습":1132025,"초빌":-621419},{"date":"2025-06-30","해외":78677355,"오빌":63539677,"자사주":5739310,"별동대":173226,"연습":1132025,"초빌":-621419},{"date":"2025-07-31","해외":79157355,"오빌":64939677,"자사주":5739310,"별동대":173226,"연습":1132025,"초빌":-621419},{"date":"2025-08-31","해외":79757355,"오빌":66339677,"자사주":5739310,"별동대":173226,"연습":1132025,"초빌":-621419},{"date":"2025-09-30","해외":80237355,"오빌":67989677,"자사주":5739310,"별동대":173226,"연습":1132025,"초빌":-621419},{"date":"2025-10-31","해외":80837355,"오빌":69039677,"자사주":5739310,"별동대":173226,"연습":1132025,"초빌":-621419},{"date":"2025-11-30","해외":81317355,"오빌":70439678,"자사주":5739310,"별동대":173226,"연습":1132025,"초빌":-621419},{"date":"2025-12-31","해외":81797355,"오빌":71839678,"자사주":5739310,"별동대":173226,"연습":1132025,"초빌":-621419},{"date":"2026-01-31","해외":82397355,"오빌":73299678,"자사주":5739310,"별동대":173226,"연습":1132025,"초빌":-621419},{"date":"2026-02-28","해외":82877355,"오빌":74489678,"자사주":5739310,"별동대":173226,"연습":1132025,"초빌":-621419},{"date":"2026-03-31","해외":82877355,"오빌":68489678,"자사주":5739310,"별동대":173226,"연습":1132025,"초빌":-621419}];
+
+const ACCTS = ["해외","오빌","자사주","별동대","연습","초빌"];
+let selectedAcct = "해외";
+let generatedJSON = null;
+let manualTxns = [];
+let manualGenJSON = null;
+
+// ─── 계좌 선택 ───────────────────────────────────────────────────────
+function selectAcct(btn) {
+  document.querySelectorAll('.acct-btn').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+  selectedAcct = btn.dataset.id;
+}
+
+// ─── 탭 전환 ──────────────────────────────────────────────────────────
+function switchTab(id, btn) {
+  document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + id).classList.add('active');
+}
+
+// ─── 프롬프트 복사 ────────────────────────────────────────────────────
+function copyPrompt() {
+  const text = document.getElementById('transfer-prompt').textContent.trim();
+  navigator.clipboard.writeText(text).then(() => {
+    const b = document.getElementById('copy-prompt-btn');
+    b.innerHTML = '✅ 복사됨!'; b.classList.add('copied');
+    setTimeout(() => { b.innerHTML = '📋 프롬프트 복사'; b.classList.remove('copied'); }, 2500);
+  });
+}
+
+// ─── Claude 응답 적용 ────────────────────────────────────────────────
+function applyClaudeResponse() {
+  const raw = document.getElementById('claude-response').value.trim();
+  const errEl = document.getElementById('parse-error');
+  errEl.style.display = 'none';
+  if (!raw) { showParseError('JSON을 붙여넣어 주세요'); return; }
+  try {
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+    if (!parsed.transactions || !Array.isArray(parsed.transactions)) {
+      showParseError('transactions 배열이 없습니다'); return;
+    }
+    showResult(parsed);
+  } catch(e) {
+    showParseError('JSON 파싱 오류: ' + e.message);
+  }
+}
+
+function showParseError(msg) {
+  const el = document.getElementById('parse-error');
+  el.textContent = '⚠ ' + msg; el.style.display = 'block';
+}
+
+// ─── 유틸 ───────────────────────────────────────────────────────────
+function fmt(n) { return Number(n).toLocaleString('ko-KR'); }
+function monthEnd(dateStr) {
+  const parts = dateStr.replace(/\./g,'-').split('-').map(Number);
+  const [y, m] = parts;
+  return new Date(y, m, 0).toISOString().slice(0,10);
+}
+
+// ─── 월별 업데이트 계산 ───────────────────────────────────────────────
+function buildUpdated(transactions, acct) {
+  const deltas = {};
+  for (const tx of transactions) {
+    const me = monthEnd(tx.date);
+    const d  = tx.type === '입금' ? tx.amount : -tx.amount;
+    deltas[me] = (deltas[me] || 0) + d;
+  }
+  const rows = SEED.map(r => ({...r}));
+  const changes = [];
+  for (const [me, delta] of Object.entries(deltas)) {
+    const idx = rows.findIndex(r => r.date === me);
+    if (idx < 0) { changes.push({ me, delta, status: 'notfound' }); continue; }
+    const before = rows[idx][acct];
+    for (let i = idx; i < rows.length; i++) rows[i][acct] = (rows[i][acct] || 0) + delta;
+    changes.push({ me, delta, before, after: rows[idx][acct], status: 'updated' });
+  }
+  return { rows, changes };
+}
+
+// ─── 결과 렌더 ────────────────────────────────────────────────────────
+function showResult(parsed) {
+  const meta = document.getElementById('extractedMeta');
+  meta.innerHTML = `<span class="badge">${parsed.account_number || ''}</span><span class="badge">${parsed.account_name || ''}</span><span class="badge badge-acct">→ ${selectedAcct}</span>`;
+
+  const tbody = document.getElementById('txnBody');
+  tbody.innerHTML = '';
+  for (const tx of parsed.transactions) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${tx.date}</td><td style="color:#64748b">${tx.time}</td><td class="${tx.type==='입금'?'in':'out'}">${tx.type}</td><td style="text-align:right;font-family:monospace">${fmt(tx.amount)}</td><td style="color:#94a3b8">${tx.counterpart}</td>`;
+    tbody.appendChild(tr);
+  }
+
+  buildAndShowJSON(parsed.transactions, 'changeList', 'outputBox', 'savedBadge');
+  document.getElementById('resultSection').style.display = 'block';
+}
+
+function buildAndShowJSON(transactions, changeListId, outputBoxId, badgeId) {
+  const { rows, changes } = buildUpdated(transactions, selectedAcct);
+  const cl = document.getElementById(changeListId);
+  cl.innerHTML = '';
+  for (const ch of changes) {
+    const div = document.createElement('div');
+    div.className = 'change-row' + (ch.status==='notfound' ? ' change-warn' : '');
+    if (ch.status === 'notfound') {
+      div.textContent = `⚠ ${ch.me} 행 없음 — 수동 추가 필요 (순변동: ${fmt(ch.delta)}원)`;
+    } else {
+      const sign = ch.delta >= 0 ? '+' : '';
+      div.innerHTML = `✓ <strong>${ch.me}</strong> [${selectedAcct}]&nbsp; ${fmt(ch.before)} → <strong style="color:${ch.delta>=0?'#4ade80':'#f87171'}">${fmt(ch.after)}</strong>&nbsp;<span style="color:#475569;font-size:11px">(${sign}${fmt(ch.delta)})</span>`;
+    }
+    cl.appendChild(div);
+  }
+  if (!changes.length) cl.innerHTML = '<div class="change-row change-warn">⚠ 처리 가능한 거래내역이 없습니다</div>';
+  const payload = JSON.stringify({ type: 'kiwoom_transfer', account: selectedAcct, kiData: rows }, null, 2);
+  document.getElementById(outputBoxId).textContent = payload;
+  if (badgeId) document.getElementById(badgeId).style.display = 'inline-block';
+  generatedJSON = payload;
+}
+
+// ─── 복사 ────────────────────────────────────────────────────────────
+function copyJSON() {
+  if (!generatedJSON) return;
+  navigator.clipboard.writeText(generatedJSON).then(() => {
+    const ok = document.getElementById('copyOk');
+    ok.style.display = 'block';
+    setTimeout(() => ok.style.display = 'none', 2500);
+  });
+}
+function copyManualJSON() {
+  if (!manualGenJSON) return;
+  navigator.clipboard.writeText(manualGenJSON).then(() => {
+    const ok = document.getElementById('manualCopyOk');
+    ok.style.display = 'block';
+    setTimeout(() => ok.style.display = 'none', 2500);
+  });
+}
+
+// ─── 직접 입력 ───────────────────────────────────────────────────────
+function addManual() {
+  const date  = document.getElementById('m_date').value;
+  const time  = document.getElementById('m_time').value + ':00';
+  const amount = parseInt(document.getElementById('m_amount').value);
+  const type  = document.querySelector('input[name=m_type]:checked').value;
+  const cpart = document.getElementById('m_counterpart').value.trim() || '-';
+  if (!date || !amount || isNaN(amount)) { alert('날짜와 금액은 필수입니다'); return; }
+  manualTxns.push({ date, time, type, amount, counterpart: cpart });
+  renderManualTable();
+  document.getElementById('m_amount').value = '';
+  document.getElementById('m_counterpart').value = '';
+}
+function renderManualTable() {
+  const tbody = document.getElementById('manualBody');
+  tbody.innerHTML = '';
+  manualTxns.forEach((tx, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${tx.date}</td><td style="color:#64748b">${tx.time}</td><td class="${tx.type==='입금'?'in':'out'}">${tx.type}</td><td style="text-align:right">${fmt(tx.amount)}</td><td style="color:#94a3b8">${tx.counterpart}</td><td><button onclick="removeManual(${i})" style="background:none;border:none;color:#475569;cursor:pointer;font-size:13px">✕</button></td>`;
+    tbody.appendChild(tr);
+  });
+  const hasRows = manualTxns.length > 0;
+  document.getElementById('manualTableWrap').style.display = hasRows ? 'block' : 'none';
+  document.getElementById('applyManualBtn').style.display  = hasRows ? 'inline-flex' : 'none';
+}
+function removeManual(i) { manualTxns.splice(i, 1); renderManualTable(); }
+function applyManual() {
+  if (!manualTxns.length) return;
+  buildAndShowJSON(manualTxns, 'manualChangeList', 'manualOutputBox', null);
+  manualGenJSON = document.getElementById('manualOutputBox').textContent;
+  document.getElementById('manualResultSection').style.display = 'block';
+}
+</script>
+
+</body>
+</html>

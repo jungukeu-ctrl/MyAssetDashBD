@@ -10,50 +10,42 @@
   --bg:#0d0f18;--bg2:#131520;--bg3:#1a1d2a;
   --border:#252838;--border2:#2e3145;
   --teal:#36d399;--gold:#e8c97a;--gold2:#c9a84c;
-  --red:#ff6b6b;--blue:#6e8efb;
+  --red:#ff6b6b;--blue:#6e8efb;--purple:#b089f0;
   --text:#e8eaf0;--text2:#9095a8;--text3:#565a70;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:28px 16px 60px;display:flex;flex-direction:column;align-items:center}
 .wrap{width:100%;max-width:460px}
-
-/* Header */
 .header{margin-bottom:22px}
 .header h1{font-size:20px;color:var(--teal);margin-bottom:4px;display:flex;align-items:center;gap:8px}
 .header p{font-size:12px;color:var(--text3);line-height:1.7}
 .badge{display:inline-flex;align-items:center;gap:4px;background:rgba(54,211,153,.1);border:1px solid rgba(54,211,153,.25);color:var(--teal);font-size:10px;padding:2px 8px;border-radius:20px;margin-left:6px;font-family:'DM Mono',monospace}
-
-/* 대시보드 링크 */
 .dash-link{display:flex;align-items:center;gap:8px;background:rgba(110,142,251,.07);border:1px solid rgba(110,142,251,.18);border-radius:10px;padding:11px 14px;margin-bottom:18px;font-size:12px;color:var(--text2);text-decoration:none;transition:all .2s}
 .dash-link:hover{background:rgba(110,142,251,.14);color:var(--text)}
 .dash-link .arr{margin-left:auto;color:var(--blue);font-family:'DM Mono',monospace;font-size:11px}
-
-/* 드롭존 */
-.drop-zone{border:2px dashed var(--border2);border-radius:14px;padding:36px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg2);position:relative;overflow:hidden;margin-bottom:14px}
-.drop-zone:hover,.drop-zone.drag{border-color:var(--teal);background:rgba(54,211,153,.04)}
-.drop-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
-.drop-icon{font-size:36px;margin-bottom:10px}
-.drop-text{font-size:14px;color:var(--text2);font-weight:500}
-.drop-hint{font-size:11px;color:var(--text3);margin-top:5px}
-
-/* 미리보기 */
-.preview-wrap{border-radius:10px;overflow:hidden;border:1px solid var(--border);margin-bottom:14px;display:none;position:relative}
-.preview-wrap img{width:100%;max-height:280px;object-fit:contain;background:#000;display:block}
-.preview-change{position:absolute;bottom:8px;right:8px;background:rgba(13,15,24,.85);border:1px solid var(--border2);color:var(--text3);padding:5px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-family:'Noto Sans KR',sans-serif}
-
-/* 추출 버튼 */
-.extract-btn{width:100%;padding:14px;background:var(--teal);color:#000;border:none;border-radius:11px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;margin-bottom:14px;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
-.extract-btn:disabled{opacity:.35;cursor:not-allowed}
-.extract-btn:not(:disabled):hover{filter:brightness(1.08)}
-
-/* 진행 */
-.progress-wrap{display:none;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px}
-.progress-label{font-size:12px;color:var(--text2);margin-bottom:10px;display:flex;align-items:center;gap:8px}
-.progress-bar-bg{background:var(--border);border-radius:4px;height:6px;overflow:hidden}
-.progress-bar{height:100%;background:var(--teal);border-radius:4px;transition:width .3s;width:0%}
-.progress-log{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:8px;min-height:16px}
-
-/* 수동 입력 섹션 */
+/* 탭 */
+.tabs{display:flex;gap:6px;margin-bottom:14px}
+.tab-btn{flex:1;padding:9px;background:var(--bg3);border:1px solid var(--border2);color:var(--text3);border-radius:8px;font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .2s}
+.tab-btn.active{background:rgba(54,211,153,.1);border-color:rgba(54,211,153,.3);color:var(--teal)}
+/* Claude 탭 */
+.step-card{background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:16px;margin-bottom:12px}
+.step-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;font-weight:600;color:var(--teal)}
+.prompt-box{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:11px;font-family:'DM Mono',monospace;color:var(--gold);line-height:1.8;white-space:pre-wrap;word-break:break-all;margin-bottom:10px;max-height:170px;overflow-y:auto}
+.step-btns{display:flex;gap:8px}
+.prompt-copy-btn{flex:1;padding:10px;background:rgba(232,201,122,.1);border:1px solid rgba(232,201,122,.25);color:var(--gold);border-radius:8px;font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px}
+.prompt-copy-btn:hover{background:rgba(232,201,122,.2)}
+.prompt-copy-btn.copied{background:rgba(54,211,153,.1);border-color:rgba(54,211,153,.3);color:var(--teal)}
+.claude-open-btn{flex:1;padding:10px;background:rgba(110,142,251,.1);border:1px solid rgba(110,142,251,.25);color:var(--blue);border-radius:8px;font-size:12px;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s}
+.claude-open-btn:hover{background:rgba(110,142,251,.2)}
+.how-claude{background:rgba(54,211,153,.05);border:1px solid rgba(54,211,153,.12);border-radius:9px;padding:12px 14px;font-size:12px;color:var(--text3);line-height:1.9;margin-bottom:12px}
+.how-claude strong{color:var(--teal)}
+.how-claude ol{padding-left:16px;margin-top:4px}
+.paste-area{width:100%;min-height:90px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);padding:11px 13px;font-size:11px;font-family:'DM Mono',monospace;outline:none;resize:vertical;line-height:1.6;margin-bottom:10px}
+.paste-area:focus{border-color:var(--teal)}
+.apply-btn{width:100%;padding:12px;background:var(--teal);color:#000;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .2s}
+.apply-btn:hover{filter:brightness(1.08)}
+.parse-error{font-size:12px;color:var(--red);margin-top:8px;min-height:16px;font-family:'DM Mono',monospace;display:none}
+/* 수동 입력 */
 .manual-section{display:none;background:var(--bg2);border:1px solid rgba(201,168,76,.2);border-radius:12px;padding:18px;margin-bottom:14px}
 .manual-title{font-size:13px;color:var(--gold2);margin-bottom:4px;font-weight:500}
 .manual-desc{font-size:11px;color:var(--text3);margin-bottom:14px;line-height:1.6}
@@ -64,11 +56,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .balance-input:focus{border-color:var(--teal)}
 .input-unit{font-size:11px;color:var(--text3);flex-shrink:0}
 .date-row{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.date-label{font-size:12px;color:var(--text2);width:120px;flex-shrink:0}
+.date-label{font-size:12px;color:var(--text2);width:80px;flex-shrink:0}
 .date-input{flex:1;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:9px 12px;border-radius:7px;font-size:13px;font-family:'DM Mono',monospace;outline:none}
 .date-input:focus{border-color:var(--teal)}
 .gen-btn{width:100%;padding:11px;background:var(--gold);color:#000;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif}
-
 /* 결과 */
 .result-section{display:none}
 .result-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
@@ -82,32 +73,19 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .acc-date{font-size:10px;color:var(--text3);margin-top:2px}
 .acc-balance{font-family:'DM Mono',monospace;font-size:16px;color:var(--teal);font-weight:500}
 .json-box{background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:13px 15px;font-size:11px;font-family:'DM Mono',monospace;color:var(--gold);line-height:1.7;word-break:break-all;white-space:pre-wrap;margin-bottom:14px;max-height:160px;overflow-y:auto}
-
-/* 안내 */
-.how-to{background:rgba(110,142,251,.06);border:1px solid rgba(110,142,251,.15);border-radius:9px;padding:13px 15px;font-size:12px;color:var(--text3);line-height:1.9;margin-bottom:14px}
-.how-to strong{color:var(--blue)}
+.how-to{background:rgba(54,211,153,.04);border:1px solid rgba(54,211,153,.12);border-radius:9px;padding:13px 15px;font-size:12px;color:var(--text3);line-height:1.9;margin-bottom:14px}
+.how-to strong{color:var(--teal)}
 .how-to ol{padding-left:16px;margin-top:4px}
-
-/* 초기화 */
 .reset-btn{width:100%;padding:10px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);border-radius:9px;font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .2s}
 .reset-btn:hover{border-color:var(--text3);color:var(--text)}
-
-/* 스피너 */
-.spinner{display:inline-block;width:15px;height:15px;border:2.5px solid rgba(0,0,0,.2);border-top-color:#000;border-radius:50%;animation:spin .7s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-/* 탭 */
-.tabs{display:flex;gap:6px;margin-bottom:14px}
-.tab-btn{flex:1;padding:9px;background:var(--bg3);border:1px solid var(--border2);color:var(--text3);border-radius:8px;font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .2s}
-.tab-btn.active{background:rgba(54,211,153,.1);border-color:rgba(54,211,153,.3);color:var(--teal)}
 </style>
 </head>
 <body>
 <div class="wrap">
 
   <div class="header">
-    <h1>📱 토스 잔고 추출기 <span class="badge">FREE</span></h1>
-    <p>API 키 불필요 · 완전 무료 · 브라우저에서 직접 실행</p>
+    <h1>📱 토스 잔고 추출기 <span class="badge">Claude</span></h1>
+    <p>스크린샷 + 프롬프트 → Claude → JSON 복사 → 대시보드 적용</p>
   </div>
 
   <a class="dash-link" href="./index.html">
@@ -117,36 +95,53 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 
   <!-- 탭 -->
   <div class="tabs">
-    <button class="tab-btn active" id="tab-ocr" onclick="switchTab('ocr')">📷 이미지 자동 추출</button>
-    <button class="tab-btn" id="tab-manual" onclick="switchTab('manual')">✏️ 직접 입력</button>
+    <button class="tab-btn active" id="tab-claude-btn" onclick="switchTab('claude')">🤖 Claude 추출</button>
+    <button class="tab-btn" id="tab-manual-btn" onclick="switchTab('manual')">✏️ 직접 입력</button>
   </div>
 
-  <!-- OCR 탭 -->
-  <div id="ocr-section">
-    <div class="drop-zone" id="drop-zone">
-      <input type="file" id="img-input" accept="image/*">
-      <div class="drop-icon">🖼️</div>
-      <div class="drop-text">클릭하거나 이미지를 드래그</div>
-      <div class="drop-hint">토스 앱 모으기 계좌 화면 스크린샷</div>
-    </div>
+  <!-- Claude 탭 -->
+  <div id="claude-section">
 
-    <div class="preview-wrap" id="preview-wrap">
-      <img id="preview-img" src="" alt="">
-      <button class="preview-change" onclick="document.getElementById('img-input').click()">이미지 변경</button>
-    </div>
-
-    <button class="extract-btn" id="extract-btn" disabled onclick="runOCR()">
-      🔍 잔고 자동 추출
-    </button>
-
-    <div class="progress-wrap" id="progress-wrap">
-      <div class="progress-label">
-        <span class="spinner" style="border-top-color:var(--teal);border-color:rgba(54,211,153,.2)"></span>
-        <span id="progress-label-text">OCR 엔진 로딩 중...</span>
+    <!-- STEP 1 -->
+    <div class="step-card">
+      <div class="step-label">STEP 1 · 프롬프트 복사</div>
+      <div class="prompt-box" id="toss-prompt">이 토스 모으기 계좌 화면에서 각 계좌의 잔고를 추출해서 아래 JSON 형식으로만 응답해줘 (JSON 외 텍스트 없이):
+{
+  "date": "YYYY-MM-DD",
+  "accounts": [
+    {"key": "toss-obil",     "name": "오빌모으기",        "balance": 숫자},
+    {"key": "toss-overseas", "name": "해외자금모으기",     "balance": 숫자},
+    {"key": "toss-practice", "name": "연습모으기",         "balance": 숫자},
+    {"key": "toss-pension",  "name": "개인연금저축모으기", "balance": 숫자}
+  ]
+}
+화면에 보이는 계좌만 포함. balance는 원 단위 정수. date는 오늘 날짜.</div>
+      <div class="step-btns">
+        <button class="prompt-copy-btn" id="copy-prompt-btn" onclick="copyPrompt()">📋 프롬프트 복사</button>
+        <a class="claude-open-btn" href="https://claude.ai" target="_blank">🤖 Claude.ai 열기 ↗</a>
       </div>
-      <div class="progress-bar-bg"><div class="progress-bar" id="progress-bar"></div></div>
-      <div class="progress-log" id="progress-log"></div>
     </div>
+
+    <!-- 안내 -->
+    <div class="how-claude">
+      <strong>💡 사용 방법</strong>
+      <ol>
+        <li>위 프롬프트를 복사하세요</li>
+        <li>Claude.ai에서 <strong>토스 앱 스크린샷 + 프롬프트</strong> 붙여넣기</li>
+        <li>Claude가 반환한 JSON을 아래에 붙여넣기</li>
+      </ol>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="step-card">
+      <div class="step-label">STEP 2 · Claude 응답 붙여넣기</div>
+      <textarea class="paste-area" id="claude-response"
+        placeholder='{"date":"2026-03-05","accounts":[{"key":"toss-obil","name":"오빌모으기","balance":8290000},...]}'>
+      </textarea>
+      <div class="parse-error" id="parse-error"></div>
+      <button class="apply-btn" onclick="applyClaudeResponse()">✅ 적용</button>
+    </div>
+
   </div>
 
   <!-- 수동 입력 탭 -->
@@ -158,26 +153,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
       <input class="date-input" type="date" id="manual-date">
     </div>
     <div class="input-group">
-      <div class="input-row">
-        <span class="input-label">오빌모으기</span>
-        <input class="balance-input" type="number" id="in-obil" placeholder="0">
-        <span class="input-unit">원</span>
-      </div>
-      <div class="input-row">
-        <span class="input-label">해외자금모으기</span>
-        <input class="balance-input" type="number" id="in-overseas" placeholder="0">
-        <span class="input-unit">원</span>
-      </div>
-      <div class="input-row">
-        <span class="input-label">연습모으기</span>
-        <input class="balance-input" type="number" id="in-practice" placeholder="0">
-        <span class="input-unit">원</span>
-      </div>
-      <div class="input-row">
-        <span class="input-label">개인연금저축</span>
-        <input class="balance-input" type="number" id="in-pension" placeholder="0">
-        <span class="input-unit">원</span>
-      </div>
+      <div class="input-row"><span class="input-label">오빌모으기</span><input class="balance-input" type="number" id="in-obil" placeholder="0"><span class="input-unit">원</span></div>
+      <div class="input-row"><span class="input-label">해외자금모으기</span><input class="balance-input" type="number" id="in-overseas" placeholder="0"><span class="input-unit">원</span></div>
+      <div class="input-row"><span class="input-label">연습모으기</span><input class="balance-input" type="number" id="in-practice" placeholder="0"><span class="input-unit">원</span></div>
+      <div class="input-row"><span class="input-label">개인연금저축</span><input class="balance-input" type="number" id="in-pension" placeholder="0"><span class="input-unit">원</span></div>
     </div>
     <button class="gen-btn" onclick="generateFromManual()">📋 JSON 생성</button>
   </div>
@@ -190,12 +169,11 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
     </div>
     <div class="account-cards" id="account-cards"></div>
     <div class="json-box" id="json-box"></div>
-
     <div class="how-to">
       <strong>📌 대시보드 적용 방법</strong>
       <ol>
         <li>위 JSON 📋 복사</li>
-        <li>대시보드 접속 → <strong>토스 JSON 붙여넣기</strong> 클릭</li>
+        <li>대시보드 헤더 → <strong>토스_붙여넣기</strong> 클릭</li>
         <li>붙여넣기 후 <strong>대시보드 적용</strong></li>
       </ol>
     </div>
@@ -203,216 +181,95 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   </div>
 
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
-let selectedFile = null, resultJson = null;
+let resultJson = null;
 
-// ── 탭 전환 ──────────────────────────────────
 function switchTab(tab) {
-  document.getElementById('tab-ocr').classList.toggle('active', tab==='ocr');
-  document.getElementById('tab-manual').classList.toggle('active', tab==='manual');
-  document.getElementById('ocr-section').style.display = tab==='ocr' ? 'block' : 'none';
+  document.getElementById('tab-claude-btn').classList.toggle('active', tab==='claude');
+  document.getElementById('tab-manual-btn').classList.toggle('active', tab==='manual');
+  document.getElementById('claude-section').style.display = tab==='claude' ? 'block' : 'none';
   document.getElementById('manual-section').style.display = tab==='manual' ? 'block' : 'none';
   document.getElementById('result-section').style.display = 'none';
 }
 
-// ── 파일 선택 ─────────────────────────────────
-const dz = document.getElementById('drop-zone');
-dz.addEventListener('dragover', e=>{e.preventDefault();dz.classList.add('drag')});
-dz.addEventListener('dragleave', ()=>dz.classList.remove('drag'));
-dz.addEventListener('drop', e=>{e.preventDefault();dz.classList.remove('drag');const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('image/'))setFile(f)});
-document.getElementById('img-input').addEventListener('change', function(){if(this.files[0])setFile(this.files[0])});
-
-function setFile(file){
-  selectedFile=file;
-  document.getElementById('preview-img').src=URL.createObjectURL(file);
-  document.getElementById('preview-wrap').style.display='block';
-  document.getElementById('extract-btn').disabled=false;
-  document.getElementById('result-section').style.display='none';
-  document.getElementById('progress-wrap').style.display='none';
-}
-
-// ── OCR ──────────────────────────────────────
-async function runOCR(){
-  if(!selectedFile) return;
-  const btn=document.getElementById('extract-btn');
-  btn.disabled=true; btn.innerHTML='<span class="spinner"></span> 분석 중...';
-  document.getElementById('result-section').style.display='none';
-  document.getElementById('progress-wrap').style.display='block';
-
-  setProgress(5,'OCR 엔진 로딩 중...','한국어 언어팩 다운로드 중 (최초 1회)');
-
-  try {
-    const result = await Tesseract.recognize(selectedFile, 'kor', {
-      workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
-      langPath: 'https://tessdata.projectnaptha.com/4.0.0',
-      corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core-simd-lstm.wasm.js',
-      logger: m => {
-        if(m.status==='loading tesseract core') setProgress(10,'엔진 로딩...','');
-        if(m.status==='initializing tesseract') setProgress(20,'초기화 중...','');
-        if(m.status==='loading language traineddata') setProgress(35,'한국어 데이터 로딩...','');
-        if(m.status==='initializing api') setProgress(50,'API 초기화...','');
-        if(m.status==='recognizing text') setProgress(50+Math.round(m.progress*45), '텍스트 인식 중...', `${Math.round(m.progress*100)}%`);
-      }
-    });
-
-    setProgress(100,'분석 완료!','');
-    const text = result.data.text;
-    console.log('OCR 결과:\n', text);
-
-    const parsed = parseOCRText(text);
-
-    if(!parsed || !parsed.accounts.length){
-      // OCR 실패 시 수동 입력 안내
-      setProgress(100,'⚠ 자동 인식 실패','스크린샷 품질에 따라 인식률이 낮을 수 있습니다');
-      document.getElementById('progress-label-text').style.color='var(--gold)';
-      setTimeout(()=>{
-        if(confirm('자동 인식에 실패했습니다.\n직접 입력 탭으로 전환할까요?')){
-          switchTab('manual');
-          document.getElementById('progress-wrap').style.display='none';
-        }
-      },500);
-      resetBtn(); return;
-    }
-
-    resultJson = parsed;
-    showResult(parsed);
-
-  } catch(e){
-    setProgress(0,'❌ 오류: '+e.message,'');
-    document.getElementById('progress-label-text').style.color='var(--red)';
-    console.error(e);
-  }
-  resetBtn();
-}
-
-function setProgress(pct, label, log){
-  document.getElementById('progress-bar').style.width=pct+'%';
-  document.getElementById('progress-label-text').textContent=label;
-  if(log) document.getElementById('progress-log').textContent=log;
-}
-
-// ── OCR 텍스트 파싱 ───────────────────────────
-function parseOCRText(text){
-  const today = new Date().toISOString().slice(0,10);
-  const accounts=[];
-
-  // 계좌명과 금액 패턴 정의
-  const patterns=[
-    {key:'toss-obil',   names:['오빌모으기','오빌'],       re:/오빌/},
-    {key:'toss-overseas',names:['해외자금모으기','해외자금'], re:/해외자금|해외/},
-    {key:'toss-practice',names:['연습모으기','연습'],       re:/연습/},
-    {key:'toss-pension', names:['개인연금저축모으기','개인연금','연금저축'], re:/개인연금|연금저축/},
-  ];
-
-  // 금액 추출 헬퍼: "380,694원" or "380694원" or "380,694" 형태
-  function extractAmount(str){
-    const m = str.match(/([0-9,]+)\s*원/);
-    if(m) return parseInt(m[1].replace(/,/g,''));
-    return null;
-  }
-
-  const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
-  console.log('라인별:', lines);
-
-  // 각 패턴에 대해 해당 라인 근처에서 금액 찾기
-  for(const p of patterns){
-    for(let i=0;i<lines.length;i++){
-      if(p.re.test(lines[i])){
-        // 같은 라인 또는 인접 라인에서 금액 찾기
-        for(let j=i;j<=Math.min(i+3,lines.length-1);j++){
-          const amt=extractAmount(lines[j]);
-          if(amt!==null && amt>0){
-            accounts.push({key:p.key,name:p.names[0],balance:amt});
-            break;
-          }
-        }
-        break;
-      }
-    }
-  }
-
-  // 전체 잔고 (상단 큰 숫자) - 계좌 목록이 없으면 대신 사용
-  if(!accounts.length){
-    // 전체 텍스트에서 큰 금액 찾기 (5자리 이상)
-    const allAmounts=[];
-    for(const line of lines){
-      const m=line.match(/([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{5,})\s*원?/g);
-      if(m) m.forEach(s=>{
-        const n=parseInt(s.replace(/[,원]/g,''));
-        if(n>1000) allAmounts.push(n);
-      });
-    }
-    console.log('발견된 금액들:', allAmounts);
-  }
-
-  if(!accounts.length) return null;
-  return {date:today, accounts};
-}
-
-// ── 수동 입력 ─────────────────────────────────
-function generateFromManual(){
-  const date=document.getElementById('manual-date').value || new Date().toISOString().slice(0,10);
-  const map=[
-    {key:'toss-obil',  name:'오빌모으기',        id:'in-obil'},
-    {key:'toss-overseas',name:'해외자금모으기',   id:'in-overseas'},
-    {key:'toss-practice',name:'연습모으기',       id:'in-practice'},
-    {key:'toss-pension', name:'개인연금저축모으기',id:'in-pension'},
-  ];
-  const accounts=map
-    .map(m=>({...m,balance:parseInt(document.getElementById(m.id).value)||0}))
-    .filter(a=>a.balance>0);
-
-  if(!accounts.length){alert('최소 하나의 잔고를 입력해주세요');return;}
-  resultJson={date,accounts};
-  showResult(resultJson);
-}
-
-// ── 결과 표시 ─────────────────────────────────
-function showResult(parsed){
-  const NM={'toss-obil':'오빌모으기','toss-overseas':'해외자금모으기','toss-practice':'연습모으기','toss-pension':'개인연금저축모으기'};
-  document.getElementById('account-cards').innerHTML=parsed.accounts.map(a=>`
-    <div class="account-card">
-      <div><div class="acc-name">${a.name||NM[a.key]||a.key}</div><div class="acc-date">${parsed.date}</div></div>
-      <div class="acc-balance">${a.balance.toLocaleString('ko-KR')}원</div>
-    </div>`).join('');
-  document.getElementById('json-box').textContent=JSON.stringify(parsed,null,2);
-  document.getElementById('result-section').style.display='block';
-  document.getElementById('result-section').scrollIntoView({behavior:'smooth',block:'start'});
-}
-
-function copyJson(){
-  if(!resultJson) return;
-  const text=JSON.stringify(resultJson,null,2);
-  navigator.clipboard.writeText(text).then(()=>{
-    const b=document.getElementById('copy-btn');b.innerHTML='✅ 복사됨!';b.classList.add('copied');
-    setTimeout(()=>{b.innerHTML='📋 복사';b.classList.remove('copied')},2000);
-  }).catch(()=>{
-    const el=document.getElementById('json-box');
-    const r=document.createRange();r.selectNodeContents(el);
-    window.getSelection().removeAllRanges();window.getSelection().addRange(r);
-    document.execCommand('copy');
+function copyPrompt() {
+  const text = document.getElementById('toss-prompt').textContent.trim();
+  navigator.clipboard.writeText(text).then(() => {
+    const b = document.getElementById('copy-prompt-btn');
+    b.innerHTML = '✅ 복사됨!'; b.classList.add('copied');
+    setTimeout(() => { b.innerHTML = '📋 프롬프트 복사'; b.classList.remove('copied'); }, 2500);
   });
 }
 
-function resetBtn(){
-  const b=document.getElementById('extract-btn');
-  b.disabled=false;b.innerHTML='🔄 다시 추출';
-}
-function resetAll(){
-  selectedFile=null;resultJson=null;
-  document.getElementById('img-input').value='';
-  document.getElementById('preview-wrap').style.display='none';
-  document.getElementById('preview-img').src='';
-  document.getElementById('extract-btn').disabled=true;
-  document.getElementById('extract-btn').innerHTML='🔍 잔고 자동 추출';
-  document.getElementById('result-section').style.display='none';
-  document.getElementById('progress-wrap').style.display='none';
-  ['in-obil','in-overseas','in-practice','in-pension'].forEach(id=>document.getElementById(id).value='');
+function applyClaudeResponse() {
+  const raw = document.getElementById('claude-response').value.trim();
+  const errEl = document.getElementById('parse-error');
+  errEl.style.display = 'none';
+  if (!raw) { showError('JSON을 붙여넣어 주세요'); return; }
+  try {
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+    if (!parsed.accounts || !Array.isArray(parsed.accounts) || !parsed.accounts.length) {
+      showError('accounts 배열이 없거나 비어있습니다'); return;
+    }
+    resultJson = parsed;
+    showResult(parsed);
+  } catch(e) {
+    showError('JSON 파싱 오류: ' + e.message);
+  }
 }
 
-// 수동 입력 날짜 기본값
+function showError(msg) {
+  const el = document.getElementById('parse-error');
+  el.textContent = '⚠ ' + msg;
+  el.style.display = 'block';
+}
+
+function generateFromManual() {
+  const date = document.getElementById('manual-date').value || new Date().toISOString().slice(0,10);
+  const map = [
+    {key:'toss-obil',     name:'오빌모으기',        id:'in-obil'},
+    {key:'toss-overseas', name:'해외자금모으기',     id:'in-overseas'},
+    {key:'toss-practice', name:'연습모으기',         id:'in-practice'},
+    {key:'toss-pension',  name:'개인연금저축모으기', id:'in-pension'},
+  ];
+  const accounts = map
+    .map(m => ({key:m.key, name:m.name, balance: parseInt(document.getElementById(m.id).value)||0}))
+    .filter(a => a.balance > 0);
+  if (!accounts.length) { alert('최소 하나의 잔고를 입력해주세요'); return; }
+  resultJson = {date, accounts};
+  showResult(resultJson);
+}
+
+function showResult(parsed) {
+  const NM = {'toss-obil':'오빌모으기','toss-overseas':'해외자금모으기','toss-practice':'연습모으기','toss-pension':'개인연금저축모으기'};
+  document.getElementById('account-cards').innerHTML = parsed.accounts.map(a => `
+    <div class="account-card">
+      <div><div class="acc-name">${a.name || NM[a.key] || a.key}</div><div class="acc-date">${parsed.date}</div></div>
+      <div class="acc-balance">${a.balance.toLocaleString('ko-KR')}원</div>
+    </div>`).join('');
+  document.getElementById('json-box').textContent = JSON.stringify(parsed, null, 2);
+  document.getElementById('result-section').style.display = 'block';
+  document.getElementById('result-section').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function copyJson() {
+  if (!resultJson) return;
+  navigator.clipboard.writeText(JSON.stringify(resultJson, null, 2)).then(() => {
+    const b = document.getElementById('copy-btn');
+    b.innerHTML = '✅ 복사됨!'; b.classList.add('copied');
+    setTimeout(() => { b.innerHTML = '📋 복사'; b.classList.remove('copied'); }, 2000);
+  });
+}
+
+function resetAll() {
+  resultJson = null;
+  document.getElementById('claude-response').value = '';
+  document.getElementById('parse-error').style.display = 'none';
+  document.getElementById('result-section').style.display = 'none';
+  ['in-obil','in-overseas','in-practice','in-pension'].forEach(id => document.getElementById(id).value = '');
+}
+
 document.getElementById('manual-date').value = new Date().toISOString().slice(0,10);
 </script>
 </body>

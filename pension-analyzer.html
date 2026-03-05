@@ -9,59 +9,54 @@
 :root{
   --bg:#0d0f18;--bg2:#131520;--bg3:#1a1d2a;
   --border:#252838;--border2:#2e3145;
-  --teal:#36d399;--gold:#e8c97a;--purple:#b089f0;
-  --red:#ff6b6b;--blue:#6e8efb;--text:#e8eaf0;--text2:#9095a8;--text3:#565a70;
+  --teal:#36d399;--gold:#e8c97a;--gold2:#c9a84c;
+  --red:#ff6b6b;--blue:#6e8efb;--purple:#b089f0;
+  --text:#e8eaf0;--text2:#9095a8;--text3:#565a70;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:28px 16px 60px;display:flex;flex-direction:column;align-items:center}
 .wrap{width:100%;max-width:480px}
-
 .header{margin-bottom:22px}
 .header h1{font-size:20px;color:var(--purple);margin-bottom:4px}
 .header p{font-size:12px;color:var(--text3);line-height:1.7}
-.badge{display:inline-flex;align-items:center;gap:4px;background:rgba(54,211,153,.1);border:1px solid rgba(54,211,153,.25);color:var(--teal);font-size:10px;padding:2px 8px;border-radius:20px;margin-left:6px;font-family:'DM Mono',monospace}
-
+.badge{display:inline-flex;align-items:center;gap:4px;background:rgba(176,137,240,.1);border:1px solid rgba(176,137,240,.25);color:var(--purple);font-size:10px;padding:2px 8px;border-radius:20px;margin-left:6px;font-family:'DM Mono',monospace}
 .dash-link{display:flex;align-items:center;gap:8px;background:rgba(176,137,240,.07);border:1px solid rgba(176,137,240,.18);border-radius:10px;padding:11px 14px;margin-bottom:18px;font-size:12px;color:var(--text2);text-decoration:none;transition:all .2s}
 .dash-link:hover{background:rgba(176,137,240,.14);color:var(--text)}
 .dash-link .arr{margin-left:auto;color:var(--purple);font-family:'DM Mono',monospace;font-size:11px}
-
-.tabs{display:flex;gap:6px;margin-bottom:14px}
-.tab-btn{flex:1;padding:9px;background:var(--bg3);border:1px solid var(--border2);color:var(--text3);border-radius:8px;font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .2s}
-.tab-btn.active{background:rgba(176,137,240,.1);border-color:rgba(176,137,240,.3);color:var(--purple)}
-
-/* 계좌 안내표 */
+/* 계좌 안내 */
 .acct-guide{background:var(--bg2);border:1px solid rgba(176,137,240,.15);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:11px}
 .acct-guide-title{color:var(--purple);font-weight:500;margin-bottom:8px}
 .acct-guide table{width:100%;border-collapse:collapse}
 .acct-guide td{padding:4px 8px 4px 0;color:var(--text3);vertical-align:top}
 .acct-guide td:first-child{color:var(--text2);font-weight:500;white-space:nowrap}
 .acct-guide td:last-child{color:var(--purple)}
-
-.drop-zone{border:2px dashed var(--border2);border-radius:14px;padding:36px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg2);position:relative;overflow:hidden;margin-bottom:14px}
-.drop-zone:hover,.drop-zone.drag{border-color:var(--purple);background:rgba(176,137,240,.04)}
-.drop-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
-.drop-icon{font-size:32px;margin-bottom:8px}
-.drop-text{font-size:14px;color:var(--text2);font-weight:500}
-.drop-hint{font-size:11px;color:var(--text3);margin-top:5px}
-
-.preview-wrap{border-radius:10px;overflow:hidden;border:1px solid var(--border);margin-bottom:14px;display:none;position:relative}
-.preview-wrap img{width:100%;max-height:300px;object-fit:contain;background:#1a1a1a;display:block}
-.preview-change{position:absolute;bottom:8px;right:8px;background:rgba(13,15,24,.85);border:1px solid var(--border2);color:var(--text3);padding:5px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-family:'Noto Sans KR',sans-serif}
-
-.extract-btn{width:100%;padding:14px;background:var(--purple);color:#fff;border:none;border-radius:11px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;margin-bottom:14px;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
-.extract-btn:disabled{opacity:.35;cursor:not-allowed}
-
-.progress-wrap{display:none;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px}
-.progress-label{font-size:12px;color:var(--text2);margin-bottom:10px;display:flex;align-items:center;gap:8px}
-.progress-bar-bg{background:var(--border);border-radius:4px;height:6px;overflow:hidden}
-.progress-bar{height:100%;background:var(--purple);border-radius:4px;transition:width .3s;width:0%}
-.progress-log{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:8px;min-height:16px}
-
-/* 수동 입력 */
+/* 탭 */
+.tabs{display:flex;gap:6px;margin-bottom:14px}
+.tab-btn{flex:1;padding:9px;background:var(--bg3);border:1px solid var(--border2);color:var(--text3);border-radius:8px;font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .2s}
+.tab-btn.active{background:rgba(176,137,240,.1);border-color:rgba(176,137,240,.3);color:var(--purple)}
+/* Claude 탭 */
+.step-card{background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:16px;margin-bottom:12px}
+.step-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;font-weight:600;color:var(--purple)}
+.prompt-box{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:11px;font-family:'DM Mono',monospace;color:var(--gold);line-height:1.8;white-space:pre-wrap;word-break:break-all;margin-bottom:10px;max-height:170px;overflow-y:auto}
+.step-btns{display:flex;gap:8px}
+.prompt-copy-btn{flex:1;padding:10px;background:rgba(232,201,122,.1);border:1px solid rgba(232,201,122,.25);color:var(--gold);border-radius:8px;font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px}
+.prompt-copy-btn:hover{background:rgba(232,201,122,.2)}
+.prompt-copy-btn.copied{background:rgba(54,211,153,.1);border-color:rgba(54,211,153,.3);color:var(--teal)}
+.claude-open-btn{flex:1;padding:10px;background:rgba(176,137,240,.1);border:1px solid rgba(176,137,240,.25);color:var(--purple);border-radius:8px;font-size:12px;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s}
+.claude-open-btn:hover{background:rgba(176,137,240,.2)}
+.how-claude{background:rgba(176,137,240,.05);border:1px solid rgba(176,137,240,.12);border-radius:9px;padding:12px 14px;font-size:12px;color:var(--text3);line-height:1.9;margin-bottom:12px}
+.how-claude strong{color:var(--purple)}
+.how-claude ol{padding-left:16px;margin-top:4px}
+.paste-area{width:100%;min-height:90px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);padding:11px 13px;font-size:11px;font-family:'DM Mono',monospace;outline:none;resize:vertical;line-height:1.6;margin-bottom:10px}
+.paste-area:focus{border-color:var(--purple)}
+.apply-btn{width:100%;padding:12px;background:var(--purple);color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .2s}
+.apply-btn:hover{filter:brightness(1.1)}
+.parse-error{font-size:12px;color:var(--red);margin-top:8px;min-height:16px;font-family:'DM Mono',monospace;display:none}
+/* 수동 */
 .manual-section{display:none;background:var(--bg2);border:1px solid rgba(176,137,240,.2);border-radius:12px;padding:18px;margin-bottom:14px}
 .manual-title{font-size:13px;color:var(--purple);margin-bottom:4px;font-weight:500}
 .manual-desc{font-size:11px;color:var(--text3);margin-bottom:14px;line-height:1.6}
-.date-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.date-row{display:flex;align-items:center;gap:10px;margin-bottom:14px}
 .date-label{font-size:12px;color:var(--text2);width:80px;flex-shrink:0}
 .date-input{flex:1;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:9px 12px;border-radius:7px;font-size:13px;font-family:'DM Mono',monospace;outline:none}
 .date-input:focus{border-color:var(--purple)}
@@ -72,12 +67,11 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .balance-input:focus{border-color:var(--purple)}
 .input-unit{font-size:11px;color:var(--text3);width:14px;flex-shrink:0}
 .gen-btn{width:100%;padding:11px;background:var(--purple);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif}
-
 /* 결과 */
 .result-section{display:none}
 .result-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .result-label{font-size:11px;color:var(--text3);letter-spacing:1px}
-.copy-btn{background:rgba(176,137,240,.1);border:1px solid rgba(176,137,240,.3);color:var(--purple);padding:5px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .2s}
+.copy-btn{background:rgba(176,137,240,.1);border:1px solid rgba(176,137,240,.3);color:var(--purple);padding:5px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .2s;display:flex;align-items:center;gap:5px}
 .copy-btn:hover{background:rgba(176,137,240,.2)}
 .copy-btn.copied{background:rgba(54,211,153,.12);border-color:rgba(54,211,153,.3);color:var(--teal)}
 .account-cards{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
@@ -88,21 +82,19 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .acc-balance{font-family:'DM Mono',monospace;font-size:16px;color:var(--purple);font-weight:500}
 .acc-date{font-size:10px;color:var(--text3);margin-top:2px}
 .json-box{background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:13px 15px;font-size:11px;font-family:'DM Mono',monospace;color:var(--gold);line-height:1.7;word-break:break-all;white-space:pre-wrap;margin-bottom:14px;max-height:180px;overflow-y:auto}
-.how-to{background:rgba(176,137,240,.06);border:1px solid rgba(176,137,240,.15);border-radius:9px;padding:13px 15px;font-size:12px;color:var(--text3);line-height:1.9;margin-bottom:14px}
+.how-to{background:rgba(176,137,240,.04);border:1px solid rgba(176,137,240,.12);border-radius:9px;padding:13px 15px;font-size:12px;color:var(--text3);line-height:1.9;margin-bottom:14px}
 .how-to strong{color:var(--purple)}
 .how-to ol{padding-left:16px;margin-top:4px}
 .reset-btn{width:100%;padding:10px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);border-radius:9px;font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .2s}
 .reset-btn:hover{border-color:var(--text3);color:var(--text)}
-.spinner{display:inline-block;width:15px;height:15px;border:2.5px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
 <div class="wrap">
 
   <div class="header">
-    <h1>💜 연금 평가금액 추출기 <span class="badge">FREE</span></h1>
-    <p>토스 연금 화면 스크린샷 → OCR 추출 → JSON 복사<br>대시보드 <strong>연금 스냅샷</strong> 버튼에 붙여넣으면 반영됩니다</p>
+    <h1>💜 연금 평가금액 추출기 <span class="badge">Claude</span></h1>
+    <p>토스 연금 화면 스크린샷 + 프롬프트 → Claude → JSON → 대시보드 적용</p>
   </div>
 
   <a class="dash-link" href="./index.html">
@@ -110,7 +102,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
     <span class="arr">대시보드 →</span>
   </a>
 
-  <!-- 계좌 안내 -->
   <div class="acct-guide">
     <div class="acct-guide-title">📋 추출 대상 계좌</div>
     <table>
@@ -121,36 +112,54 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   </div>
 
   <div class="tabs">
-    <button class="tab-btn active" id="tab-ocr" onclick="switchTab('ocr')">📷 이미지 자동 추출</button>
-    <button class="tab-btn" id="tab-manual" onclick="switchTab('manual')">✏️ 직접 입력</button>
+    <button class="tab-btn active" id="tab-claude-btn" onclick="switchTab('claude')">🤖 Claude 추출</button>
+    <button class="tab-btn" id="tab-manual-btn" onclick="switchTab('manual')">✏️ 직접 입력</button>
   </div>
 
-  <!-- OCR 탭 -->
-  <div id="ocr-section">
-    <div class="drop-zone" id="drop-zone">
-      <input type="file" id="img-input" accept="image/*">
-      <div class="drop-icon">📱</div>
-      <div class="drop-text">토스 연금 화면 스크린샷</div>
-      <div class="drop-hint">토스 앱 → 금융 → 연금 탭 화면</div>
-    </div>
-    <div class="preview-wrap" id="preview-wrap">
-      <img id="preview-img" src="" alt="">
-      <button class="preview-change" onclick="document.getElementById('img-input').click()">이미지 변경</button>
-    </div>
-    <button class="extract-btn" id="extract-btn" disabled onclick="runOCR()">
-      🔍 평가금액 자동 추출
-    </button>
-    <div class="progress-wrap" id="progress-wrap">
-      <div class="progress-label">
-        <span class="spinner" style="border-top-color:var(--purple);border-color:rgba(176,137,240,.2)"></span>
-        <span id="progress-label-text">OCR 엔진 로딩 중...</span>
+  <!-- Claude 탭 -->
+  <div id="claude-section">
+    <div class="step-card">
+      <div class="step-label">STEP 1 · 프롬프트 복사</div>
+      <div class="prompt-box" id="pension-prompt">이 토스 연금 화면에서 각 연금 계좌의 평가금액을 추출해서 아래 JSON 형식으로만 응답해줘 (JSON 외 텍스트 없이):
+{
+  "date": "YYYY-MM-DD",
+  "accounts": [
+    {"key": "pension-irp1",   "name": "퇴직연금 IRP 1", "balance": 숫자},
+    {"key": "pension-irp2",   "name": "퇴직연금 IRP 2", "balance": 숫자},
+    {"key": "pension-saving", "name": "개인연금저축",    "balance": 숫자}
+  ]
+}
+계좌 식별 기준: 유정욱_IRP(삼성증권)→pension-irp1, 개인형퇴직연금(개인형IRP)→pension-irp2, 연금저축(삼성증권)→pension-saving
+화면에 보이는 계좌만 포함. balance는 평가금액 원 단위 정수. date는 오늘 날짜.</div>
+      <div class="step-btns">
+        <button class="prompt-copy-btn" id="copy-prompt-btn" onclick="copyPrompt()">📋 프롬프트 복사</button>
+        <a class="claude-open-btn" href="https://claude.ai" target="_blank">🤖 Claude.ai 열기 ↗</a>
       </div>
-      <div class="progress-bar-bg"><div class="progress-bar" id="progress-bar"></div></div>
-      <div class="progress-log" id="progress-log"></div>
+    </div>
+
+    <div class="how-claude">
+      <strong>💡 사용 방법</strong>
+      <ol>
+        <li>토스 앱 → 금융 → 연금 탭 화면 스크린샷 준비</li>
+        <li>위 프롬프트 복사 후 Claude.ai에서 <strong>스크린샷 + 프롬프트</strong> 붙여넣기</li>
+        <li>Claude가 반환한 JSON을 아래에 붙여넣기</li>
+      </ol>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(176,137,240,.15)">
+        💡 <strong>개인연금저축</strong>은 대시보드 적용 시 토스모으기 잔고가 자동 합산됩니다.
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-label">STEP 2 · Claude 응답 붙여넣기</div>
+      <textarea class="paste-area" id="claude-response"
+        placeholder='{"date":"2026-03-05","accounts":[{"key":"pension-irp1","name":"퇴직연금 IRP 1","balance":35000000},...]}'>
+      </textarea>
+      <div class="parse-error" id="parse-error"></div>
+      <button class="apply-btn" onclick="applyClaudeResponse()">✅ 적용</button>
     </div>
   </div>
 
-  <!-- 직접 입력 탭 -->
+  <!-- 수동 입력 탭 -->
   <div class="manual-section" id="manual-section">
     <div class="manual-title">✏️ 평가금액 직접 입력</div>
     <div class="manual-desc">토스 연금 화면을 보며 각 계좌의 평가금액을 입력하세요.<br>개인연금저축은 토스모으기 잔고가 자동으로 합산됩니다.</div>
@@ -159,21 +168,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
       <input class="date-input" type="date" id="manual-date">
     </div>
     <div class="input-group">
-      <div class="input-row">
-        <span class="input-name">IRP 1 (유정욱)</span>
-        <input class="balance-input" type="number" id="in-irp1" placeholder="0">
-        <span class="input-unit">원</span>
-      </div>
-      <div class="input-row">
-        <span class="input-name">IRP 2 (개인형)</span>
-        <input class="balance-input" type="number" id="in-irp2" placeholder="0">
-        <span class="input-unit">원</span>
-      </div>
-      <div class="input-row">
-        <span class="input-name">연금저축</span>
-        <input class="balance-input" type="number" id="in-saving" placeholder="0">
-        <span class="input-unit">원</span>
-      </div>
+      <div class="input-row"><span class="input-name">IRP 1 (유정욱)</span><input class="balance-input" type="number" id="in-irp1" placeholder="0"><span class="input-unit">원</span></div>
+      <div class="input-row"><span class="input-name">IRP 2 (개인형)</span><input class="balance-input" type="number" id="in-irp2" placeholder="0"><span class="input-unit">원</span></div>
+      <div class="input-row"><span class="input-name">연금저축</span><input class="balance-input" type="number" id="in-saving" placeholder="0"><span class="input-unit">원</span></div>
     </div>
     <button class="gen-btn" onclick="generateFromManual()">📋 JSON 생성</button>
   </div>
@@ -181,7 +178,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   <!-- 결과 -->
   <div class="result-section" id="result-section">
     <div class="result-header">
-      <div class="result-label">추출 결과 (키움 원시 평가금액)</div>
+      <div class="result-label">추출 결과</div>
       <button class="copy-btn" id="copy-btn" onclick="copyJson()">📋 복사</button>
     </div>
     <div class="account-cards" id="account-cards"></div>
@@ -191,181 +188,85 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
       <strong>📌 대시보드 적용 방법</strong>
       <ol>
         <li>위 JSON 📋 복사</li>
-        <li>대시보드(index.html) 접속</li>
-        <li>헤더의 <strong>연금 스냅샷</strong> 버튼 클릭</li>
+        <li>대시보드 헤더 → <strong>연금_붙여넣기</strong> 클릭</li>
         <li>붙여넣기 후 <strong>대시보드 적용</strong></li>
       </ol>
-      <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(176,137,240,.15)">
-        💡 개인연금저축은 대시보드 적용 시 <strong>토스모으기 잔고가 자동 합산</strong>됩니다.
-      </div>
     </div>
     <button class="reset-btn" onclick="resetAll()">↺ 다시 추출하기</button>
   </div>
 
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
-// 토스 연금 화면 계좌명 → key 매핑
-const PENSION_MAP = [
-  { key:'pension-irp1',   name:'퇴직연금 IRP 1', label:'유정욱_IRP',      color:'#e07b6a',
-    patterns:[/유정욱.{0,4}IRP/i, /IRP.*유정욱/i] },
-  { key:'pension-irp2',   name:'퇴직연금 IRP 2', label:'개인형IRP',       color:'#e0a06a',
-    patterns:[/개인형퇴직연금/i, /개인형IRP/i, /개인형\s*IRP/i] },
-  { key:'pension-saving', name:'개인연금저축',    label:'연금저축(삼성증권)', color:'#b089f0',
-    patterns:[/연금저축/i] },
-];
+let resultJson = null;
 
-let selectedFile = null, resultJson = null;
-
-function switchTab(tab){
-  document.getElementById('tab-ocr').classList.toggle('active', tab==='ocr');
-  document.getElementById('tab-manual').classList.toggle('active', tab==='manual');
-  document.getElementById('ocr-section').style.display = tab==='ocr' ? 'block' : 'none';
+function switchTab(tab) {
+  document.getElementById('tab-claude-btn').classList.toggle('active', tab==='claude');
+  document.getElementById('tab-manual-btn').classList.toggle('active', tab==='manual');
+  document.getElementById('claude-section').style.display = tab==='claude' ? 'block' : 'none';
   document.getElementById('manual-section').style.display = tab==='manual' ? 'block' : 'none';
   document.getElementById('result-section').style.display = 'none';
 }
 
-document.getElementById('manual-date').value = new Date().toISOString().slice(0,10);
-
-// 파일 선택
-const dz = document.getElementById('drop-zone');
-dz.addEventListener('dragover', e=>{e.preventDefault();dz.classList.add('drag')});
-dz.addEventListener('dragleave', ()=>dz.classList.remove('drag'));
-dz.addEventListener('drop', e=>{e.preventDefault();dz.classList.remove('drag');const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('image/'))setFile(f)});
-document.getElementById('img-input').addEventListener('change', function(){if(this.files[0])setFile(this.files[0])});
-
-function setFile(file){
-  selectedFile = file;
-  document.getElementById('preview-img').src = URL.createObjectURL(file);
-  document.getElementById('preview-wrap').style.display = 'block';
-  document.getElementById('extract-btn').disabled = false;
-  document.getElementById('result-section').style.display = 'none';
-  document.getElementById('progress-wrap').style.display = 'none';
+function copyPrompt() {
+  const text = document.getElementById('pension-prompt').textContent.trim();
+  navigator.clipboard.writeText(text).then(() => {
+    const b = document.getElementById('copy-prompt-btn');
+    b.innerHTML = '✅ 복사됨!'; b.classList.add('copied');
+    setTimeout(() => { b.innerHTML = '📋 프롬프트 복사'; b.classList.remove('copied'); }, 2500);
+  });
 }
 
-// OCR
-async function runOCR(){
-  if(!selectedFile) return;
-  const btn = document.getElementById('extract-btn');
-  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> 분석 중...';
-  document.getElementById('result-section').style.display = 'none';
-  document.getElementById('progress-wrap').style.display = 'block';
-  setProgress(5, 'OCR 엔진 로딩 중...', '한국어 언어팩 (최초 1회 다운로드)');
-
+function applyClaudeResponse() {
+  const raw = document.getElementById('claude-response').value.trim();
+  const errEl = document.getElementById('parse-error');
+  errEl.style.display = 'none';
+  if (!raw) { showError('JSON을 붙여넣어 주세요'); return; }
   try {
-    const result = await Tesseract.recognize(selectedFile, 'kor', {
-      workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
-      langPath: 'https://tessdata.projectnaptha.com/4.0.0',
-      corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core-simd-lstm.wasm.js',
-      logger: m=>{
-        if(m.status==='loading tesseract core') setProgress(10,'엔진 로딩...','');
-        if(m.status==='loading language traineddata') setProgress(30,'언어 데이터 로딩...','');
-        if(m.status==='recognizing text') setProgress(40+Math.round(m.progress*55),'텍스트 인식 중...',Math.round(m.progress*100)+'%');
-      }
-    });
-
-    setProgress(100, '분석 완료!', '');
-    console.log('OCR 원문:\n', result.data.text);
-    const parsed = parsePensionOCR(result.data.text);
-
-    if(!parsed || !parsed.accounts.length){
-      setProgress(100,'⚠ 자동 인식 실패','직접 입력 탭을 이용해주세요');
-      document.getElementById('progress-label-text').style.color = 'var(--gold)';
-      setTimeout(()=>{
-        if(confirm('자동 인식에 실패했습니다.\n직접 입력 탭으로 전환할까요?')){
-          switchTab('manual'); document.getElementById('progress-wrap').style.display='none';
-        }
-      }, 600);
-      resetBtn(); return;
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+    if (!parsed.accounts || !Array.isArray(parsed.accounts) || !parsed.accounts.length) {
+      showError('accounts 배열이 없거나 비어있습니다'); return;
     }
-
-    resultJson = parsed; showResult(parsed);
-    setProgress(100, `✅ ${parsed.accounts.length}개 계좌 추출 완료`, '');
-    document.getElementById('progress-label-text').style.color = 'var(--teal)';
-
-  } catch(e){
-    setProgress(0, '❌ 오류: '+e.message, '');
-    document.getElementById('progress-label-text').style.color = 'var(--red)';
-    console.error(e);
+    resultJson = parsed;
+    showResult(parsed);
+  } catch(e) {
+    showError('JSON 파싱 오류: ' + e.message);
   }
-  resetBtn();
 }
 
-function setProgress(pct,label,log){
-  document.getElementById('progress-bar').style.width = pct+'%';
-  document.getElementById('progress-label-text').textContent = label;
-  if(log !== undefined) document.getElementById('progress-log').textContent = log;
+function showError(msg) {
+  const el = document.getElementById('parse-error');
+  el.textContent = '⚠ ' + msg; el.style.display = 'block';
 }
 
-// 토스 연금 화면 OCR 파싱
-function parsePensionOCR(text){
-  const today = new Date().toISOString().slice(0,10);
-  const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
-  const accounts = [];
-
-  function parseAmt(s){
-    const m = s.match(/([0-9][0-9,]*)\s*원/);
-    if(m) return parseInt(m[1].replace(/,/g,''));
-    return null;
-  }
-
-  // 금액 다음 줄에 계좌명이 오는 토스 UI 구조
-  // 예: "35,282,124원" → "개인형퇴직연금(개인형IRP) +52.3%"
-  for(let i = 0; i < lines.length; i++){
-    const line = lines[i];
-    const amt = parseAmt(line);
-    if(amt === null || amt === 0) continue;
-
-    // 인접 라인 (앞뒤 2줄)에서 계좌명 찾기
-    const window = [
-      lines[i-2]||'', lines[i-1]||'', line, lines[i+1]||'', lines[i+2]||''
-    ].join(' ');
-
-    for(const p of PENSION_MAP){
-      if(accounts.find(a=>a.key===p.key)) continue; // 이미 추출됨
-      if(p.patterns.some(re => re.test(window))){
-        accounts.push({ key: p.key, name: p.name, balance: amt });
-        break;
-      }
-    }
-  }
-
-  if(!accounts.length) return null;
-  return { date: today, accounts };
-}
-
-// 수동 입력
-function generateFromManual(){
+function generateFromManual() {
   const date = document.getElementById('manual-date').value || new Date().toISOString().slice(0,10);
   const inputs = [
-    { key:'pension-irp1',   el:'in-irp1',   name:'퇴직연금 IRP 1' },
-    { key:'pension-irp2',   el:'in-irp2',   name:'퇴직연금 IRP 2' },
-    { key:'pension-saving', el:'in-saving', name:'개인연금저축' },
+    {key:'pension-irp1',   el:'in-irp1',   name:'퇴직연금 IRP 1'},
+    {key:'pension-irp2',   el:'in-irp2',   name:'퇴직연금 IRP 2'},
+    {key:'pension-saving', el:'in-saving', name:'개인연금저축'},
   ];
   const accounts = inputs
-    .map(a=>({ key:a.key, name:a.name, balance:parseInt(document.getElementById(a.el).value)||0 }))
-    .filter(a=>a.balance>0);
-  if(!accounts.length){ alert('최소 하나의 금액을 입력해주세요'); return; }
-  resultJson = { date, accounts };
+    .map(a => ({key:a.key, name:a.name, balance: parseInt(document.getElementById(a.el).value)||0}))
+    .filter(a => a.balance > 0);
+  if (!accounts.length) { alert('최소 하나의 금액을 입력해주세요'); return; }
+  resultJson = {date, accounts};
   showResult(resultJson);
 }
 
-// 결과 표시
-function showResult(parsed){
+function showResult(parsed) {
   const INFO = {
-    'pension-irp1':   { label:'유정욱_IRP',          color:'#e07b6a', toss:false },
-    'pension-irp2':   { label:'개인형퇴직연금(IRP)',   color:'#e0a06a', toss:false },
-    'pension-saving': { label:'연금저축 (+토스 합산)', color:'#b089f0', toss:true  },
+    'pension-irp1':   {label:'유정욱_IRP',          color:'#e07b6a', toss:false},
+    'pension-irp2':   {label:'개인형퇴직연금(IRP)',   color:'#e0a06a', toss:false},
+    'pension-saving': {label:'연금저축 (+토스 합산)', color:'#b089f0', toss:true},
   };
-  document.getElementById('account-cards').innerHTML = parsed.accounts.map(a=>{
-    const info = INFO[a.key] || { label:a.key, color:'#b089f0', toss:false };
+  document.getElementById('account-cards').innerHTML = parsed.accounts.map(a => {
+    const info = INFO[a.key] || {label:a.key, color:'#b089f0', toss:false};
     const note = info.toss ? '<div style="font-size:10px;color:var(--purple);margin-top:3px">+ 토스모으기 개인연금저축 자동합산</div>' : '';
     return `<div class="account-card" style="border-left:3px solid ${info.color}40">
       <div class="acc-left">
         <div class="acc-name">${a.name}</div>
-        <div class="acc-label">${info.label}</div>
-        ${note}
+        <div class="acc-label">${info.label}</div>${note}
       </div>
       <div class="acc-right">
         <div class="acc-balance">${a.balance.toLocaleString('ko-KR')}원</div>
@@ -375,41 +276,27 @@ function showResult(parsed){
   }).join('');
   document.getElementById('json-box').textContent = JSON.stringify(parsed, null, 2);
   document.getElementById('result-section').style.display = 'block';
-  document.getElementById('result-section').scrollIntoView({ behavior:'smooth', block:'start' });
+  document.getElementById('result-section').scrollIntoView({behavior:'smooth', block:'start'});
 }
 
-function copyJson(){
-  if(!resultJson) return;
-  const text = JSON.stringify(resultJson, null, 2);
-  navigator.clipboard.writeText(text).then(()=>{
+function copyJson() {
+  if (!resultJson) return;
+  navigator.clipboard.writeText(JSON.stringify(resultJson, null, 2)).then(() => {
     const b = document.getElementById('copy-btn');
     b.innerHTML = '✅ 복사됨!'; b.classList.add('copied');
-    setTimeout(()=>{ b.innerHTML='📋 복사'; b.classList.remove('copied'); }, 2000);
-  }).catch(()=>{
-    const el = document.getElementById('json-box');
-    const r = document.createRange(); r.selectNodeContents(el);
-    window.getSelection().removeAllRanges(); window.getSelection().addRange(r);
-    document.execCommand('copy');
-    document.getElementById('copy-btn').textContent = '✅ 복사됨!';
-    setTimeout(()=>document.getElementById('copy-btn').textContent='📋 복사', 2000);
+    setTimeout(() => { b.innerHTML = '📋 복사'; b.classList.remove('copied'); }, 2000);
   });
 }
 
-function resetBtn(){
-  const b = document.getElementById('extract-btn');
-  b.disabled = false; b.innerHTML = '🔄 다시 추출';
-}
-function resetAll(){
-  selectedFile = null; resultJson = null;
-  document.getElementById('img-input').value = '';
-  document.getElementById('preview-wrap').style.display = 'none';
-  document.getElementById('preview-img').src = '';
-  document.getElementById('extract-btn').disabled = true;
-  document.getElementById('extract-btn').innerHTML = '🔍 평가금액 자동 추출';
+function resetAll() {
+  resultJson = null;
+  document.getElementById('claude-response').value = '';
+  document.getElementById('parse-error').style.display = 'none';
   document.getElementById('result-section').style.display = 'none';
-  document.getElementById('progress-wrap').style.display = 'none';
-  ['in-irp1','in-irp2','in-saving'].forEach(id=>{ const el=document.getElementById(id); if(el)el.value=''; });
+  ['in-irp1','in-irp2','in-saving'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
 }
+
+document.getElementById('manual-date').value = new Date().toISOString().slice(0,10);
 </script>
 </body>
 </html>
