@@ -46,7 +46,7 @@
   .upload-btn.toss-img { background: rgba(54,211,153,0.1); border-color: rgba(54,211,153,0.3); color: var(--teal); }
   .upload-btn.toss-img:hover { background: rgba(54,211,153,0.2); border-color: var(--teal); }
   .upload-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
-  #toss-input, #toss-img-input, #kiwoom-input { display: none; }
+  #toss-input, #toss-img-input { display: none; }
   .sync-status { font-size: 11px; color: var(--teal); margin-top: 4px; text-align: right; min-height: 14px; }
   .sync-status.kiwoom-sync { color: var(--blue); }
 
@@ -284,14 +284,6 @@
       <!-- 기존 엑셀 업로드 (폴백) -->
       <!-- 토스 엑셀 업로드 제거: toss-analyzer.html로 대체됨 -->
       <input type="file" id="toss-input" accept=".xlsx,.xls" style="display:none">
-      <div>
-        <label class="upload-btn kiwoom" for="kiwoom-input">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          키움 엑셀
-        </label>
-        <input type="file" id="kiwoom-input" accept=".xlsx,.xls">
-        <div class="sync-status kiwoom-sync" id="kiwoom-sync-status"></div>
-      </div>
       <!-- ★ 키움 JSON 붙여넣기 -->
       <div>
         <button class="upload-btn kiwoom" onclick="openKiwoomPasteModal()" title="키움 MY페이지 스크린샷 추출 결과 JSON 붙여넣기">
@@ -307,6 +299,14 @@
           연금 스냅샷
         </button>
         <div class="sync-status" style="color:#b089f0" id="pension-snap-status"></div>
+      </div>
+      <!-- ★ 키움 이체내역 JSON -->
+      <div>
+        <button class="upload-btn kiwoom" onclick="openKiwoomTransferModal()" title="kiwoom-transfer-analyzer에서 복사한 이체내역 JSON 붙여넣기">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16V4m0 0L3 8m4-4l4 4"/><path d="M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>
+          키움 이체내역
+        </button>
+        <div class="sync-status kiwoom-sync" id="kiwoom-transfer-status"></div>
       </div>
     </div>
   </div>
@@ -377,6 +377,27 @@
     </div>
   </div>
 
+  <!-- ★ 키움 이체내역 JSON 붙여넣기 모달 -->
+  <div id="kiwoom-transfer-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:200;align-items:center;justify-content:center">
+    <div class="ai-modal-box">
+      <div class="ai-modal-title" style="color:var(--blue)">📋 키움 이체내역 JSON 붙여넣기</div>
+      <div class="ai-modal-sub">kiwoom-transfer-analyzer에서 복사한 JSON을 붙여넣으세요.<br>월별 <strong style="color:var(--blue)">투자금(입출) 히스토리</strong>가 업데이트됩니다.</div>
+      <textarea id="kiwoom-transfer-paste-area"
+        placeholder='{"type":"kiwoom_transfer","account":"오빌","kiData":[...]}'
+        style="width:100%;height:130px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);padding:12px 14px;font-size:12px;font-family:'DM Mono',monospace;outline:none;resize:none;box-sizing:border-box;margin-bottom:10px;line-height:1.6"
+        oninput="parseKiwoomTransferPaste()"></textarea>
+      <div class="ai-log" id="kiwoom-transfer-log" style="display:none"></div>
+      <div id="kiwoom-transfer-result-area" style="display:none">
+        <table class="ai-result-table">
+          <thead><tr><th>계좌</th><th style="text-align:right">최신 이체잔액 (원)</th><th>기준일</th></tr></thead>
+          <tbody id="kiwoom-transfer-result-tbody"></tbody>
+        </table>
+      </div>
+      <button class="ai-apply-btn" id="kiwoom-transfer-apply-btn" style="background:var(--blue)" disabled onclick="applyKiwoomTransferResult()">대시보드 적용</button>
+      <button class="ai-cancel-btn" onclick="closeKiwoomTransferModal()">닫기</button>
+    </div>
+  </div>
+
   <!-- Hero: Total Assets -->
   <div class="hero">
     <div class="hero-grid">
@@ -431,7 +452,7 @@
     <div class="grid-3" id="kiwoom-snap-grid"></div>
   </div>
   <div class="kiwoom-summary" id="kiwoom-summary">
-    <div class="kiwoom-no-data">⬆ 키움 엑셀 업로드 후 데이터가 표시됩니다</div>
+    <div class="kiwoom-no-data">⬆ 키움 스냅샷 또는 이체내역 적용 후 데이터가 표시됩니다</div>
   </div>
   <div class="grid-4" id="kiwoom-cards"></div>
 
@@ -1014,6 +1035,104 @@ function closePensionModal() {
   pensionPendingResult = null;
 }
 
+// ═══════════════════════════════════════════
+//  ★ 키움 이체내역 JSON 붙여넣기
+// ═══════════════════════════════════════════
+// KIWOOM_ACCOUNTS 인덱스: 해외=0, 오빌=1, 자사주=2, 별동대=4, 연습=5, 초빌=6
+const KI_TRANSFER_IDX = { '해외':0, '오빌':1, '자사주':2, '별동대':4, '연습':5, '초빌':6 };
+let kiwoomTransferPending = null;
+
+function openKiwoomTransferModal() {
+  document.getElementById('kiwoom-transfer-paste-area').value = '';
+  document.getElementById('kiwoom-transfer-log').style.display = 'none';
+  document.getElementById('kiwoom-transfer-result-area').style.display = 'none';
+  document.getElementById('kiwoom-transfer-apply-btn').disabled = true;
+  kiwoomTransferPending = null;
+  document.getElementById('kiwoom-transfer-modal').style.display = 'flex';
+  setTimeout(() => document.getElementById('kiwoom-transfer-paste-area').focus(), 100);
+}
+
+function parseKiwoomTransferPaste() {
+  const raw = document.getElementById('kiwoom-transfer-paste-area').value.trim();
+  const log = document.getElementById('kiwoom-transfer-log');
+  const resultArea = document.getElementById('kiwoom-transfer-result-area');
+  const applyBtn = document.getElementById('kiwoom-transfer-apply-btn');
+  kiwoomTransferPending = null;
+  applyBtn.disabled = true;
+  resultArea.style.display = 'none';
+  if (!raw) { log.style.display = 'none'; return; }
+  log.style.display = 'block';
+  try {
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('JSON 형식이 아닙니다');
+    const parsed = JSON.parse(match[0]);
+    if (parsed.type !== 'kiwoom_transfer') throw new Error('type: kiwoom_transfer 이 아닙니다');
+    if (!parsed.kiData || !parsed.kiData.length) throw new Error('kiData 배열이 없습니다');
+
+    kiwoomTransferPending = parsed;
+    const latest = parsed.kiData[parsed.kiData.length - 1];
+    const acct = parsed.account;
+    const tbody = document.getElementById('kiwoom-transfer-result-tbody');
+    tbody.innerHTML = `<tr>
+      <td>${acct}</td>
+      <td style="text-align:right;color:var(--blue)">${(latest[acct]||0).toLocaleString('ko-KR')}</td>
+      <td style="color:var(--text3)">${latest.date}</td>
+    </tr>`;
+    resultArea.style.display = 'block';
+    applyBtn.disabled = false;
+    log.style.color = 'var(--teal)';
+    log.textContent = `✅ 계좌: ${acct} · ${parsed.kiData.length}개월 데이터 · 최신: ${latest.date}`;
+  } catch(e) {
+    log.style.color = '#ff6b6b';
+    log.textContent = '❌ ' + e.message;
+  }
+}
+
+function applyKiwoomTransferResult() {
+  if (!kiwoomTransferPending) return;
+  const { account, kiData: newRows } = kiwoomTransferPending;
+
+  if (!kiData) kiData = { combined: [] };
+  if (!kiData.combined) kiData.combined = [];
+
+  // 기존 데이터 날짜맵
+  const existMap = {};
+  kiData.combined.forEach(e => { existMap[e.date || e.month] = e; });
+
+  // 새 rows 날짜맵
+  const newMap = {};
+  newRows.forEach(r => { newMap[r.date] = r; });
+
+  // 전체 날짜 합집합 병합
+  const allDates = [...new Set([...Object.keys(existMap), ...Object.keys(newMap)])].sort();
+
+  kiData.combined = allDates.map(date => {
+    const ex = existMap[date] || { date, month: date.slice(0,7), invest: new Array(9).fill(0), eval: new Array(9).fill(0) };
+    const nw = newMap[date];
+    if (nw) {
+      if (!ex.invest) ex.invest = new Array(9).fill(0);
+      const idx = KI_TRANSFER_IDX[account];
+      if (idx !== undefined) ex.invest[idx] = nw[account] || 0;
+    }
+    return ex;
+  });
+
+  localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
+  renderKiwoom();
+  updateGoal();
+  closeKiwoomTransferModal();
+
+  const st = document.getElementById('kiwoom-transfer-status');
+  const latest = newRows[newRows.length - 1];
+  st.textContent = `✓ 이체내역 적용 (${account} · ${latest.date})`;
+  setTimeout(() => st.textContent = '', 5000);
+}
+
+function closeKiwoomTransferModal() {
+  document.getElementById('kiwoom-transfer-modal').style.display = 'none';
+  kiwoomTransferPending = null;
+}
+
 // ★ 연금 스냅샷 카드 렌더
 function renderPensionSnap() {
   const keys = PENSION_SNAP_KEYS.filter(k => state[k]?.val !== undefined);
@@ -1094,7 +1213,7 @@ function exportData() {
 
 function exportMonthlyXlsx() {
   if (!kiData || !kiData.combined || !kiData.combined.length) {
-    alert('월별 데이터가 없습니다.\n키움 엑셀 업로드 또는 스냅샷 적용 후 사용해주세요.');
+    alert('월별 데이터가 없습니다.\n키움 스냅샷 또는 이체내역 적용 후 사용해주세요.');
     return;
   }
 
@@ -1699,73 +1818,6 @@ function parseTossBalance(wb, sheetName) {
   return { balance: pick.balance, date: pick.dateStr, isFallback: !hasThisMonth };
 }
 
-// ═══════════════════════════════════════════
-//  KIWOOM EXCEL UPLOAD
-// ═══════════════════════════════════════════
-document.getElementById('kiwoom-input').addEventListener('change', function(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(evt) {
-    try {
-      const wb = XLSX.read(evt.target.result, { type: 'array', cellDates: true });
-      const investData = parseKiwoomPivot(wb, '키움입출+토스');
-      const evalData = parseKiwoomPivot(wb, '키움평가+토스');
-      if (!investData || !evalData) throw new Error('필요한 시트를 찾을 수 없습니다');
-      const investMap = {}, evalMap = {};
-      investData.forEach(r => investMap[r[0]] = r.slice(1));
-      evalData.forEach(r => evalMap[r[0]] = r.slice(1));
-      const commonDates = Object.keys(investMap).filter(d => evalMap[d]).sort();
-      kiData = kiData || { combined: [] };
-      // 엑셀 데이터 병합: 스냅샷(_hasToss)이 있는 월은 보존, 없는 월만 엑셀로 덮어씀
-      const existingSnapMap = {};
-      (kiData.combined || []).forEach(e => {
-        if (e._hasToss) existingSnapMap[(e.date || e.month || '').slice(0, 7)] = e;
-      });
-      const excelEntries = commonDates.map(d => ({ date: d, invest: investMap[d], eval: evalMap[d] }));
-      const mergedMap = {};
-      excelEntries.forEach(e => { mergedMap[e.date.slice(0,7)] = e; });
-      // 스냅샷 월은 엑셀 투자금만 가져오고, eval+_hasToss는 유지
-      Object.entries(existingSnapMap).forEach(([ym, snap]) => {
-        if (mergedMap[ym]) {
-          snap.invest = mergedMap[ym].invest; // 투자금은 엑셀 값으로 업데이트
-          mergedMap[ym] = snap;               // eval은 스냅샷 유지
-        } else {
-          mergedMap[ym] = snap; // 엑셀에 없는 월(이번달 등)도 보존
-        }
-      });
-      kiData = { combined: Object.values(mergedMap).sort((a,b) => (a.date||'').localeCompare(b.date||'')) };
-      localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
-      renderKiwoom();
-      updateGoal();
-      const st = document.getElementById('kiwoom-sync-status');
-      st.textContent = '✓ 키움 동기화 완료 (' + kiData.combined.length + '개월)';
-      setTimeout(() => st.textContent = '', 5000);
-    } catch(err) { alert('키움 파일 오류: ' + err.message); }
-  };
-  reader.readAsArrayBuffer(file);
-});
-
-function parseKiwoomPivot(wb, sheetName) {
-  const ws = wb.Sheets[sheetName];
-  if (!ws) return null;
-  const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: true });
-  const results = [];
-  for (let i = 2; i < raw.length; i++) {
-    const row = raw[i];
-    if (!row || row[4] == null) continue;
-    let dateVal = row[4], dateStr;
-    if (dateVal instanceof Date) dateStr = dateVal.toISOString().slice(0,10);
-    else if (typeof dateVal === 'number') { const d = new Date(Math.round((dateVal - 25569) * 86400 * 1000)); dateStr = d.toISOString().slice(0,10); }
-    else if (typeof dateVal === 'string' && dateVal.match(/\d{4}/)) dateStr = dateVal.slice(0,10);
-    else continue;
-    const vals = [];
-    for (let j = 5; j <= 13; j++) vals.push(typeof row[j] === 'number' ? row[j] : 0);
-    results.push([dateStr, ...vals]);
-  }
-  results.sort((a,b) => a[0].localeCompare(b[0]));
-  return results;
-}
 
 // ═══════════════════════════════════════════
 //  TODOS
@@ -1804,7 +1856,6 @@ function addDefaultTodos() {
   if (todos.length === 0) {
     todos = [
       { text: '토스 앱 스크린샷 → 이미지 분석으로 자동 추출 (방법1)', done: false },
-      { text: '키움 엑셀 업로드 (키움토스차트.xlsx)', done: false },
       { text: '부동산 시세 확인 및 업데이트', done: false },
       { text: '국민연금 예상 수령액 조회', done: false },
     ];
