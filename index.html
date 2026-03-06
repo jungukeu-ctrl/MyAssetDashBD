@@ -46,7 +46,7 @@
   .upload-btn.toss-img { background: rgba(54,211,153,0.1); border-color: rgba(54,211,153,0.3); color: var(--teal); }
   .upload-btn.toss-img:hover { background: rgba(54,211,153,0.2); border-color: var(--teal); }
   .upload-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
-  #toss-input, #toss-img-input, #kiwoom-input { display: none; }
+  #toss-input, #toss-img-input { display: none; }
   .sync-status { font-size: 11px; color: var(--teal); margin-top: 4px; text-align: right; min-height: 14px; }
   .sync-status.kiwoom-sync { color: var(--blue); }
 
@@ -1812,74 +1812,6 @@ function parseTossBalance(wb, sheetName) {
   const hasThisMonth = entries.some(e => e.dateObj && e.dateObj.getFullYear() * 100 + (e.dateObj.getMonth() + 1) === thisYM);
   const pick = hasThisMonth ? entries.find(e => e.dateObj && e.dateObj.getFullYear() * 100 + (e.dateObj.getMonth() + 1) === thisYM) : entries[0];
   return { balance: pick.balance, date: pick.dateStr, isFallback: !hasThisMonth };
-}
-
-// ═══════════════════════════════════════════
-//  KIWOOM EXCEL UPLOAD
-// ═══════════════════════════════════════════
-document.getElementById('kiwoom-input').addEventListener('change', function(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(evt) {
-    try {
-      const wb = XLSX.read(evt.target.result, { type: 'array', cellDates: true });
-      const investData = parseKiwoomPivot(wb, '키움입출+토스');
-      const evalData = parseKiwoomPivot(wb, '키움평가+토스');
-      if (!investData || !evalData) throw new Error('필요한 시트를 찾을 수 없습니다');
-      const investMap = {}, evalMap = {};
-      investData.forEach(r => investMap[r[0]] = r.slice(1));
-      evalData.forEach(r => evalMap[r[0]] = r.slice(1));
-      const commonDates = Object.keys(investMap).filter(d => evalMap[d]).sort();
-      kiData = kiData || { combined: [] };
-      // 엑셀 데이터 병합: 스냅샷(_hasToss)이 있는 월은 보존, 없는 월만 엑셀로 덮어씀
-      const existingSnapMap = {};
-      (kiData.combined || []).forEach(e => {
-        if (e._hasToss) existingSnapMap[(e.date || e.month || '').slice(0, 7)] = e;
-      });
-      const excelEntries = commonDates.map(d => ({ date: d, invest: investMap[d], eval: evalMap[d] }));
-      const mergedMap = {};
-      excelEntries.forEach(e => { mergedMap[e.date.slice(0,7)] = e; });
-      // 스냅샷 월은 엑셀 투자금만 가져오고, eval+_hasToss는 유지
-      Object.entries(existingSnapMap).forEach(([ym, snap]) => {
-        if (mergedMap[ym]) {
-          snap.invest = mergedMap[ym].invest; // 투자금은 엑셀 값으로 업데이트
-          mergedMap[ym] = snap;               // eval은 스냅샷 유지
-        } else {
-          mergedMap[ym] = snap; // 엑셀에 없는 월(이번달 등)도 보존
-        }
-      });
-      kiData = { combined: Object.values(mergedMap).sort((a,b) => (a.date||'').localeCompare(b.date||'')) };
-      localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
-      renderKiwoom();
-      updateGoal();
-      const st = document.getElementById('kiwoom-sync-status');
-      st.textContent = '✓ 키움 동기화 완료 (' + kiData.combined.length + '개월)';
-      setTimeout(() => st.textContent = '', 5000);
-    } catch(err) { alert('키움 파일 오류: ' + err.message); }
-  };
-  reader.readAsArrayBuffer(file);
-});
-
-function parseKiwoomPivot(wb, sheetName) {
-  const ws = wb.Sheets[sheetName];
-  if (!ws) return null;
-  const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: true });
-  const results = [];
-  for (let i = 2; i < raw.length; i++) {
-    const row = raw[i];
-    if (!row || row[4] == null) continue;
-    let dateVal = row[4], dateStr;
-    if (dateVal instanceof Date) dateStr = dateVal.toISOString().slice(0,10);
-    else if (typeof dateVal === 'number') { const d = new Date(Math.round((dateVal - 25569) * 86400 * 1000)); dateStr = d.toISOString().slice(0,10); }
-    else if (typeof dateVal === 'string' && dateVal.match(/\d{4}/)) dateStr = dateVal.slice(0,10);
-    else continue;
-    const vals = [];
-    for (let j = 5; j <= 13; j++) vals.push(typeof row[j] === 'number' ? row[j] : 0);
-    results.push([dateStr, ...vals]);
-  }
-  results.sort((a,b) => a[0].localeCompare(b[0]));
-  return results;
 }
 
 // ═══════════════════════════════════════════
