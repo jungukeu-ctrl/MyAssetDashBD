@@ -46,7 +46,7 @@
   .upload-btn.toss-img { background: rgba(54,211,153,0.1); border-color: rgba(54,211,153,0.3); color: var(--teal); }
   .upload-btn.toss-img:hover { background: rgba(54,211,153,0.2); border-color: var(--teal); }
   .upload-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
-  #toss-input, #toss-img-input { display: none; }
+  #toss-input, #toss-img-input, #kiwoom-input { display: none; }
   .sync-status { font-size: 11px; color: var(--teal); margin-top: 4px; text-align: right; min-height: 14px; }
   .sync-status.kiwoom-sync { color: var(--blue); }
 
@@ -283,13 +283,21 @@
       </div>
       <!-- 토스 엑셀 업로드 제거: toss-analyzer.html로 대체됨 -->
       <input type="file" id="toss-input" accept=".xlsx,.xls" style="display:none">
-      <!-- ★ 키움 JSON 붙여넣기 -->
+      <!-- ★ 키움 스냅샷 -->
       <div>
         <button class="upload-btn kiwoom" onclick="openKiwoomPasteModal()" title="키움 MY페이지 스크린샷 추출 결과 JSON 붙여넣기">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
           키움 스냅샷
         </button>
         <div class="sync-status kiwoom-sync" id="kiwoom-snap-status"></div>
+      </div>
+      <!-- ★ 키움 이체내역 -->
+      <div>
+        <button class="upload-btn kiwoom" onclick="openKiwoomTransferModal()" title="키움 이체내역 분석기에서 복사한 JSON 붙여넣기">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
+          키움 이체내역
+        </button>
+        <div class="sync-status kiwoom-sync" id="kiwoom-transfer-status"></div>
       </div>
       <!-- ★ 연금 스냅샷 -->
       <div>
@@ -368,6 +376,31 @@
     </div>
   </div>
 
+  <!-- ★ 키움 이체내역 JSON 붙여넣기 모달 -->
+  <div id="transfer-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:200;align-items:center;justify-content:center">
+    <div class="ai-modal-box" style="border-color:rgba(110,142,251,0.3)">
+      <div class="ai-modal-title" style="color:var(--blue)">🔄 키움 이체내역 JSON 붙여넣기</div>
+      <div class="ai-modal-sub">
+        <a href="./kiwoom-transfer-analyze.html" target="_blank" style="color:var(--blue)">키움 이체내역 분석기</a>에서 복사한 JSON을 붙여넣으세요.<br>
+        선택한 계좌의 <strong style="color:var(--text)">월별 투자금(invest[])</strong>이 갱신됩니다.
+      </div>
+      <textarea id="transfer-paste-area"
+        placeholder='{"type":"kiwoom_transfer","account":"오빌","kiData":[{"date":"2026-03-31","해외":0,"오빌":82788220,...}]}'
+        style="width:100%;height:130px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);padding:12px 14px;font-size:12px;font-family:'DM Mono',monospace;outline:none;resize:none;box-sizing:border-box;margin-bottom:10px;line-height:1.6"
+        oninput="parseKiwoomTransferPaste()"></textarea>
+      <div class="ai-log" id="transfer-log" style="display:none"></div>
+      <div id="transfer-result-area" style="display:none">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px">
+          계좌: <span id="transfer-acct-name" style="color:var(--blue);font-weight:600"></span>
+          &nbsp;·&nbsp; 갱신: <span id="transfer-row-count" style="color:var(--text2)"></span>개월
+        </div>
+        <div style="max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px 12px;background:var(--bg3);font-size:12px;font-family:'DM Mono',monospace;color:var(--text2);line-height:1.9" id="transfer-preview"></div>
+      </div>
+      <button class="ai-apply-btn" id="transfer-apply-btn" style="background:var(--blue);color:#fff;margin-top:12px" disabled onclick="applyKiwoomTransferResult()">대시보드 적용</button>
+      <button class="ai-cancel-btn" onclick="closeKiwoomTransferModal()">닫기</button>
+    </div>
+  </div>
+
   <!-- Hero: Total Assets -->
   <div class="hero">
     <div class="hero-grid">
@@ -422,7 +455,7 @@
     <div class="grid-3" id="kiwoom-snap-grid"></div>
   </div>
   <div class="kiwoom-summary" id="kiwoom-summary">
-    <div class="kiwoom-no-data">⬆ 키움 스냅샷 적용 후 데이터가 표시됩니다</div>
+    <div class="kiwoom-no-data">⬆ 키움 엑셀 업로드 후 데이터가 표시됩니다</div>
   </div>
   <div class="grid-4" id="kiwoom-cards"></div>
 
@@ -876,8 +909,6 @@ function applyKiwoomResult() {
     entry.eval[idx] = a.balance + tossVal;
   });
 
-  // ★ 저장 전 정규화 (혹시라도 중복이 생겼으면 제거)
-  kiData.combined = normalizeCombined(kiData.combined);
   localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
   save();
   renderAll();
@@ -991,8 +1022,6 @@ function applyPensionResult() {
     entry.eval[info.evalIdx] = a.balance + tossVal;
   });
 
-  // ★ 저장 전 정규화
-  kiData.combined = normalizeCombined(kiData.combined);
   localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
   save();
   renderAll();
@@ -1007,6 +1036,97 @@ function applyPensionResult() {
 function closePensionModal() {
   document.getElementById('pension-modal').style.display = 'none';
   pensionPendingResult = null;
+}
+
+// ═══════════════════════════════════════════
+//  ★ 키움 이체내역 JSON 붙여넣기
+// ═══════════════════════════════════════════
+const KI_TRANSFER_IDX = { '해외':0, '오빌':1, '자사주':2, '별동대':4, '연습':5, '초빌':6 };
+let transferPendingResult = null;
+
+function openKiwoomTransferModal() {
+  document.getElementById('transfer-modal').style.display = 'flex';
+  document.getElementById('transfer-paste-area').value = '';
+  document.getElementById('transfer-log').style.display = 'none';
+  document.getElementById('transfer-result-area').style.display = 'none';
+  document.getElementById('transfer-apply-btn').disabled = true;
+  transferPendingResult = null;
+}
+
+function parseKiwoomTransferPaste() {
+  const raw = document.getElementById('transfer-paste-area').value.trim();
+  const log  = document.getElementById('transfer-log');
+  const resultArea = document.getElementById('transfer-result-area');
+  const applyBtn   = document.getElementById('transfer-apply-btn');
+  transferPendingResult = null;
+  applyBtn.disabled = true;
+  resultArea.style.display = 'none';
+  if (!raw) { log.style.display = 'none'; return; }
+  log.style.display = 'block';
+  try {
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('JSON 형식이 아닙니다');
+    const parsed = JSON.parse(match[0]);
+    if (parsed.type !== 'kiwoom_transfer') throw new Error('type이 kiwoom_transfer가 아닙니다');
+    if (!parsed.account) throw new Error('account 필드가 없습니다');
+    if (!Array.isArray(parsed.kiData) || !parsed.kiData.length) throw new Error('kiData 배열이 없습니다');
+    if (KI_TRANSFER_IDX[parsed.account] === undefined) throw new Error(`알 수 없는 계좌: ${parsed.account}`);
+    transferPendingResult = parsed;
+    const acct = parsed.account;
+    const recent = parsed.kiData.slice(-6);
+    document.getElementById('transfer-acct-name').textContent = acct;
+    document.getElementById('transfer-row-count').textContent = parsed.kiData.length;
+    document.getElementById('transfer-preview').innerHTML = recent
+      .map(r => `<span style="color:var(--text3)">${r.date}</span>  <span style="color:var(--blue)">${(r[acct]||0).toLocaleString('ko-KR')}</span> 원`)
+      .join('<br>');
+    resultArea.style.display = 'block';
+    applyBtn.disabled = false;
+    log.style.color = 'var(--teal)';
+    log.textContent = `✅ ${acct} 계좌 · ${parsed.kiData.length}개월 인식됨`;
+  } catch(e) {
+    log.style.color = 'var(--red)';
+    log.textContent = '❌ ' + e.message;
+  }
+}
+
+function applyKiwoomTransferResult() {
+  if (!transferPendingResult) return;
+  const { account, kiData: rows } = transferPendingResult;
+  const idx = KI_TRANSFER_IDX[account];
+  if (!kiData) kiData = { combined: [] };
+  if (!kiData.combined) kiData.combined = [];
+  let updatedCount = 0;
+  for (const row of rows) {
+    const ym = (row.date || '').slice(0, 7);
+    if (!ym) continue;
+    let entry = kiData.combined.find(e => (e.month || (e.date||'').slice(0,7)) === ym);
+    if (!entry) {
+      const prev = kiData.combined[kiData.combined.length - 1];
+      entry = {
+        date: row.date, month: ym,
+        invest: prev ? [...(prev.invest || new Array(9).fill(0))] : new Array(9).fill(0),
+        eval: new Array(9).fill(0),
+      };
+      kiData.combined.push(entry);
+      kiData.combined.sort((a,b) => (a.date||a.month||'').localeCompare(b.date||b.month||''));
+    }
+    if (!entry.invest) entry.invest = new Array(9).fill(0);
+    entry.invest[idx] = row[account] || 0;
+    updatedCount++;
+  }
+  localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
+  save();
+  renderAll();
+  if (kiData) renderKiwoom();
+  closeKiwoomTransferModal();
+  const st = document.getElementById('kiwoom-transfer-status');
+  st.textContent = `✓ ${account} 이체내역 적용 (${updatedCount}개월)`;
+  setTimeout(() => st.textContent = '', 5000);
+}
+
+function closeKiwoomTransferModal() {
+  document.getElementById('transfer-modal').style.display = 'none';
+  transferPendingResult = null;
 }
 
 // ★ 연금 스냅샷 카드 렌더
@@ -1181,76 +1301,6 @@ function importData(event) {
 // ═══════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════
-
-// ─── combined 배열 정규화 (중복 제거 + 미래 날짜 제거) ───────────────
-// 호출 위치: kiData 로드 직후, 스냅샷 적용 직후
-// 보장:
-//   1) 월(YYYY-MM)당 엔트리 1개만 존재
-//   2) 오늘 이후의 미래 날짜 엔트리 제거
-//   3) 모든 엔트리에 month 필드 보장
-// 병합 전략 (중복 시):
-//   - invest: 절댓값 합이 가장 큰 항목 사용 (실제 데이터가 있는 쪽)
-//   - eval:   _hasToss가 있는 항목 우선, 없으면 절댓값 합이 큰 항목
-//   - date:   미래 제외 후 가장 최신 날짜
-function normalizeCombined(arr) {
-  if (!arr || !arr.length) return arr || [];
-  const today = new Date().toISOString().slice(0, 10);
-
-  // 1. 월별 그룹화
-  const byMonth = {};
-  for (const e of arr) {
-    const ym = e.month || (e.date || '').slice(0, 7);
-    if (!ym || ym.length < 7) continue;
-    (byMonth[ym] = byMonth[ym] || []).push(e);
-  }
-
-  const result = [];
-  for (const ym of Object.keys(byMonth).sort()) {
-    const entries = byMonth[ym];
-
-    if (entries.length === 1) {
-      result.push({ ...entries[0], month: ym });
-      continue;
-    }
-
-    // 미래 날짜(오늘 초과) 제외
-    const valid = entries.filter(e => !e.date || e.date <= today);
-    const pool = valid.length ? valid : entries;
-
-    // invest: 절댓값 합 최대인 항목
-    const bestInvest = pool.reduce((best, e) => {
-      const sE = (e.invest || []).reduce((s, v) => s + Math.abs(v || 0), 0);
-      const sB = (best.invest || []).reduce((s, v) => s + Math.abs(v || 0), 0);
-      return sE > sB ? e : best;
-    });
-
-    // eval: _hasToss 우선, 없으면 절댓값 합 최대인 항목
-    const snapEntry = pool.find(e => e._hasToss);
-    const bestEval = snapEntry || pool.reduce((best, e) => {
-      const sE = (e.eval || []).reduce((s, v) => s + Math.abs(v || 0), 0);
-      const sB = (best.eval || []).reduce((s, v) => s + Math.abs(v || 0), 0);
-      return sE > sB ? e : best;
-    });
-
-    // date: 유효 범위 내 가장 최신
-    const latestDate = pool.map(e => e.date || '').filter(Boolean).sort().pop() || (ym + '-01');
-
-    const merged = {
-      date: latestDate,
-      month: ym,
-      invest: bestInvest.invest || new Array(9).fill(0),
-      eval:   bestEval.eval   || new Array(9).fill(0),
-    };
-    if (bestEval._hasToss) merged._hasToss = true;
-
-    const dupCount = entries.length;
-    const removedFuture = entries.length - pool.length;
-    console.log(`[normalizeCombined] ${ym}: ${dupCount}개 → 1개 병합 (미래날짜 ${removedFuture}개 제거)`);
-    result.push(merged);
-  }
-  return result;
-}
-
 function init() {
   fetch('./data.json?t=' + Date.now())
     .then(r => { if (!r.ok) throw new Error('no file'); return r.json(); })
@@ -1280,20 +1330,7 @@ function _initCore() {
   const savedGoal = localStorage.getItem('asset-goal');
   if (savedGoal) goal = JSON.parse(savedGoal);
   const savedKiwoom = localStorage.getItem('kiwoom-data');
-  if (savedKiwoom) {
-    kiData = JSON.parse(savedKiwoom);
-    // ★ 로드 직후 정규화: 중복 제거 + 미래 날짜 제거
-    if (kiData && kiData.combined) {
-      const before = kiData.combined.length;
-      kiData.combined = normalizeCombined(kiData.combined);
-      const after = kiData.combined.length;
-      if (before !== after) {
-        // 정규화로 변경이 생겼으면 즉시 저장
-        localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
-        console.log(`[_initCore] normalizeCombined: ${before} → ${after}개`);
-      }
-    }
-  }
+  if (savedKiwoom) kiData = JSON.parse(savedKiwoom);
 
   setDate();
   initCharts();
@@ -1778,6 +1815,74 @@ function parseTossBalance(wb, sheetName) {
 }
 
 // ═══════════════════════════════════════════
+//  KIWOOM EXCEL UPLOAD
+// ═══════════════════════════════════════════
+document.getElementById('kiwoom-input').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    try {
+      const wb = XLSX.read(evt.target.result, { type: 'array', cellDates: true });
+      const investData = parseKiwoomPivot(wb, '키움입출+토스');
+      const evalData = parseKiwoomPivot(wb, '키움평가+토스');
+      if (!investData || !evalData) throw new Error('필요한 시트를 찾을 수 없습니다');
+      const investMap = {}, evalMap = {};
+      investData.forEach(r => investMap[r[0]] = r.slice(1));
+      evalData.forEach(r => evalMap[r[0]] = r.slice(1));
+      const commonDates = Object.keys(investMap).filter(d => evalMap[d]).sort();
+      kiData = kiData || { combined: [] };
+      // 엑셀 데이터 병합: 스냅샷(_hasToss)이 있는 월은 보존, 없는 월만 엑셀로 덮어씀
+      const existingSnapMap = {};
+      (kiData.combined || []).forEach(e => {
+        if (e._hasToss) existingSnapMap[(e.date || e.month || '').slice(0, 7)] = e;
+      });
+      const excelEntries = commonDates.map(d => ({ date: d, invest: investMap[d], eval: evalMap[d] }));
+      const mergedMap = {};
+      excelEntries.forEach(e => { mergedMap[e.date.slice(0,7)] = e; });
+      // 스냅샷 월은 엑셀 투자금만 가져오고, eval+_hasToss는 유지
+      Object.entries(existingSnapMap).forEach(([ym, snap]) => {
+        if (mergedMap[ym]) {
+          snap.invest = mergedMap[ym].invest; // 투자금은 엑셀 값으로 업데이트
+          mergedMap[ym] = snap;               // eval은 스냅샷 유지
+        } else {
+          mergedMap[ym] = snap; // 엑셀에 없는 월(이번달 등)도 보존
+        }
+      });
+      kiData = { combined: Object.values(mergedMap).sort((a,b) => (a.date||'').localeCompare(b.date||'')) };
+      localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
+      renderKiwoom();
+      updateGoal();
+      const st = document.getElementById('kiwoom-sync-status');
+      st.textContent = '✓ 키움 동기화 완료 (' + kiData.combined.length + '개월)';
+      setTimeout(() => st.textContent = '', 5000);
+    } catch(err) { alert('키움 파일 오류: ' + err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+function parseKiwoomPivot(wb, sheetName) {
+  const ws = wb.Sheets[sheetName];
+  if (!ws) return null;
+  const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: true });
+  const results = [];
+  for (let i = 2; i < raw.length; i++) {
+    const row = raw[i];
+    if (!row || row[4] == null) continue;
+    let dateVal = row[4], dateStr;
+    if (dateVal instanceof Date) dateStr = dateVal.toISOString().slice(0,10);
+    else if (typeof dateVal === 'number') { const d = new Date(Math.round((dateVal - 25569) * 86400 * 1000)); dateStr = d.toISOString().slice(0,10); }
+    else if (typeof dateVal === 'string' && dateVal.match(/\d{4}/)) dateStr = dateVal.slice(0,10);
+    else continue;
+    const vals = [];
+    for (let j = 5; j <= 13; j++) vals.push(typeof row[j] === 'number' ? row[j] : 0);
+    results.push([dateStr, ...vals]);
+  }
+  results.sort((a,b) => a[0].localeCompare(b[0]));
+  return results;
+}
+
+// ═══════════════════════════════════════════
 //  TODOS
 // ═══════════════════════════════════════════
 let editingTodo = -1;
@@ -1813,8 +1918,8 @@ function deleteTodo(i) { todos.splice(i, 1); if (editingTodo === i) editingTodo 
 function addDefaultTodos() {
   if (todos.length === 0) {
     todos = [
-      { text: '토스 앱 스크린샷 → toss-analyzer에서 JSON 추출 후 붙여넣기', done: false },
-      { text: '키움 MY페이지 → kiwoom-analyzer에서 스냅샷 JSON 적용', done: false },
+      { text: '토스 앱 스크린샷 → 이미지 분석으로 자동 추출 (방법1)', done: false },
+      { text: '키움 엑셀 업로드 (키움토스차트.xlsx)', done: false },
       { text: '부동산 시세 확인 및 업데이트', done: false },
       { text: '국민연금 예상 수령액 조회', done: false },
     ];
