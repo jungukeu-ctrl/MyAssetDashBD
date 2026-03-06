@@ -49,34 +49,6 @@
   #toss-input, #toss-img-input { display: none; }
   .sync-status { font-size: 11px; color: var(--teal); margin-top: 4px; text-align: right; min-height: 14px; }
   .sync-status.kiwoom-sync { color: var(--blue); }
-  .btn-pair { display: flex; flex-direction: column; gap: 0; }
-  .btn-pair-row { display: flex; align-items: stretch; }
-  .btn-extract {
-    display: flex; align-items: center; gap: 6px;
-    background: var(--bg3); border: 1px solid var(--border2);
-    color: var(--text3); padding: 7px 12px;
-    border-radius: 8px 0 0 8px; cursor: pointer;
-    font-size: 11px; font-family: 'Noto Sans KR', sans-serif;
-    text-decoration: none; transition: all 0.2s; white-space: nowrap;
-    border-right: none;
-  }
-  .btn-extract:hover { background: var(--border2); color: var(--text); }
-  .btn-extract svg { width: 12px; height: 12px; flex-shrink: 0; }
-  .btn-paste {
-    display: flex; align-items: center; gap: 6px;
-    padding: 7px 13px; border-radius: 0 8px 8px 0;
-    cursor: pointer; font-size: 11px;
-    font-family: 'Noto Sans KR', sans-serif;
-    transition: all 0.2s; white-space: nowrap; border: 1px solid;
-  }
-  .btn-paste svg { width: 12px; height: 12px; flex-shrink: 0; }
-  .btn-paste.teal  { background: rgba(54,211,153,0.1);  border-color: rgba(54,211,153,0.3);  color: var(--teal); }
-  .btn-paste.teal:hover  { background: rgba(54,211,153,0.22); }
-  .btn-paste.blue  { background: rgba(110,142,251,0.1); border-color: rgba(110,142,251,0.3); color: var(--blue); }
-  .btn-paste.blue:hover  { background: rgba(110,142,251,0.22); }
-  .btn-paste.purple{ background: rgba(176,137,240,0.1); border-color: rgba(176,137,240,0.3); color: var(--purple); }
-  .btn-paste.purple:hover{ background: rgba(176,137,240,0.22); }
-  .pair-divider { width: 1px; background: var(--border2); }
 
   /* ─── AI 분석 모달 ─── */
   #ai-modal {
@@ -302,46 +274,30 @@
       <div class="date" id="today-date"></div>
     </div>
     <div class="upload-btns">
-      <input type="file" id="toss-input" accept=".xlsx,.xls" style="display:none">
-
-      <!-- 토스 -->
-      <div class="btn-pair">
-        <div class="btn-pair-row">
-          <a class="btn-extract" href="./toss-analyzer.html" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>토스_추출하기</a>
-          <div class="pair-divider"></div>
-          <button class="btn-paste teal" onclick="openJsonPasteModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>토스_붙여넣기</button>
-        </div>
-        <div class="sync-status" style="color:var(--teal)" id="toss-sync-status"></div>
+      <!-- ★ JSON 붙여넣기 버튼 (아티팩트 분석 결과) -->
+      <div>
+        <button class="upload-btn toss-img" onclick="openJsonPasteModal()" title="Claude 아티팩트에서 추출한 JSON을 붙여넣으세요">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          토스 JSON 붙여넣기
+        </button>
       </div>
-
-      <!-- 키움 평가금액 -->
-      <div class="btn-pair">
-        <div class="btn-pair-row">
-          <a class="btn-extract" href="./kiwoom-analyzer.html" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>키움평가_추출하기</a>
-          <div class="pair-divider"></div>
-          <button class="btn-paste blue" onclick="openKiwoomPasteModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>키움평가_붙여넣기</button>
-        </div>
+      <!-- 토스 엑셀 업로드 제거: toss-analyzer.html로 대체됨 -->
+      <input type="file" id="toss-input" accept=".xlsx,.xls" style="display:none">
+      <!-- ★ 키움 JSON 붙여넣기 -->
+      <div>
+        <button class="upload-btn kiwoom" onclick="openKiwoomPasteModal()" title="키움 MY페이지 스크린샷 추출 결과 JSON 붙여넣기">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          키움 스냅샷
+        </button>
         <div class="sync-status kiwoom-sync" id="kiwoom-snap-status"></div>
       </div>
-
-      <!-- 키움 이체내역 -->
-      <div class="btn-pair">
-        <div class="btn-pair-row">
-          <a class="btn-extract" href="./kiwoom-transfer-analyze.html" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>키움이체_추출하기</a>
-          <div class="pair-divider"></div>
-          <button class="btn-paste blue" onclick="openKiwoomTransferModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>키움이체_붙여넣기</button>
-        </div>
-        <div class="sync-status kiwoom-sync" id="kiwoom-transfer-status"></div>
-      </div>
-
-      <!-- 연금 -->
-      <div class="btn-pair">
-        <div class="btn-pair-row">
-          <a class="btn-extract" href="./pension-analyzer.html" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>연금_추출하기</a>
-          <div class="pair-divider"></div>
-          <button class="btn-paste purple" onclick="openPensionPasteModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>연금_붙여넣기</button>
-        </div>
-        <div class="sync-status" style="color:var(--purple)" id="pension-snap-status"></div>
+      <!-- ★ 연금 스냅샷 -->
+      <div>
+        <button class="upload-btn" style="background:rgba(176,137,240,0.1);border-color:rgba(176,137,240,0.3);color:#b089f0" onclick="openPensionPasteModal()" title="토스 연금 스크린샷 추출 결과 JSON 붙여넣기">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          연금 스냅샷
+        </button>
+        <div class="sync-status" style="color:#b089f0" id="pension-snap-status"></div>
       </div>
     </div>
   </div>
@@ -412,27 +368,6 @@
     </div>
   </div>
 
-  <!-- ★ 키움 이체내역 JSON 붙여넣기 모달 -->
-  <div id="kiwoom-transfer-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:200;align-items:center;justify-content:center">
-    <div class="ai-modal-box">
-      <div class="ai-modal-title" style="color:var(--blue)">📋 키움 이체내역 JSON 붙여넣기</div>
-      <div class="ai-modal-sub">kiwoom-transfer-analyzer에서 복사한 JSON을 붙여넣으세요.<br>월별 <strong style="color:var(--blue)">투자금(입출) 히스토리</strong>가 업데이트됩니다.</div>
-      <textarea id="kiwoom-transfer-paste-area"
-        placeholder='{"type":"kiwoom_transfer","account":"오빌","kiData":[...]}'
-        style="width:100%;height:130px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);padding:12px 14px;font-size:12px;font-family:'DM Mono',monospace;outline:none;resize:none;box-sizing:border-box;margin-bottom:10px;line-height:1.6"
-        oninput="parseKiwoomTransferPaste()"></textarea>
-      <div class="ai-log" id="kiwoom-transfer-log" style="display:none"></div>
-      <div id="kiwoom-transfer-result-area" style="display:none">
-        <table class="ai-result-table">
-          <thead><tr><th>계좌</th><th style="text-align:right">최신 이체잔액 (원)</th><th>기준일</th></tr></thead>
-          <tbody id="kiwoom-transfer-result-tbody"></tbody>
-        </table>
-      </div>
-      <button class="ai-apply-btn" id="kiwoom-transfer-apply-btn" style="background:var(--blue)" disabled onclick="applyKiwoomTransferResult()">대시보드 적용</button>
-      <button class="ai-cancel-btn" onclick="closeKiwoomTransferModal()">닫기</button>
-    </div>
-  </div>
-
   <!-- Hero: Total Assets -->
   <div class="hero">
     <div class="hero-grid">
@@ -487,7 +422,7 @@
     <div class="grid-3" id="kiwoom-snap-grid"></div>
   </div>
   <div class="kiwoom-summary" id="kiwoom-summary">
-    <div class="kiwoom-no-data">⬆ 키움 스냅샷 또는 이체내역 적용 후 데이터가 표시됩니다</div>
+    <div class="kiwoom-no-data">⬆ 키움 스냅샷 적용 후 데이터가 표시됩니다</div>
   </div>
   <div class="grid-4" id="kiwoom-cards"></div>
 
@@ -698,7 +633,6 @@
       </div>
     </div>
   </div>
-
 
   <!-- 데이터 동기화 -->
   <div style="display:flex;gap:10px;justify-content:center;margin-top:32px;margin-bottom:8px;flex-wrap:wrap">
@@ -942,6 +876,8 @@ function applyKiwoomResult() {
     entry.eval[idx] = a.balance + tossVal;
   });
 
+  // ★ 저장 전 정규화 (혹시라도 중복이 생겼으면 제거)
+  kiData.combined = normalizeCombined(kiData.combined);
   localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
   save();
   renderAll();
@@ -1055,6 +991,8 @@ function applyPensionResult() {
     entry.eval[info.evalIdx] = a.balance + tossVal;
   });
 
+  // ★ 저장 전 정규화
+  kiData.combined = normalizeCombined(kiData.combined);
   localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
   save();
   renderAll();
@@ -1069,117 +1007,6 @@ function applyPensionResult() {
 function closePensionModal() {
   document.getElementById('pension-modal').style.display = 'none';
   pensionPendingResult = null;
-}
-
-// ═══════════════════════════════════════════
-//  ★ 키움 이체내역 JSON 붙여넣기
-// ═══════════════════════════════════════════
-// KIWOOM_ACCOUNTS 인덱스: 해외=0, 오빌=1, 자사주=2, 별동대=4, 연습=5, 초빌=6
-const KI_TRANSFER_IDX = { '해외':0, '오빌':1, '자사주':2, '별동대':4, '연습':5, '초빌':6 };
-let kiwoomTransferPending = null;
-
-function openKiwoomTransferModal() {
-  document.getElementById('kiwoom-transfer-paste-area').value = '';
-  document.getElementById('kiwoom-transfer-log').style.display = 'none';
-  document.getElementById('kiwoom-transfer-result-area').style.display = 'none';
-  document.getElementById('kiwoom-transfer-apply-btn').disabled = true;
-  kiwoomTransferPending = null;
-  document.getElementById('kiwoom-transfer-modal').style.display = 'flex';
-  setTimeout(() => document.getElementById('kiwoom-transfer-paste-area').focus(), 100);
-}
-
-function parseKiwoomTransferPaste() {
-  const raw = document.getElementById('kiwoom-transfer-paste-area').value.trim();
-  const log = document.getElementById('kiwoom-transfer-log');
-  const resultArea = document.getElementById('kiwoom-transfer-result-area');
-  const applyBtn = document.getElementById('kiwoom-transfer-apply-btn');
-  kiwoomTransferPending = null;
-  applyBtn.disabled = true;
-  resultArea.style.display = 'none';
-  if (!raw) { log.style.display = 'none'; return; }
-  log.style.display = 'block';
-  try {
-    const match = raw.match(/\{[\s\S]*\}/);
-    if (!match) throw new Error('JSON 형식이 아닙니다');
-    const parsed = JSON.parse(match[0]);
-    if (parsed.type !== 'kiwoom_transfer') throw new Error('type: kiwoom_transfer 이 아닙니다');
-    if (!parsed.kiData || !parsed.kiData.length) throw new Error('kiData 배열이 없습니다');
-
-    kiwoomTransferPending = parsed;
-    const latest = parsed.kiData[parsed.kiData.length - 1];
-    const acct = parsed.account;
-    const tbody = document.getElementById('kiwoom-transfer-result-tbody');
-    tbody.innerHTML = `<tr>
-      <td>${acct}</td>
-      <td style="text-align:right;color:var(--blue)">${(latest[acct]||0).toLocaleString('ko-KR')}</td>
-      <td style="color:var(--text3)">${latest.date}</td>
-    </tr>`;
-    resultArea.style.display = 'block';
-    applyBtn.disabled = false;
-    log.style.color = 'var(--teal)';
-    log.textContent = `✅ 계좌: ${acct} · ${parsed.kiData.length}개월 데이터 · 최신: ${latest.date}`;
-  } catch(e) {
-    log.style.color = '#ff6b6b';
-    log.textContent = '❌ ' + e.message;
-  }
-}
-
-function applyKiwoomTransferResult() {
-  if (!kiwoomTransferPending) return;
-  const { account, kiData: newRows } = kiwoomTransferPending;
-
-  if (!kiData) kiData = { combined: [] };
-  if (!kiData.combined) kiData.combined = [];
-
-  // 기존 데이터 날짜맵
-  const existMap = {};
-  kiData.combined.forEach(e => { existMap[e.date || e.month] = e; });
-
-  // 새 rows 날짜맵
-  const newMap = {};
-  newRows.forEach(r => { newMap[r.date] = r; });
-
-  // 전체 날짜 합집합 병합
-  const allDates = [...new Set([...Object.keys(existMap), ...Object.keys(newMap)])].sort();
-
-  // eval 상속: 기존 항목이 없는 새 날짜는 직전 항목의 eval을 그대로 사용
-  let lastEval = new Array(9).fill(0);
-  let lastHasToss = false;
-  kiData.combined = allDates.map(date => {
-    const ex = existMap[date];
-    const nw = newMap[date];
-    let entry;
-    if (ex) {
-      entry = { ...ex };
-      if (entry.eval) lastEval = [...entry.eval];
-      if (entry._hasToss) lastHasToss = true;
-    } else {
-      // 기존 kiData에 없는 날짜 → eval을 직전 값으로 상속 (0으로 덮어쓰지 않음)
-      entry = { date, month: date.slice(0,7), invest: new Array(9).fill(0), eval: [...lastEval] };
-      if (lastHasToss) entry._hasToss = true;
-    }
-    if (nw) {
-      if (!entry.invest) entry.invest = new Array(9).fill(0);
-      const idx = KI_TRANSFER_IDX[account];
-      if (idx !== undefined) entry.invest[idx] = nw[account] || 0;
-    }
-    return entry;
-  });
-
-  localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
-  renderKiwoom();
-  updateGoal();
-  closeKiwoomTransferModal();
-
-  const st = document.getElementById('kiwoom-transfer-status');
-  const latest = newRows[newRows.length - 1];
-  st.textContent = `✓ 이체내역 적용 (${account} · ${latest.date})`;
-  setTimeout(() => st.textContent = '', 5000);
-}
-
-function closeKiwoomTransferModal() {
-  document.getElementById('kiwoom-transfer-modal').style.display = 'none';
-  kiwoomTransferPending = null;
 }
 
 // ★ 연금 스냅샷 카드 렌더
@@ -1262,7 +1089,7 @@ function exportData() {
 
 function exportMonthlyXlsx() {
   if (!kiData || !kiData.combined || !kiData.combined.length) {
-    alert('월별 데이터가 없습니다.\n키움 스냅샷 또는 이체내역 적용 후 사용해주세요.');
+    alert('월별 데이터가 없습니다.\n키움 엑셀 업로드 또는 스냅샷 적용 후 사용해주세요.');
     return;
   }
 
@@ -1354,6 +1181,76 @@ function importData(event) {
 // ═══════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════
+
+// ─── combined 배열 정규화 (중복 제거 + 미래 날짜 제거) ───────────────
+// 호출 위치: kiData 로드 직후, 스냅샷 적용 직후
+// 보장:
+//   1) 월(YYYY-MM)당 엔트리 1개만 존재
+//   2) 오늘 이후의 미래 날짜 엔트리 제거
+//   3) 모든 엔트리에 month 필드 보장
+// 병합 전략 (중복 시):
+//   - invest: 절댓값 합이 가장 큰 항목 사용 (실제 데이터가 있는 쪽)
+//   - eval:   _hasToss가 있는 항목 우선, 없으면 절댓값 합이 큰 항목
+//   - date:   미래 제외 후 가장 최신 날짜
+function normalizeCombined(arr) {
+  if (!arr || !arr.length) return arr || [];
+  const today = new Date().toISOString().slice(0, 10);
+
+  // 1. 월별 그룹화
+  const byMonth = {};
+  for (const e of arr) {
+    const ym = e.month || (e.date || '').slice(0, 7);
+    if (!ym || ym.length < 7) continue;
+    (byMonth[ym] = byMonth[ym] || []).push(e);
+  }
+
+  const result = [];
+  for (const ym of Object.keys(byMonth).sort()) {
+    const entries = byMonth[ym];
+
+    if (entries.length === 1) {
+      result.push({ ...entries[0], month: ym });
+      continue;
+    }
+
+    // 미래 날짜(오늘 초과) 제외
+    const valid = entries.filter(e => !e.date || e.date <= today);
+    const pool = valid.length ? valid : entries;
+
+    // invest: 절댓값 합 최대인 항목
+    const bestInvest = pool.reduce((best, e) => {
+      const sE = (e.invest || []).reduce((s, v) => s + Math.abs(v || 0), 0);
+      const sB = (best.invest || []).reduce((s, v) => s + Math.abs(v || 0), 0);
+      return sE > sB ? e : best;
+    });
+
+    // eval: _hasToss 우선, 없으면 절댓값 합 최대인 항목
+    const snapEntry = pool.find(e => e._hasToss);
+    const bestEval = snapEntry || pool.reduce((best, e) => {
+      const sE = (e.eval || []).reduce((s, v) => s + Math.abs(v || 0), 0);
+      const sB = (best.eval || []).reduce((s, v) => s + Math.abs(v || 0), 0);
+      return sE > sB ? e : best;
+    });
+
+    // date: 유효 범위 내 가장 최신
+    const latestDate = pool.map(e => e.date || '').filter(Boolean).sort().pop() || (ym + '-01');
+
+    const merged = {
+      date: latestDate,
+      month: ym,
+      invest: bestInvest.invest || new Array(9).fill(0),
+      eval:   bestEval.eval   || new Array(9).fill(0),
+    };
+    if (bestEval._hasToss) merged._hasToss = true;
+
+    const dupCount = entries.length;
+    const removedFuture = entries.length - pool.length;
+    console.log(`[normalizeCombined] ${ym}: ${dupCount}개 → 1개 병합 (미래날짜 ${removedFuture}개 제거)`);
+    result.push(merged);
+  }
+  return result;
+}
+
 function init() {
   fetch('./data.json?t=' + Date.now())
     .then(r => { if (!r.ok) throw new Error('no file'); return r.json(); })
@@ -1383,7 +1280,20 @@ function _initCore() {
   const savedGoal = localStorage.getItem('asset-goal');
   if (savedGoal) goal = JSON.parse(savedGoal);
   const savedKiwoom = localStorage.getItem('kiwoom-data');
-  if (savedKiwoom) kiData = JSON.parse(savedKiwoom);
+  if (savedKiwoom) {
+    kiData = JSON.parse(savedKiwoom);
+    // ★ 로드 직후 정규화: 중복 제거 + 미래 날짜 제거
+    if (kiData && kiData.combined) {
+      const before = kiData.combined.length;
+      kiData.combined = normalizeCombined(kiData.combined);
+      const after = kiData.combined.length;
+      if (before !== after) {
+        // 정규화로 변경이 생겼으면 즉시 저장
+        localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
+        console.log(`[_initCore] normalizeCombined: ${before} → ${after}개`);
+      }
+    }
+  }
 
   setDate();
   initCharts();
@@ -1867,7 +1777,6 @@ function parseTossBalance(wb, sheetName) {
   return { balance: pick.balance, date: pick.dateStr, isFallback: !hasThisMonth };
 }
 
-
 // ═══════════════════════════════════════════
 //  TODOS
 // ═══════════════════════════════════════════
@@ -1904,7 +1813,8 @@ function deleteTodo(i) { todos.splice(i, 1); if (editingTodo === i) editingTodo 
 function addDefaultTodos() {
   if (todos.length === 0) {
     todos = [
-      { text: '토스 앱 스크린샷 → 이미지 분석으로 자동 추출 (방법1)', done: false },
+      { text: '토스 앱 스크린샷 → toss-analyzer에서 JSON 추출 후 붙여넣기', done: false },
+      { text: '키움 MY페이지 → kiwoom-analyzer에서 스냅샷 JSON 적용', done: false },
       { text: '부동산 시세 확인 및 업데이트', done: false },
       { text: '국민연금 예상 수령액 조회', done: false },
     ];
