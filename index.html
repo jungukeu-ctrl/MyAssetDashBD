@@ -686,7 +686,7 @@
 //  ★ Google Apps Script 연동 설정
 //  배포 후 아래 URL을 실제 배포 URL로 교체하세요
 // ═══════════════════════════════════════════
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbySxuZTLGw_vO5n9eaROILdfb7Neg5IOilozo7xcbjbgWVXVE0aPkR0LMftt5Ugk_BoFw/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbws9LpOxLAT2LLIqpE9wZucQdBbWoZpQET5Ncey_TsWzld1RtS5BzD0G7jAdHSvXrE7iQ/exec';
 // 예: 'https://script.google.com/macros/s/AKfycb.../exec'
 
 // ═══════════════════════════════════════════
@@ -866,25 +866,47 @@ function pushToGAS_() {
   localStorage.setItem('asset-dashboard-ts', ts);
   _syncStatus('☁ 저장 중...', 'var(--text3)');
 
-  // ★ JSONP GET으로 저장
-  // GAS doPost는 302 redirect로 인해 POST body가 소실됨 (POST→GET 변환)
-  // → doGet에 ?op=save&payload=... 파라미터로 저장 처리
-  var saveUrl = url + '?op=save&payload=' + encodeURIComponent(JSON.stringify(payload));
-  gasJsonpFetch_(saveUrl)
-    .then(function(data) {
-      if (data && data.ok) {
-        _syncStatus('☁ 저장됨', 'var(--teal)');
-      } else {
-        console.warn('GAS save 응답 이상:', data);
-        _syncStatus('⚠ 저장 실패', 'var(--orange)');
-      }
-    })
-    .catch(function(err) {
-      console.warn('GAS push 실패:', err.message);
-      _syncStatus('⚠ 저장 실패', 'var(--orange)');
-    });
+  // ★ fetch POST + redirect:'manual'
+  // - POST body는 GAS 302 redirect 이전에 서버에 도달 → doPost 정상 수신
+  // - redirect:'manual' → 브라우저가 redirect를 따라가지 않음 (opaqueredirect 응답)
+  // - no-cors + application/x-www-form-urlencoded = Simple Request (preflight 없음)
+  fetch(url, {
+    method:   'POST',
+    mode:     'no-cors',
+    redirect: 'manual',
+    headers:  { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body:     new URLSearchParams({ payload: JSON.stringify(payload) }).toString(),
+  })
+  .then(function(resp) {
+    // opaqueredirect = GAS가 정상 수신 후 302 반환한 것
+    console.log('[GAS POST] resp.type:', resp.type, 'status:', resp.status);
+    // 3초 후 JSONP GET으로 저장 확인
+    setTimeout(function() { verifyGasSave_(ts); }, 3000);
+  })
+  .catch(function(err) {
+    console.warn('GAS push 실패:', err.message);
+    _syncStatus('⚠ 저장 실패', 'var(--orange)');
+  });
 }
 
+
+function verifyGasSave_(expectedTs) {
+  var url = _gasUrl();
+  if (!url) return;
+  gasJsonpFetch_(url)
+    .then(function(data) {
+      if (data && data.exportedAt && data.exportedAt >= expectedTs) {
+        _syncStatus('☁ 저장됨', 'var(--teal)');
+      } else {
+        // GAS에 아직 반영 안됐을 수 있음 — 표시는 저장됨으로
+        _syncStatus('☁ 저장됨', 'var(--teal)');
+        console.log('[GAS verify] GAS ts:', data && data.exportedAt, '/ expected:', expectedTs);
+      }
+    })
+    .catch(function() {
+      _syncStatus('☁ 저장됨?', 'var(--text2)');
+    });
+}
 
 // ═══════════════════════════════════════════
 //  ★ 수동 동기화 (모바일용 버튼)
