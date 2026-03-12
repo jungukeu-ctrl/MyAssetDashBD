@@ -753,6 +753,70 @@ function scheduleGasSync_() {
   _gasSyncTimer = setTimeout(pushToGAS_, 2000);
 }
 
+// ═══════════════════════════════════════════
+//  ★ 스마트 병합 — per-key date 비교로 항상 최신값 유지
+//  state: 각 키마다 .date 비교 → 최신 채택
+//  kiwoom.combined: month별 병합 → date 최신 row 채택
+//  todos/goal: exportedAt 최신 쪽 채택
+// ═══════════════════════════════════════════
+function mergeGasData_(remote) {
+  var changed = false;
+
+  // ── 1. state per-key 병합
+  var localState = {};
+  try { localState = JSON.parse(localStorage.getItem('asset-dashboard-v3') || '{}'); } catch(e) {}
+  var remoteState = remote.state || {};
+  var mergedState = Object.assign({}, localState);
+  Object.keys(remoteState).forEach(function(key) {
+    var rv = remoteState[key];
+    var lv = localState[key];
+    if (!lv) { mergedState[key] = rv; changed = true; return; }
+    // date 비교: 더 최신 값 채택
+    var rd = (rv && rv.date) ? rv.date : '';
+    var ld = (lv && lv.date) ? lv.date : '';
+    if (rd > ld) { mergedState[key] = rv; changed = true; }
+  });
+  if (changed) localStorage.setItem('asset-dashboard-v3', JSON.stringify(mergedState));
+
+  // ── 2. kiwoom 병합 (month 기준)
+  var localKi = null;
+  try { localKi = JSON.parse(localStorage.getItem('kiwoom-data') || 'null'); } catch(e) {}
+  var remoteKi = remote.kiwoom;
+  if (remoteKi && remoteKi.combined) {
+    var base = (localKi && localKi.combined) ? localKi.combined : [];
+    // month → row 맵
+    var monthMap = {};
+    base.forEach(function(row) { monthMap[row.month] = row; });
+    var kiChanged = false;
+    remoteKi.combined.forEach(function(rrow) {
+      var lrow = monthMap[rrow.month];
+      if (!lrow) { monthMap[rrow.month] = rrow; kiChanged = true; return; }
+      // date 최신 row 채택
+      if ((rrow.date || '') > (lrow.date || '')) {
+        monthMap[rrow.month] = rrow; kiChanged = true;
+      }
+    });
+    if (kiChanged) {
+      var merged = Object.keys(monthMap).sort().map(function(m) { return monthMap[m]; });
+      var newKi = Object.assign({}, localKi || remoteKi, { combined: merged });
+      localStorage.setItem('kiwoom-data', JSON.stringify(newKi));
+      changed = true;
+    }
+  }
+
+  // ── 3. todos/goal: exportedAt 최신 쪽 채택 (단순 비교)
+  var localTs = localStorage.getItem('asset-dashboard-ts') || '0';
+  var remoteTs = remote.exportedAt || '0';
+  if (remoteTs > localTs) {
+    if (remote.todos) localStorage.setItem('asset-todos', JSON.stringify(remote.todos));
+    if (remote.goal)  localStorage.setItem('asset-goal',  JSON.stringify(remote.goal));
+    localStorage.setItem('asset-dashboard-ts', remoteTs);
+    changed = true;
+  }
+
+  return changed;
+}
+
 // ★ JSONP 방식 GET — CORS 완전 우회
 //   <script> 태그로 로드 → preflight 없음, CORS 헤더 불필요
 //   GAS doGet이 ?callback=xxx 파라미터 받아 xxx(json) 형태로 반환
@@ -851,19 +915,15 @@ function manualSync() {
   gasJsonpFetch_(url)
     .then(function(data) {
       try {
-        const lsTs   = localStorage.getItem('asset-dashboard-ts') || '0';
-        const fileTs = data.exportedAt || '0';
-        if (fileTs > lsTs) {
-          if (data.state)  localStorage.setItem('asset-dashboard-v3', JSON.stringify(data.state));
-          if (data.todos)  localStorage.setItem('asset-todos', JSON.stringify(data.todos));
-          if (data.goal)   localStorage.setItem('asset-goal', JSON.stringify(data.goal));
-          if (data.kiwoom) localStorage.setItem('kiwoom-data', JSON.stringify(data.kiwoom));
-          localStorage.setItem('asset-dashboard-ts', fileTs);
-          state = JSON.parse(localStorage.getItem('asset-dashboard-v3') || '{}');
-          kiData = JSON.parse(localStorage.getItem('kiwoom-data') || 'null');
-          renderAll();
+        // per-key 스마트 병합 — date 비교로 항상 최신값 유지
+        var changed = mergeGasData_(data);
+        state = JSON.parse(localStorage.getItem('asset-dashboard-v3') || '{}');
+        kiData = JSON.parse(localStorage.getItem('kiwoom-data') || 'null');
+        renderAll();
+        if (changed) {
           _syncStatus('☁ 동기화됨 ✓', 'var(--teal)');
-          console.log('수동 동기화 완료:', fileTs);
+          // 병합 결과를 GAS에 다시 push (양방향 최신화)
+          setTimeout(pushToGAS_, 1000);
         } else {
           _syncStatus('☁ 이미 최신', 'var(--teal)');
         }
@@ -1416,16 +1476,13 @@ function init() {
     gasJsonpFetch_(url)
       .then(function(data) {
         try {
-          const lsTs   = localStorage.getItem('asset-dashboard-ts') || '0';
-          const fileTs = data.exportedAt || '0';
-          if (fileTs > lsTs) {
-            if (data.state)  localStorage.setItem('asset-dashboard-v3', JSON.stringify(data.state));
-            if (data.todos)  localStorage.setItem('asset-todos', JSON.stringify(data.todos));
-            if (data.goal)   localStorage.setItem('asset-goal', JSON.stringify(data.goal));
-            if (data.kiwoom) localStorage.setItem('kiwoom-data', JSON.stringify(data.kiwoom));
-            localStorage.setItem('asset-dashboard-ts', fileTs);
-            console.log('✅ GAS 동기화 완료:', fileTs);
+          // per-key 스마트 병합 — date 비교로 항상 최신값 유지
+          var changed = mergeGasData_(data);
+          if (changed) {
+            console.log('✅ GAS 병합 완료');
             _syncStatus('☁ 동기화됨', 'var(--teal)');
+            // 병합 결과를 GAS에 다시 push (양방향 최신화)
+            setTimeout(pushToGAS_, 2000);
           } else {
             console.log('로컬 데이터가 최신');
             if (syncEl) { syncEl.textContent = ''; }
