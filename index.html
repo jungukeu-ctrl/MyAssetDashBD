@@ -686,56 +686,20 @@
 //  ★ Google Apps Script 연동 설정
 //  배포 후 아래 URL을 실제 배포 URL로 교체하세요
 // ═══════════════════════════════════════════
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbw7ORlykAW65C_NUWG2UY8Dz2HwbVhGzyrolpQ_mCHiTdlmuCoYIFuLUUSl3PkwDI8U1Q/exec';
-// 예: 'https://script.google.com/macros/s/AKfycb.../exec'
+const FIREBASE_URL = 'https://my-asset-dashboard-9e6f9-default-rtdb.asia-southeast1.firebasedatabase.app';
+// ↑ Firebase Realtime Database URL 입력
+// 형식: https://<project>-default-rtdb.<region>.firebasedatabase.app
 
 // ═══════════════════════════════════════════
-//  STATE
+//  ★ Firebase 동기화
+//  저장: PUT https://<db>/asset-data.json  (CORS 완벽 지원)
+//  읽기: GET https://<db>/asset-data.json
 // ═══════════════════════════════════════════
-const MANUAL_KEYS = ['apt-owned','apt-rent','bank-housing','bank-rent','bank-general','stock-kr1','stock-kr2','stock-us','irp1','irp2','pension-natl'];
-const TOSS_KEYS = ['toss-obil','toss-overseas','toss-pension','toss-practice'];
-
-const KIWOOM_SNAP_KEYS = ['kiwoom-overseas','kiwoom-obil','kiwoom-practice','kiwoom-jasaju','kiwoom-byuldong','kiwoom-chobil'];
-const KIWOOM_SNAP_INFO = {
-  'kiwoom-overseas': { name:'해외',  acct:'5211-3751', color:'#6e8efb' },
-  'kiwoom-obil':     { name:'오빌',  acct:'5128-4051', color:'#ffb347' },
-  'kiwoom-practice': { name:'연습',  acct:'5806-1320', color:'#4ecdc4' },
-  'kiwoom-jasaju':   { name:'자사주', acct:'6139-5535', color:'#ff6b6b' },
-  'kiwoom-byuldong': { name:'별동대', acct:'5845-3671', color:'#c9a84c' },
-  'kiwoom-chobil':   { name:'초빌',  acct:'5185-9447', color:'#565a70' },
-};
-
-const PENSION_SNAP_KEYS = ['pension-irp1','pension-irp2','pension-saving'];
-const PENSION_SNAP_INFO = {
-  'pension-irp1':   { name:'퇴직연금 IRP 1', label:'유정욱_IRP',  evalIdx:7, color:'#e07b6a', tossKey:null },
-  'pension-irp2':   { name:'퇴직연금 IRP 2', label:'개인형IRP',   evalIdx:8, color:'#e0a06a', tossKey:null },
-  'pension-saving': { name:'개인연금저축',    label:'연금저축',     evalIdx:3, color:'#b089f0', tossKey:'toss-pension' },
-};
-let state = {};
-let todos = [];
-let goal = { name: '총 목표자산', target: 0, finName: '금융 목표자산', finTarget: 0 };
-let donutChart = null, barChart = null, lineChart = null, returnChart = null;
-
-const KIWOOM_ACCOUNTS = ['해외', '오빌', '자사주', '개인연금저축', '별동대', '연습', '초빌'];
-const MAIN_ACCOUNTS = ['해외', '오빌', '연습', '개인연금저축', '퇴직연금001', '퇴직연금002'];
-const ACCT_COLORS = {
-  '해외': '#6e8efb', '오빌': '#ffb347', '연습': '#4ecdc4',
-  '개인연금저축': '#b089f0', '자사주': '#ff6b6b', '별동대': '#c9a84c',
-  '초빌': '#565a70', '퇴직연금001': '#e07b6a', '퇴직연금002': '#e0a06a'
-};
-
-let kiData = null;
-let chartRange = 12;
-let aiPendingResult = null;
-
-// ═══════════════════════════════════════════
-//  ★ GAS 동기화 (로드 시 pull / 저장 시 push)
-//  GET:  JSONP 방식 — CORS 완전 우회 (모바일 포함 모든 환경 OK)
-//  POST: URLSearchParams + no-cors — Simple Request, preflight 없음
-// ═══════════════════════════════════════════
-function _gasUrl() {
-  return (typeof GAS_URL !== 'undefined') && GAS_URL && GAS_URL !== 'YOUR_APPS_SCRIPT_WEB_APP_URL'
-    ? GAS_URL : null;
+function _fbUrl() {
+  return (typeof FIREBASE_URL !== 'undefined') && FIREBASE_URL &&
+         FIREBASE_URL !== 'YOUR_FIREBASE_URL'
+    ? FIREBASE_URL.replace(/\/$/, '') + '/asset-data.json'
+    : null;
 }
 
 function _syncStatus(msg, color) {
@@ -743,26 +707,21 @@ function _syncStatus(msg, color) {
   if (!el) return;
   el.textContent = msg;
   el.style.color = color || 'var(--teal)';
-  if (msg) setTimeout(() => { el.textContent = ''; el.style.color = 'var(--teal)'; }, 4000);
+  if (msg) setTimeout(() => { el.textContent = ''; }, 4000);
 }
 
-let _gasSyncTimer = null;
+let _fbSyncTimer = null;
 
 function scheduleGasSync_() {
-  clearTimeout(_gasSyncTimer);
-  _gasSyncTimer = setTimeout(pushToGAS_, 2000);
+  clearTimeout(_fbSyncTimer);
+  _fbSyncTimer = setTimeout(pushToGAS_, 2000);
 }
 
-// ═══════════════════════════════════════════
-//  ★ 스마트 병합 — per-key date 비교로 항상 최신값 유지
-//  state: 각 키마다 .date 비교 → 최신 채택
-//  kiwoom.combined: month별 병합 → date 최신 row 채택
-//  todos/goal: exportedAt 최신 쪽 채택
-// ═══════════════════════════════════════════
+// ── 스마트 병합 (per-key date 비교) ──────────────────
 function mergeGasData_(remote) {
   var changed = false;
 
-  // ── 1. state per-key 병합
+  // 1. state per-key 병합
   var localState = {};
   try { localState = JSON.parse(localStorage.getItem('asset-dashboard-v3') || '{}'); } catch(e) {}
   var remoteState = remote.state || {};
@@ -771,27 +730,24 @@ function mergeGasData_(remote) {
     var rv = remoteState[key];
     var lv = localState[key];
     if (!lv) { mergedState[key] = rv; changed = true; return; }
-    // date 비교: 더 최신 값 채택
     var rd = (rv && rv.date) ? rv.date : '';
     var ld = (lv && lv.date) ? lv.date : '';
     if (rd > ld) { mergedState[key] = rv; changed = true; }
   });
   if (changed) localStorage.setItem('asset-dashboard-v3', JSON.stringify(mergedState));
 
-  // ── 2. kiwoom 병합 (month 기준)
+  // 2. kiwoom 병합 (month 기준)
   var localKi = null;
   try { localKi = JSON.parse(localStorage.getItem('kiwoom-data') || 'null'); } catch(e) {}
   var remoteKi = remote.kiwoom;
   if (remoteKi && remoteKi.combined) {
     var base = (localKi && localKi.combined) ? localKi.combined : [];
-    // month → row 맵
     var monthMap = {};
     base.forEach(function(row) { monthMap[row.month] = row; });
     var kiChanged = false;
     remoteKi.combined.forEach(function(rrow) {
       var lrow = monthMap[rrow.month];
       if (!lrow) { monthMap[rrow.month] = rrow; kiChanged = true; return; }
-      // date 최신 row 채택
       if ((rrow.date || '') > (lrow.date || '')) {
         monthMap[rrow.month] = rrow; kiChanged = true;
       }
@@ -804,7 +760,7 @@ function mergeGasData_(remote) {
     }
   }
 
-  // ── 3. todos/goal: exportedAt 최신 쪽 채택 (단순 비교)
+  // 3. todos/goal: exportedAt 최신 쪽 채택
   var localTs = localStorage.getItem('asset-dashboard-ts') || '0';
   var remoteTs = remote.exportedAt || '0';
   if (remoteTs > localTs) {
@@ -817,46 +773,13 @@ function mergeGasData_(remote) {
   return changed;
 }
 
-// ★ JSONP 방식 GET — CORS 완전 우회
-//   <script> 태그로 로드 → preflight 없음, CORS 헤더 불필요
-//   GAS doGet이 ?callback=xxx 파라미터 받아 xxx(json) 형태로 반환
-function gasJsonpFetch_(url) {
-  return new Promise(function(resolve, reject) {
-    var cbName = '_gasCb' + Date.now() + Math.floor(Math.random() * 9999);
-    var script = document.createElement('script');
-    var done = false;
-    var timer = setTimeout(function() {
-      if (done) return; done = true;
-      delete window[cbName];
-      if (script.parentNode) script.parentNode.removeChild(script);
-      reject(new Error('JSONP timeout'));
-    }, 10000);
-    window[cbName] = function(data) {
-      if (done) return; done = true;
-      clearTimeout(timer);
-      delete window[cbName];
-      if (script.parentNode) script.parentNode.removeChild(script);
-      resolve(data);
-    };
-    script.onerror = function() {
-      if (done) return; done = true;
-      clearTimeout(timer);
-      delete window[cbName];
-      if (script.parentNode) script.parentNode.removeChild(script);
-      reject(new Error('JSONP load error'));
-    };
-    var sep = url.indexOf('?') >= 0 ? '&' : '?';
-    script.src = url + sep + 'callback=' + cbName + '&t=' + Date.now();
-    document.head.appendChild(script);
-  });
-}
-
+// ── 저장 ─────────────────────────────────────────────
 function pushToGAS_() {
-  var url = _gasUrl();
+  var url = _fbUrl();
   if (!url) return;
   var ts = new Date().toISOString();
   var payload = {
-    version: 1,
+    version:    1,
     state:      JSON.parse(localStorage.getItem('asset-dashboard-v3') || 'null'),
     todos:      JSON.parse(localStorage.getItem('asset-todos')        || 'null'),
     goal:       JSON.parse(localStorage.getItem('asset-goal')         || 'null'),
@@ -866,81 +789,56 @@ function pushToGAS_() {
   localStorage.setItem('asset-dashboard-ts', ts);
   _syncStatus('☁ 저장 중...', 'var(--text3)');
 
-  // ★ fetch POST no-cors (redirect:'follow' 기본값 — no-cors에서 'manual' 사용 불가)
-  // Fetch 스펙: no-cors + redirect:'manual' = 즉시 네트워크 에러 → catch() 진입
-  // redirect:'follow' 사용 시: POST body가 302 이전에 서버 도달 → doPost 정상 수신
-  // no-cors 모드에서는 headers 옵션을 명시하면 TypeError 발생
-  // URLSearchParams 객체를 body로 직접 전달하면 브라우저가 자동으로
-  // Content-Type: application/x-www-form-urlencoded 설정 → Simple Request
-  var params = new URLSearchParams();
-  params.append('payload', JSON.stringify(payload));
-
   fetch(url, {
-    method: 'POST',
-    mode:   'no-cors',
-    body:   params,
+    method:  'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(payload),
   })
-  .then(function() {
-    // opaque response — 응답 내용은 읽을 수 없지만 POST는 서버에 도달
-    // 3초 후 JSONP GET으로 실제 저장 확인
-    setTimeout(function() { verifyGasSave_(ts); }, 3000);
+  .then(function(res) {
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    _syncStatus('☁ 저장됨', 'var(--teal)');
   })
   .catch(function(err) {
-    console.warn('GAS push 실패:', err.message, err);
+    console.warn('Firebase 저장 실패:', err.message);
     _syncStatus('⚠ 저장 실패', 'var(--orange)');
   });
 }
 
-
-function verifyGasSave_(expectedTs) {
-  var url = _gasUrl();
-  if (!url) return;
-  gasJsonpFetch_(url)
-    .then(function(data) {
-      if (data && data.exportedAt && data.exportedAt >= expectedTs) {
-        _syncStatus('☁ 저장됨', 'var(--teal)');
-      } else {
-        // GAS에 아직 반영 안됐을 수 있음 — 표시는 저장됨으로
-        _syncStatus('☁ 저장됨', 'var(--teal)');
-        console.log('[GAS verify] GAS ts:', data && data.exportedAt, '/ expected:', expectedTs);
-      }
-    })
-    .catch(function() {
-      _syncStatus('☁ 저장됨?', 'var(--text2)');
+// ── 읽기 ─────────────────────────────────────────────
+function fetchFromFirebase_() {
+  var url = _fbUrl();
+  if (!url) return Promise.resolve(null);
+  return fetch(url)
+    .then(function(res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
     });
 }
 
-// ═══════════════════════════════════════════
-//  ★ 수동 동기화 (모바일용 버튼)
-// ═══════════════════════════════════════════
+// ── 수동 동기화 버튼 ──────────────────────────────────
 function manualSync() {
-  const url = _gasUrl();
-  if (!url) { alert('GAS_URL이 설정되지 않았습니다.'); return; }
-  const btn = document.getElementById('manual-sync-btn');
+  var url = _fbUrl();
+  if (!url) { alert('FIREBASE_URL이 설정되지 않았습니다.'); return; }
+  var btn = document.getElementById('manual-sync-btn');
   if (btn) { btn.textContent = '⏳ 연결 중...'; btn.disabled = true; }
   _syncStatus('☁ 동기화 중...', 'var(--text3)');
 
-  // JSONP 방식 GET — CORS 완전 우회
-  gasJsonpFetch_(url)
+  fetchFromFirebase_()
     .then(function(data) {
-      try {
-        // per-key 스마트 병합 — date 비교로 항상 최신값 유지
-        var changed = mergeGasData_(data);
-        state = JSON.parse(localStorage.getItem('asset-dashboard-v3') || '{}');
-        kiData = JSON.parse(localStorage.getItem('kiwoom-data') || 'null');
-        renderAll();
-        if (changed) {
-          _syncStatus('☁ 동기화됨 ✓', 'var(--teal)');
-          // 병합 결과를 GAS에 다시 push (양방향 최신화)
-          setTimeout(pushToGAS_, 1000);
-        } else {
-          _syncStatus('☁ 이미 최신', 'var(--teal)');
-        }
-      } catch(e) { console.warn(e); }
+      if (!data) { _syncStatus('☁ 데이터 없음', 'var(--text3)'); return; }
+      var changed = mergeGasData_(data);
+      state  = JSON.parse(localStorage.getItem('asset-dashboard-v3') || '{}');
+      kiData = JSON.parse(localStorage.getItem('kiwoom-data') || 'null');
+      renderAll();
+      if (changed) {
+        _syncStatus('☁ 동기화됨 ✓', 'var(--teal)');
+        setTimeout(pushToGAS_, 500);
+      } else {
+        _syncStatus('☁ 이미 최신', 'var(--teal)');
+      }
     })
     .catch(function(err) {
-      console.warn('수동 동기화 실패:', err.message);
-      alert('GAS 연결 실패: ' + err.message + '\n\n배포 설정 확인:\n• 실행: 나\n• 액세스: 모든 사용자(익명 포함)\n• Code.gs 최신 버전 재배포 필요');
+      console.warn('동기화 실패:', err.message);
       _syncStatus('⚠ 연결 실패', 'var(--orange)');
     })
     .finally(function() {
@@ -1476,53 +1374,35 @@ function importData(event) {
 //  ★ INIT — GAS 우선, 없으면 data.json, 없으면 localStorage
 // ═══════════════════════════════════════════
 function init() {
-  const url = _gasUrl();
+  const url = _fbUrl();
   const syncEl = document.getElementById('gas-sync-status');
 
   if (url) {
     if (syncEl) { syncEl.textContent = '☁ 연결 중...'; syncEl.style.color = 'var(--text3)'; }
-    // JSONP 방식 GET — CORS 완전 우회 (모바일 포함 전부 OK)
-    gasJsonpFetch_(url)
+    fetchFromFirebase_()
       .then(function(data) {
-        try {
-          // per-key 스마트 병합 — date 비교로 항상 최신값 유지
-          var changed = mergeGasData_(data);
-          if (changed) {
-            console.log('✅ GAS 병합 완료');
-            _syncStatus('☁ 동기화됨', 'var(--teal)');
-            // 병합 결과를 GAS에 다시 push (양방향 최신화)
-            setTimeout(pushToGAS_, 2000);
-          } else {
-            console.log('로컬 데이터가 최신');
-            if (syncEl) { syncEl.textContent = ''; }
-          }
-        } catch(e) { console.warn('GAS 데이터 적용 오류:', e); }
+        if (data) {
+          try {
+            var changed = mergeGasData_(data);
+            if (changed) {
+              _syncStatus('☁ 동기화됨', 'var(--teal)');
+              setTimeout(pushToGAS_, 1000);
+            } else {
+              if (syncEl) syncEl.textContent = '';
+            }
+          } catch(e) { console.warn('Firebase 데이터 적용 오류:', e); }
+        } else {
+          if (syncEl) syncEl.textContent = '';
+        }
         _initCore();
       })
       .catch(function(err) {
-        console.warn('GAS 연결 실패 → localStorage 사용:', err.message);
-        if (syncEl) { syncEl.textContent = ''; }
+        console.warn('Firebase 연결 실패 → localStorage 사용:', err.message);
+        if (syncEl) syncEl.textContent = '';
         _initCore();
       });
   } else {
-    // GAS_URL 미설정 시 data.json 폴백
-    fetch('./data.json?t=' + Date.now())
-      .then(r => { if (!r.ok) throw new Error('no file'); return r.json(); })
-      .then(data => {
-        try {
-          const lsTs   = localStorage.getItem('asset-dashboard-ts') || '0';
-          const fileTs = data.exportedAt || '0';
-          if (fileTs >= lsTs) {
-            if (data.state)  localStorage.setItem('asset-dashboard-v3', JSON.stringify(data.state));
-            if (data.todos)  localStorage.setItem('asset-todos', JSON.stringify(data.todos));
-            if (data.goal)   localStorage.setItem('asset-goal', JSON.stringify(data.goal));
-            if (data.kiwoom) localStorage.setItem('kiwoom-data', JSON.stringify(data.kiwoom));
-            localStorage.setItem('asset-dashboard-ts', fileTs);
-          }
-        } catch(e) { console.warn('data.json 적용 오류:', e); }
-        _initCore();
-      })
-      .catch(() => { console.log('data.json 없음 → localStorage 사용'); _initCore(); });
+    _initCore();
   }
 }
 
