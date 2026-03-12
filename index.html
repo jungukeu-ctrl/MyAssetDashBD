@@ -686,7 +686,7 @@
 //  ★ Google Apps Script 연동 설정
 //  배포 후 아래 URL을 실제 배포 URL로 교체하세요
 // ═══════════════════════════════════════════
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxVZ9RtQvItzYok0yPeph01JrT9OTdzihXe7YJw2alUA7AH5T4o11BO6kz3yrQMQN7l/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbySxuZTLGw_vO5n9eaROILdfb7Neg5IOilozo7xcbjbgWVXVE0aPkR0LMftt5Ugk_BoFw/exec';
 // 예: 'https://script.google.com/macros/s/AKfycb.../exec'
 
 // ═══════════════════════════════════════════
@@ -866,61 +866,22 @@ function pushToGAS_() {
   localStorage.setItem('asset-dashboard-ts', ts);
   _syncStatus('☁ 저장 중...', 'var(--text3)');
 
-  // iframe form submit — CORS 완전 우회, GAS redirect 후에도 body 유지
-  try {
-    var iframeId = 'gas-iframe-sink';
-    var formId   = 'gas-form-sink';
-
-    var iframe = document.getElementById(iframeId);
-    if (!iframe) {
-      iframe = document.createElement('iframe');
-      iframe.id   = iframeId;
-      iframe.name = iframeId;
-      iframe.style.cssText = 'display:none;width:0;height:0;border:0;';
-      document.body.appendChild(iframe);
-    }
-
-    var oldForm = document.getElementById(formId);
-    if (oldForm) oldForm.remove();
-
-    var form = document.createElement('form');
-    form.id     = formId;
-    form.method = 'POST';
-    form.action = url;
-    form.target = iframeId;
-    form.style.cssText = 'display:none;';
-
-    var inp = document.createElement('input');
-    inp.type  = 'hidden';
-    inp.name  = 'payload';
-    inp.value = JSON.stringify(payload);
-    form.appendChild(inp);
-    document.body.appendChild(form);
-    form.submit();
-
-    // 3초 후 JSONP GET으로 실제 저장 확인
-    setTimeout(function() { verifyGasSave_(ts); }, 3000);
-  } catch(err) {
-    console.warn('GAS push 실패:', err.message);
-    _syncStatus('⚠ 저장 실패', 'var(--orange)');
-  }
-}
-
-function verifyGasSave_(expectedTs) {
-  var url = _gasUrl();
-  if (!url) return;
-  gasJsonpFetch_(url)
+  // ★ JSONP GET으로 저장
+  // GAS doPost는 302 redirect로 인해 POST body가 소실됨 (POST→GET 변환)
+  // → doGet에 ?op=save&payload=... 파라미터로 저장 처리
+  var saveUrl = url + '?op=save&payload=' + encodeURIComponent(JSON.stringify(payload));
+  gasJsonpFetch_(saveUrl)
     .then(function(data) {
-      if (data.exportedAt && data.exportedAt >= expectedTs) {
+      if (data && data.ok) {
         _syncStatus('☁ 저장됨', 'var(--teal)');
       } else {
-        _syncStatus('☁ 저장됨', 'var(--teal)');
-        console.log('GAS ts:', data.exportedAt, '/ local:', expectedTs);
+        console.warn('GAS save 응답 이상:', data);
+        _syncStatus('⚠ 저장 실패', 'var(--orange)');
       }
     })
-    .catch(function() {
-      console.warn('GAS 저장 검증 실패');
-      _syncStatus('☁ 저장됨*', 'var(--text2)');
+    .catch(function(err) {
+      console.warn('GAS push 실패:', err.message);
+      _syncStatus('⚠ 저장 실패', 'var(--orange)');
     });
 }
 
