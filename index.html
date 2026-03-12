@@ -686,7 +686,7 @@
 //  ★ Google Apps Script 연동 설정
 //  배포 후 아래 URL을 실제 배포 URL로 교체하세요
 // ═══════════════════════════════════════════
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbws9LpOxLAT2LLIqpE9wZucQdBbWoZpQET5Ncey_TsWzld1RtS5BzD0G7jAdHSvXrE7iQ/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbw7ORlykAW65C_NUWG2UY8Dz2HwbVhGzyrolpQ_mCHiTdlmuCoYIFuLUUSl3PkwDI8U1Q/exec';
 // 예: 'https://script.google.com/macros/s/AKfycb.../exec'
 
 // ═══════════════════════════════════════════
@@ -866,21 +866,18 @@ function pushToGAS_() {
   localStorage.setItem('asset-dashboard-ts', ts);
   _syncStatus('☁ 저장 중...', 'var(--text3)');
 
-  // ★ fetch POST + redirect:'manual'
-  // - POST body는 GAS 302 redirect 이전에 서버에 도달 → doPost 정상 수신
-  // - redirect:'manual' → 브라우저가 redirect를 따라가지 않음 (opaqueredirect 응답)
-  // - no-cors + application/x-www-form-urlencoded = Simple Request (preflight 없음)
+  // ★ fetch POST no-cors (redirect:'follow' 기본값 — no-cors에서 'manual' 사용 불가)
+  // Fetch 스펙: no-cors + redirect:'manual' = 즉시 네트워크 에러 → catch() 진입
+  // redirect:'follow' 사용 시: POST body가 302 이전에 서버 도달 → doPost 정상 수신
   fetch(url, {
-    method:   'POST',
-    mode:     'no-cors',
-    redirect: 'manual',
-    headers:  { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body:     new URLSearchParams({ payload: JSON.stringify(payload) }).toString(),
+    method:  'POST',
+    mode:    'no-cors',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body:    new URLSearchParams({ payload: JSON.stringify(payload) }).toString(),
   })
-  .then(function(resp) {
-    // opaqueredirect = GAS가 정상 수신 후 302 반환한 것
-    console.log('[GAS POST] resp.type:', resp.type, 'status:', resp.status);
-    // 3초 후 JSONP GET으로 저장 확인
+  .then(function() {
+    // opaque response — 응답 내용은 읽을 수 없지만 POST는 서버에 도달
+    // 3초 후 JSONP GET으로 실제 저장 확인
     setTimeout(function() { verifyGasSave_(ts); }, 3000);
   })
   .catch(function(err) {
