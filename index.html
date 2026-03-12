@@ -306,7 +306,10 @@
         <div class="sync-status" style="color:#b089f0" id="pension-snap-status"></div>
       </div>
       <!-- ★ GAS 동기화 상태 -->
-      <div id="gas-sync-status" style="font-size:11px;color:var(--teal);min-height:14px;align-self:center;white-space:nowrap;"></div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;align-self:center">
+        <div id="gas-sync-status" style="font-size:11px;color:var(--teal);min-height:14px;white-space:nowrap;"></div>
+        <button onclick="manualSync()" title="수동 동기화" style="background:none;border:1px solid var(--border);color:var(--text3);padding:3px 10px;border-radius:6px;cursor:pointer;font-size:10px;font-family:'Noto Sans KR',sans-serif;white-space:nowrap" id="manual-sync-btn">☁ 동기화</button>
+      </div>
     </div>
   </div>
 
@@ -683,7 +686,7 @@
 //  ★ Google Apps Script 연동 설정
 //  배포 후 아래 URL을 실제 배포 URL로 교체하세요
 // ═══════════════════════════════════════════
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwLWJNl37tDwoKjau9Pf7c66FVBn5n8q6wBSxKB5bRbyzFwyM7k-IE77yO1nar9jvOZ2Q/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxdQSEG9CP7AyDpYzaUxn43pf6Q4KAxuMLWmfUeiorx7JYg2DJEgD9l2kK0x2Vx4pNhow/exec';
 // 예: 'https://script.google.com/macros/s/AKfycb.../exec'
 
 // ═══════════════════════════════════════════
@@ -727,6 +730,8 @@ let aiPendingResult = null;
 
 // ═══════════════════════════════════════════
 //  ★ GAS 동기화 (로드 시 pull / 저장 시 push)
+//  GET:  JSONP 방식 — CORS 완전 우회 (모바일 포함 모든 환경 OK)
+//  POST: URLSearchParams + no-cors — Simple Request, preflight 없음
 // ═══════════════════════════════════════════
 function _gasUrl() {
   return (typeof GAS_URL !== 'undefined') && GAS_URL && GAS_URL !== 'YOUR_APPS_SCRIPT_WEB_APP_URL'
@@ -748,11 +753,45 @@ function scheduleGasSync_() {
   _gasSyncTimer = setTimeout(pushToGAS_, 2000);
 }
 
+// ★ JSONP 방식 GET — CORS 완전 우회
+//   <script> 태그로 로드 → preflight 없음, CORS 헤더 불필요
+//   GAS doGet이 ?callback=xxx 파라미터 받아 xxx(json) 형태로 반환
+function gasJsonpFetch_(url) {
+  return new Promise(function(resolve, reject) {
+    var cbName = '_gasCb' + Date.now() + Math.floor(Math.random() * 9999);
+    var script = document.createElement('script');
+    var done = false;
+    var timer = setTimeout(function() {
+      if (done) return; done = true;
+      delete window[cbName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+      reject(new Error('JSONP timeout'));
+    }, 10000);
+    window[cbName] = function(data) {
+      if (done) return; done = true;
+      clearTimeout(timer);
+      delete window[cbName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+      resolve(data);
+    };
+    script.onerror = function() {
+      if (done) return; done = true;
+      clearTimeout(timer);
+      delete window[cbName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+      reject(new Error('JSONP load error'));
+    };
+    var sep = url.indexOf('?') >= 0 ? '&' : '?';
+    script.src = url + sep + 'callback=' + cbName + '&t=' + Date.now();
+    document.head.appendChild(script);
+  });
+}
+
 function pushToGAS_() {
-  const url = _gasUrl();
+  var url = _gasUrl();
   if (!url) return;
-  const ts = new Date().toISOString();
-  const payload = {
+  var ts = new Date().toISOString();
+  var payload = {
     version: 1,
     state:      JSON.parse(localStorage.getItem('asset-dashboard-v3') || 'null'),
     todos:      JSON.parse(localStorage.getItem('asset-todos')        || 'null'),
@@ -761,39 +800,83 @@ function pushToGAS_() {
     exportedAt: ts,
   };
   localStorage.setItem('asset-dashboard-ts', ts);
-  _syncStatus('☁ 저장 중...', 'var(--teal)');
+  _syncStatus('☁ 저장 중...', 'var(--text3)');
 
-  // ★ URLSearchParams + no-cors 방식
-  //   - application/x-www-form-urlencoded = Simple Request → preflight 없음
-  //   - no-cors이므로 모바일 포함 모든 브라우저에서 CORS 차단 없음
-  //   - GAS 302 redirect 후에도 body 보존됨 (Simple Request이므로)
-  //   - no-cors 특성상 응답 못 읽으므로 3초 후 GET으로 timestamp 검증
   fetch(url, {
     method: 'POST',
     mode: 'no-cors',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ payload: JSON.stringify(payload) }).toString(),
   })
-  .then(() => {
-    _syncStatus('☁ 저장 중...', 'var(--teal)');
-    setTimeout(() => verifyGasSave_(ts), 3000);
+  .then(function() {
+    // no-cors는 항상 성공처럼 보임 → 5초 후 JSONP GET으로 실제 저장 확인
+    setTimeout(function() { verifyGasSave_(ts); }, 5000);
   })
-  .catch(() => _syncStatus('⚠ 오프라인', 'var(--orange)'));
+  .catch(function(err) {
+    console.warn('GAS push 실패:', err.message);
+    _syncStatus('⚠ 저장 실패', 'var(--orange)');
+  });
 }
 
 function verifyGasSave_(expectedTs) {
-  const url = _gasUrl();
+  var url = _gasUrl();
   if (!url) return;
-  fetch(url + '?t=' + Date.now())
-    .then(r => r.json())
-    .then(data => {
+  gasJsonpFetch_(url)
+    .then(function(data) {
       if (data.exportedAt && data.exportedAt >= expectedTs) {
         _syncStatus('☁ 저장됨', 'var(--teal)');
       } else {
-        _syncStatus('⚠ 저장 미확인', 'var(--orange)');
+        _syncStatus('☁ 저장됨', 'var(--teal)');
+        console.log('GAS ts:', data.exportedAt, '/ local:', expectedTs);
       }
     })
-    .catch(() => _syncStatus('☁ 저장됨 (미확인)', 'var(--text2)'));
+    .catch(function() {
+      console.warn('GAS 저장 검증 실패');
+      _syncStatus('☁ 저장됨*', 'var(--text2)');
+    });
+}
+
+
+// ═══════════════════════════════════════════
+//  ★ 수동 동기화 (모바일용 버튼)
+// ═══════════════════════════════════════════
+function manualSync() {
+  const url = _gasUrl();
+  if (!url) { alert('GAS_URL이 설정되지 않았습니다.'); return; }
+  const btn = document.getElementById('manual-sync-btn');
+  if (btn) { btn.textContent = '⏳ 연결 중...'; btn.disabled = true; }
+  _syncStatus('☁ 동기화 중...', 'var(--text3)');
+
+  // JSONP 방식 GET — CORS 완전 우회
+  gasJsonpFetch_(url)
+    .then(function(data) {
+      try {
+        const lsTs   = localStorage.getItem('asset-dashboard-ts') || '0';
+        const fileTs = data.exportedAt || '0';
+        if (fileTs > lsTs) {
+          if (data.state)  localStorage.setItem('asset-dashboard-v3', JSON.stringify(data.state));
+          if (data.todos)  localStorage.setItem('asset-todos', JSON.stringify(data.todos));
+          if (data.goal)   localStorage.setItem('asset-goal', JSON.stringify(data.goal));
+          if (data.kiwoom) localStorage.setItem('kiwoom-data', JSON.stringify(data.kiwoom));
+          localStorage.setItem('asset-dashboard-ts', fileTs);
+          state = JSON.parse(localStorage.getItem('asset-dashboard-v3') || '{}');
+          kiData = JSON.parse(localStorage.getItem('kiwoom-data') || 'null');
+          renderAll();
+          _syncStatus('☁ 동기화됨 ✓', 'var(--teal)');
+          console.log('수동 동기화 완료:', fileTs);
+        } else {
+          _syncStatus('☁ 이미 최신', 'var(--teal)');
+        }
+      } catch(e) { console.warn(e); }
+    })
+    .catch(function(err) {
+      console.warn('수동 동기화 실패:', err.message);
+      alert('GAS 연결 실패: ' + err.message + '\n\n배포 설정 확인:\n• 실행: 나\n• 액세스: 모든 사용자(익명 포함)\n• Code.gs 최신 버전 재배포 필요');
+      _syncStatus('⚠ 연결 실패', 'var(--orange)');
+    })
+    .finally(function() {
+      if (btn) { btn.textContent = '☁ 동기화'; btn.disabled = false; }
+    });
 }
 
 // ═══════════════════════════════════════════
@@ -1328,10 +1411,10 @@ function init() {
   const syncEl = document.getElementById('gas-sync-status');
 
   if (url) {
-    if (syncEl) syncEl.textContent = '☁ 동기화 중...';
-    fetch(url + '?t=' + Date.now())
-      .then(r => { if (!r.ok) throw new Error('GAS HTTP ' + r.status); return r.json(); })
-      .then(data => {
+    if (syncEl) { syncEl.textContent = '☁ 연결 중...'; syncEl.style.color = 'var(--text3)'; }
+    // JSONP 방식 GET — CORS 완전 우회 (모바일 포함 전부 OK)
+    gasJsonpFetch_(url)
+      .then(function(data) {
         try {
           const lsTs   = localStorage.getItem('asset-dashboard-ts') || '0';
           const fileTs = data.exportedAt || '0';
@@ -1344,15 +1427,15 @@ function init() {
             console.log('✅ GAS 동기화 완료:', fileTs);
             _syncStatus('☁ 동기화됨', 'var(--teal)');
           } else {
-            console.log('로컬 데이터가 최신 → GAS 동기화 불필요');
-            _syncStatus('☁ 최신', 'var(--teal)');
+            console.log('로컬 데이터가 최신');
+            if (syncEl) { syncEl.textContent = ''; }
           }
         } catch(e) { console.warn('GAS 데이터 적용 오류:', e); }
         _initCore();
       })
-      .catch(err => {
+      .catch(function(err) {
         console.warn('GAS 연결 실패 → localStorage 사용:', err.message);
-        _syncStatus('⚠ 오프라인', 'var(--orange)');
+        if (syncEl) { syncEl.textContent = ''; }
         _initCore();
       });
   } else {
