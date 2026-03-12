@@ -869,11 +869,16 @@ function pushToGAS_() {
   // ★ fetch POST no-cors (redirect:'follow' 기본값 — no-cors에서 'manual' 사용 불가)
   // Fetch 스펙: no-cors + redirect:'manual' = 즉시 네트워크 에러 → catch() 진입
   // redirect:'follow' 사용 시: POST body가 302 이전에 서버 도달 → doPost 정상 수신
+  // no-cors 모드에서는 headers 옵션을 명시하면 TypeError 발생
+  // URLSearchParams 객체를 body로 직접 전달하면 브라우저가 자동으로
+  // Content-Type: application/x-www-form-urlencoded 설정 → Simple Request
+  var params = new URLSearchParams();
+  params.append('payload', JSON.stringify(payload));
+
   fetch(url, {
-    method:  'POST',
-    mode:    'no-cors',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body:    new URLSearchParams({ payload: JSON.stringify(payload) }).toString(),
+    method: 'POST',
+    mode:   'no-cors',
+    body:   params,
   })
   .then(function() {
     // opaque response — 응답 내용은 읽을 수 없지만 POST는 서버에 도달
@@ -881,7 +886,7 @@ function pushToGAS_() {
     setTimeout(function() { verifyGasSave_(ts); }, 3000);
   })
   .catch(function(err) {
-    console.warn('GAS push 실패:', err.message);
+    console.warn('GAS push 실패:', err.message, err);
     _syncStatus('⚠ 저장 실패', 'var(--orange)');
   });
 }
