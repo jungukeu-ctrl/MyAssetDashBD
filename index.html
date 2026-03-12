@@ -42,7 +42,6 @@
   .upload-btn:hover { background: rgba(201,168,76,0.2); border-color: var(--gold); }
   .upload-btn.kiwoom { background: rgba(110,142,251,0.1); border-color: rgba(110,142,251,0.3); color: var(--blue); }
   .upload-btn.kiwoom:hover { background: rgba(110,142,251,0.2); border-color: var(--blue); }
-  /* ★ NEW: 토스 이미지 버튼 */
   .upload-btn.toss-img { background: rgba(54,211,153,0.1); border-color: rgba(54,211,153,0.3); color: var(--teal); }
   .upload-btn.toss-img:hover { background: rgba(54,211,153,0.2); border-color: var(--teal); }
   .upload-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
@@ -274,14 +273,13 @@
       <div class="date" id="today-date"></div>
     </div>
     <div class="upload-btns">
-      <!-- ★ JSON 붙여넣기 버튼 (아티팩트 분석 결과) -->
+      <!-- ★ JSON 붙여넣기 버튼 -->
       <div>
         <button class="upload-btn toss-img" onclick="openJsonPasteModal()" title="Claude 아티팩트에서 추출한 JSON을 붙여넣으세요">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
           토스 JSON 붙여넣기
         </button>
       </div>
-      <!-- 토스 엑셀 업로드 제거: toss-analyzer.html로 대체됨 -->
       <input type="file" id="toss-input" accept=".xlsx,.xls" style="display:none">
       <!-- ★ 키움 스냅샷 -->
       <div>
@@ -307,10 +305,12 @@
         </button>
         <div class="sync-status" style="color:#b089f0" id="pension-snap-status"></div>
       </div>
+      <!-- ★ GAS 동기화 상태 -->
+      <div id="gas-sync-status" style="font-size:11px;color:var(--teal);min-height:14px;align-self:center;white-space:nowrap;"></div>
     </div>
   </div>
 
-  <!-- ★ JSON 붙여넣기 모달 -->
+  <!-- ★ 토스 JSON 붙여넣기 모달 -->
   <div id="ai-modal">
     <div class="ai-modal-box">
       <div class="ai-modal-title">📋 토스 잔고 JSON 붙여넣기</div>
@@ -328,9 +328,6 @@
       </div>
       <button class="ai-apply-btn" id="ai-apply-btn" disabled onclick="applyAiResult()">대시보드 적용</button>
       <button class="ai-cancel-btn" onclick="closeAiModal()">닫기</button>
-    </div>
-  </div>
-
     </div>
   </div>
 
@@ -446,7 +443,6 @@
 
   <!-- ─── Kiwoom 포트폴리오 요약 ─── -->
   <div class="section-title">📊 키움 포트폴리오 현황</div>
-  <!-- ★ 키움 스냅샷 카드 -->
   <div id="kiwoom-snap-cards" style="display:none;margin-bottom:14px">
     <div style="font-size:11px;color:var(--text3);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
       <span>📸 MY페이지 스냅샷 (평가금액)</span>
@@ -574,7 +570,6 @@
 
   <!-- ─── 연금 / IRP ─── -->
   <div class="section-title">🔑 연금 / IRP / 국민연금</div>
-  <!-- ★ 연금 스냅샷 카드 -->
   <div id="pension-snap-cards" style="display:none;margin-bottom:14px">
     <div style="font-size:11px;color:var(--text3);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
       <span>📸 토스 연금 스냅샷 (평가금액)</span>
@@ -685,6 +680,13 @@
 
 <script>
 // ═══════════════════════════════════════════
+//  ★ Google Apps Script 연동 설정
+//  배포 후 아래 URL을 실제 배포 URL로 교체하세요
+// ═══════════════════════════════════════════
+const GAS_URL = 'YOUR_APPS_SCRIPT_WEB_APP_URL';
+// 예: 'https://script.google.com/macros/s/AKfycb.../exec'
+
+// ═══════════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════════
 const MANUAL_KEYS = ['apt-owned','apt-rent','bank-housing','bank-rent','bank-general','stock-kr1','stock-kr2','stock-us','irp1','irp2','pension-natl'];
@@ -700,13 +702,11 @@ const KIWOOM_SNAP_INFO = {
   'kiwoom-chobil':   { name:'초빌',  acct:'5185-9447', color:'#565a70' },
 };
 
-// 연금 스냅샷
-// eval[] 인덱스: 개인연금저축=3, 퇴직연금001(IRP1)=7, 퇴직연금002(IRP2)=8
 const PENSION_SNAP_KEYS = ['pension-irp1','pension-irp2','pension-saving'];
 const PENSION_SNAP_INFO = {
-  'pension-irp1':   { name:'퇴직연금 IRP 1', label:'유정욱_IRP',       evalIdx:7, color:'#e07b6a', tossKey:null },
-  'pension-irp2':   { name:'퇴직연금 IRP 2', label:'개인형IRP',        evalIdx:8, color:'#e0a06a', tossKey:null },
-  'pension-saving': { name:'개인연금저축',    label:'연금저축',          evalIdx:3, color:'#b089f0', tossKey:'toss-pension' },
+  'pension-irp1':   { name:'퇴직연금 IRP 1', label:'유정욱_IRP',  evalIdx:7, color:'#e07b6a', tossKey:null },
+  'pension-irp2':   { name:'퇴직연금 IRP 2', label:'개인형IRP',   evalIdx:8, color:'#e0a06a', tossKey:null },
+  'pension-saving': { name:'개인연금저축',    label:'연금저축',     evalIdx:3, color:'#b089f0', tossKey:'toss-pension' },
 };
 let state = {};
 let todos = [];
@@ -723,9 +723,53 @@ const ACCT_COLORS = {
 
 let kiData = null;
 let chartRange = 12;
-
-// ★ AI 분석 결과 임시 저장
 let aiPendingResult = null;
+
+// ═══════════════════════════════════════════
+//  ★ GAS 동기화 (로드 시 pull / 저장 시 push)
+// ═══════════════════════════════════════════
+function _gasUrl() {
+  return (typeof GAS_URL !== 'undefined') && GAS_URL && GAS_URL !== 'YOUR_APPS_SCRIPT_WEB_APP_URL'
+    ? GAS_URL : null;
+}
+
+function _syncStatus(msg, color) {
+  const el = document.getElementById('gas-sync-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = color || 'var(--teal)';
+  if (msg) setTimeout(() => { el.textContent = ''; el.style.color = 'var(--teal)'; }, 4000);
+}
+
+let _gasSyncTimer = null;
+
+function scheduleGasSync_() {
+  clearTimeout(_gasSyncTimer);
+  _gasSyncTimer = setTimeout(pushToGAS_, 2000);
+}
+
+function pushToGAS_() {
+  const url = _gasUrl();
+  if (!url) return;
+  const ts = new Date().toISOString();
+  const payload = {
+    state:      JSON.parse(localStorage.getItem('asset-dashboard-v3') || 'null'),
+    todos:      JSON.parse(localStorage.getItem('asset-todos')        || 'null'),
+    goal:       JSON.parse(localStorage.getItem('asset-goal')         || 'null'),
+    kiwoom:     JSON.parse(localStorage.getItem('kiwoom-data')        || 'null'),
+    exportedAt: ts
+  };
+  localStorage.setItem('asset-dashboard-ts', ts);
+  _syncStatus('☁ 저장 중...', 'var(--teal)');
+  // no-cors: POST는 전달되지만 응답을 읽을 수 없음 (정상 동작)
+  fetch(url, {
+    method: 'POST', mode: 'no-cors',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(payload)
+  })
+  .then(() => _syncStatus('☁ 저장됨', 'var(--teal)'))
+  .catch(() => _syncStatus('⚠ 저장 실패', 'var(--orange)'));
+}
 
 // ═══════════════════════════════════════════
 //  ★ JSON 붙여넣기 모달
@@ -753,16 +797,13 @@ function parseJsonPaste() {
   aiPendingResult = null;
   applyBtn.disabled = true;
   resultArea.style.display = 'none';
-
   if (!raw) { log.style.display = 'none'; return; }
-
   log.style.display = 'block';
   try {
     const match = raw.match(/\{[\s\S]*\}/);
     if (!match) throw new Error('JSON 형식이 아닙니다');
     const parsed = JSON.parse(match[0]);
     if (!parsed.accounts?.length) throw new Error('accounts 배열이 없습니다');
-
     aiPendingResult = parsed;
     const tbody = document.getElementById('ai-result-tbody');
     tbody.innerHTML = parsed.accounts.map(a =>
@@ -805,13 +846,12 @@ function closeAiModal() {
 let kiwoomPendingResult = null;
 
 function openKiwoomPasteModal() {
-  const modal = document.getElementById('kiwoom-modal');
   document.getElementById('kiwoom-paste-area').value = '';
   document.getElementById('kiwoom-log').style.display = 'none';
   document.getElementById('kiwoom-result-area').style.display = 'none';
   document.getElementById('kiwoom-apply-btn').disabled = true;
   kiwoomPendingResult = null;
-  modal.style.display = 'flex';
+  document.getElementById('kiwoom-modal').style.display = 'flex';
   setTimeout(() => document.getElementById('kiwoom-paste-area').focus(), 100);
 }
 
@@ -830,7 +870,6 @@ function parseKiwoomPaste() {
     if (!match) throw new Error('JSON 형식이 아닙니다');
     const parsed = JSON.parse(match[0]);
     if (!parsed.accounts?.length) throw new Error('accounts 배열이 없습니다');
-
     kiwoomPendingResult = parsed;
     const tbody = document.getElementById('kiwoom-result-tbody');
     tbody.innerHTML = parsed.accounts.map(a =>
@@ -852,13 +891,10 @@ function parseKiwoomPaste() {
   }
 }
 
-// 키움 key → eval[] 인덱스 (KIWOOM_ACCOUNTS 순서)
-// ['해외'=0, '오빌'=1, '자사주'=2, '개인연금저축'=3, '별동대'=4, '연습'=5, '초빌'=6]
 const KI_SNAP_IDX = {
   'kiwoom-overseas':0, 'kiwoom-obil':1, 'kiwoom-jasaju':2,
   'kiwoom-byuldong':4, 'kiwoom-practice':5, 'kiwoom-chobil':6
 };
-// 평가금액 = 키움 + 토스 합산 매핑
 const KI_TOSS_PAIR = {
   'kiwoom-overseas':'toss-overseas',
   'kiwoom-obil':'toss-obil',
@@ -868,39 +904,29 @@ const KI_TOSS_PAIR = {
 function applyKiwoomResult() {
   if (!kiwoomPendingResult) return;
   const { date, accounts } = kiwoomPendingResult;
-  const ym = date.slice(0, 7); // e.g. '2026-03'
-
-  // 1) 원시 키움 값 state 저장
+  const ym = date.slice(0, 7);
   accounts.forEach(a => {
     if (!KIWOOM_SNAP_KEYS.includes(a.key)) return;
     state[a.key] = { val: a.balance, date };
   });
-
-  // 2) kiData 월별 엔트리에 eval 반영 (키움 + 토스 합산)
   if (!kiData) kiData = { combined: [] };
   if (!kiData.combined) kiData.combined = [];
-
-  // 이번 달 엔트리 찾기 (date 또는 month 필드 모두 대응)
   let entry = kiData.combined.find(e => (e.date || e.month || '').slice(0, 7) === ym);
   if (!entry) {
     const prev = kiData.combined[kiData.combined.length - 1];
     entry = {
-      date: date,
-      month: ym,
+      date: date, month: ym,
       invest: prev ? [...(prev.invest || new Array(9).fill(0))] : new Array(9).fill(0),
       eval: new Array(9).fill(0),
       _hasToss: true,
     };
     kiData.combined.push(entry);
-    kiData.combined.sort((a, b) =>
-      (a.date || a.month || '').localeCompare(b.date || b.month || ''));
+    kiData.combined.sort((a, b) => (a.date || a.month || '').localeCompare(b.date || b.month || ''));
   } else {
     entry.date = date;
     entry._hasToss = true;
     if (!entry.eval) entry.eval = new Array(9).fill(0);
   }
-
-  // eval = 키움 원시값 + 페어 토스 값
   accounts.forEach(a => {
     const idx = KI_SNAP_IDX[a.key];
     if (idx === undefined) return;
@@ -908,8 +934,8 @@ function applyKiwoomResult() {
     const tossVal = tossKey ? (state[tossKey]?.val || 0) : 0;
     entry.eval[idx] = a.balance + tossVal;
   });
-
   localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
+  scheduleGasSync_();
   save();
   renderAll();
   renderKiwoomSnap();
@@ -955,7 +981,6 @@ function parsePensionPaste() {
     if (!match) throw new Error('JSON 형식이 아닙니다');
     const parsed = JSON.parse(match[0]);
     if (!parsed.accounts?.length) throw new Error('accounts 배열이 없습니다');
-
     pensionPendingResult = parsed;
     const tbody = document.getElementById('pension-result-tbody');
     tbody.innerHTML = parsed.accounts.map(a => {
@@ -985,23 +1010,17 @@ function applyPensionResult() {
   if (!pensionPendingResult) return;
   const { date, accounts } = pensionPendingResult;
   const ym = date.slice(0, 7);
-
-  // 1) state 저장 (원시 연금 값)
   accounts.forEach(a => {
     if (!PENSION_SNAP_KEYS.includes(a.key)) return;
     state[a.key] = { val: a.balance, date };
   });
-
-  // 2) kiData 월별 eval 반영
   if (!kiData) kiData = { combined: [] };
   if (!kiData.combined) kiData.combined = [];
-
   let entry = kiData.combined.find(e => (e.date || e.month || '').slice(0, 7) === ym);
   if (!entry) {
     const prev = kiData.combined[kiData.combined.length - 1];
     entry = {
-      date,
-      month: ym,
+      date, month: ym,
       invest: prev ? [...(prev.invest || new Array(9).fill(0))] : new Array(9).fill(0),
       eval: new Array(9).fill(0),
       _hasToss: true,
@@ -1013,16 +1032,14 @@ function applyPensionResult() {
     if (!entry.eval) entry.eval = new Array(9).fill(0);
     entry._hasToss = true;
   }
-
-  // eval = 연금 원시값 + 페어 토스값
   accounts.forEach(a => {
     const info = PENSION_SNAP_INFO[a.key];
     if (!info) return;
     const tossVal = info.tossKey ? (state[info.tossKey]?.val || 0) : 0;
     entry.eval[info.evalIdx] = a.balance + tossVal;
   });
-
   localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
+  scheduleGasSync_();
   save();
   renderAll();
   renderPensionSnap();
@@ -1115,6 +1132,7 @@ function applyKiwoomTransferResult() {
     updatedCount++;
   }
   localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
+  scheduleGasSync_();
   save();
   renderAll();
   if (kiData) renderKiwoom();
@@ -1132,10 +1150,7 @@ function closeKiwoomTransferModal() {
 // ★ 연금 스냅샷 카드 렌더
 function renderPensionSnap() {
   const keys = PENSION_SNAP_KEYS.filter(k => state[k]?.val !== undefined);
-  if (!keys.length) {
-    document.getElementById('pension-snap-cards').style.display = 'none';
-    return;
-  }
+  if (!keys.length) { document.getElementById('pension-snap-cards').style.display = 'none'; return; }
   const latestDate = keys.map(k => state[k]?.date || '').sort().pop();
   document.getElementById('pension-snap-date').textContent = '기준: ' + (latestDate || '—');
   document.getElementById('pension-snap-grid').innerHTML = keys.map(k => {
@@ -1158,13 +1173,10 @@ function renderPensionSnap() {
   document.getElementById('pension-snap-cards').style.display = 'block';
 }
 
-// ★ 키움 스냅샷 카드 렌더 (평가금액 = 키움 + 토스 합산 표시)
+// ★ 키움 스냅샷 카드 렌더
 function renderKiwoomSnap() {
   const keys = KIWOOM_SNAP_KEYS.filter(k => state[k]?.val !== undefined);
-  if (!keys.length) {
-    document.getElementById('kiwoom-snap-cards').style.display = 'none';
-    return;
-  }
+  if (!keys.length) { document.getElementById('kiwoom-snap-cards').style.display = 'none'; return; }
   const latestDate = keys.map(k => state[k]?.date || '').sort().pop();
   document.getElementById('kiwoom-snap-date').textContent = '기준: ' + (latestDate || '—');
   document.getElementById('kiwoom-snap-grid').innerHTML = keys.map(k => {
@@ -1212,28 +1224,21 @@ function exportMonthlyXlsx() {
     alert('월별 데이터가 없습니다.\n키움 엑셀 업로드 또는 스냅샷 적용 후 사용해주세요.');
     return;
   }
-
   const AI_NAMES = ['해외','오빌','자사주','개인연금저축','별동대','연습','초빌','IRP1(유정욱)','IRP2(개인형)'];
   const combined = kiData.combined;
-
-  // ── 시트 1: 월별 평가금액
   const evalHeader = ['날짜', ...AI_NAMES, '합계(주요6계좌)'];
-  const MAIN_IDX = [0,1,5,3,7,8]; // 해외,오빌,연습,개인연금,IRP1,IRP2
+  const MAIN_IDX = [0,1,5,3,7,8];
   const evalRows = combined.map(e => {
     const ev = e.eval || new Array(9).fill(0);
     const mainSum = MAIN_IDX.reduce((s,i) => s+(ev[i]||0), 0);
     return [e.date||e.month, ...ev.map(v=>v||0), mainSum];
   });
-
-  // ── 시트 2: 월별 투자금
   const investHeader = ['날짜', ...AI_NAMES, '합계(주요6계좌)'];
   const investRows = combined.map(e => {
     const inv = e.invest || new Array(9).fill(0);
     const mainSum = MAIN_IDX.reduce((s,i) => s+(inv[i]||0), 0);
     return [e.date||e.month, ...inv.map(v=>v||0), mainSum];
   });
-
-  // ── 시트 3: 월별 수익률
   const retHeader = ['날짜', ...AI_NAMES, '전체수익률(주요6계좌)'];
   const retRows = combined.map(e => {
     const ev = e.eval || new Array(9).fill(0);
@@ -1244,8 +1249,6 @@ function exportMonthlyXlsx() {
     const mainPct = mainIn>0 ? +((mainEv/mainIn-1)*100).toFixed(2) : 0;
     return [e.date||e.month, ...pcts, mainPct];
   });
-
-  // ── 시트 4: 스냅샷 현황 (state)
   const st = JSON.parse(localStorage.getItem('asset-dashboard-v3')||'{}');
   const snapRows = [
     ['항목','값','단위','기준일'],
@@ -1263,17 +1266,11 @@ function exportMonthlyXlsx() {
     ['연금-IRP2', st['pension-irp2']?.val||0, '원', st['pension-irp2']?.date||''],
     ['연금저축', st['pension-saving']?.val||0, '원', st['pension-saving']?.date||''],
   ];
-
   const wb = XLSX.utils.book_new();
-  const wsEval = XLSX.utils.aoa_to_sheet([evalHeader, ...evalRows]);
-  const wsInvest = XLSX.utils.aoa_to_sheet([investHeader, ...investRows]);
-  const wsRet = XLSX.utils.aoa_to_sheet([retHeader, ...retRows]);
-  const wsSnap = XLSX.utils.aoa_to_sheet(snapRows);
-  XLSX.utils.book_append_sheet(wb, wsEval, '월별평가금액');
-  XLSX.utils.book_append_sheet(wb, wsInvest, '월별투자금');
-  XLSX.utils.book_append_sheet(wb, wsRet, '월별수익률(%)');
-  XLSX.utils.book_append_sheet(wb, wsSnap, '스냅샷현황');
-
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([evalHeader, ...evalRows]), '월별평가금액');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([investHeader, ...investRows]), '월별투자금');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([retHeader, ...retRows]), '월별수익률(%)');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(snapRows), '스냅샷현황');
   const today = new Date().toISOString().slice(0,10);
   XLSX.writeFile(wb, `asset_monthly_${today}.xlsx`);
 }
@@ -1299,27 +1296,60 @@ function importData(event) {
 }
 
 // ═══════════════════════════════════════════
-//  INIT
+//  ★ INIT — GAS 우선, 없으면 data.json, 없으면 localStorage
 // ═══════════════════════════════════════════
 function init() {
-  fetch('./data.json?t=' + Date.now())
-    .then(r => { if (!r.ok) throw new Error('no file'); return r.json(); })
-    .then(data => {
-      try {
-        const lsTs   = localStorage.getItem('asset-dashboard-ts') || '0';
-        const fileTs = data.exportedAt || '0';
-        if (fileTs >= lsTs) {
-          if (data.state)  localStorage.setItem('asset-dashboard-v3', JSON.stringify(data.state));
-          if (data.todos)  localStorage.setItem('asset-todos', JSON.stringify(data.todos));
-          if (data.goal)   localStorage.setItem('asset-goal', JSON.stringify(data.goal));
-          if (data.kiwoom) localStorage.setItem('kiwoom-data', JSON.stringify(data.kiwoom));
-          localStorage.setItem('asset-dashboard-ts', fileTs);
-          console.log('✅ GitHub data.json 적용:', fileTs);
-        }
-      } catch(e) { console.warn('data.json 적용 오류:', e); }
-      _initCore();
-    })
-    .catch(() => { console.log('data.json 없음 → localStorage 사용'); _initCore(); });
+  const url = _gasUrl();
+  const syncEl = document.getElementById('gas-sync-status');
+
+  if (url) {
+    if (syncEl) syncEl.textContent = '☁ 동기화 중...';
+    fetch(url + '?t=' + Date.now())
+      .then(r => { if (!r.ok) throw new Error('GAS HTTP ' + r.status); return r.json(); })
+      .then(data => {
+        try {
+          const lsTs   = localStorage.getItem('asset-dashboard-ts') || '0';
+          const fileTs = data.exportedAt || '0';
+          if (fileTs > lsTs) {
+            if (data.state)  localStorage.setItem('asset-dashboard-v3', JSON.stringify(data.state));
+            if (data.todos)  localStorage.setItem('asset-todos', JSON.stringify(data.todos));
+            if (data.goal)   localStorage.setItem('asset-goal', JSON.stringify(data.goal));
+            if (data.kiwoom) localStorage.setItem('kiwoom-data', JSON.stringify(data.kiwoom));
+            localStorage.setItem('asset-dashboard-ts', fileTs);
+            console.log('✅ GAS 동기화 완료:', fileTs);
+            _syncStatus('☁ 동기화됨', 'var(--teal)');
+          } else {
+            console.log('로컬 데이터가 최신 → GAS 동기화 불필요');
+            _syncStatus('☁ 최신', 'var(--teal)');
+          }
+        } catch(e) { console.warn('GAS 데이터 적용 오류:', e); }
+        _initCore();
+      })
+      .catch(err => {
+        console.warn('GAS 연결 실패 → localStorage 사용:', err.message);
+        _syncStatus('⚠ 오프라인', 'var(--orange)');
+        _initCore();
+      });
+  } else {
+    // GAS_URL 미설정 시 data.json 폴백
+    fetch('./data.json?t=' + Date.now())
+      .then(r => { if (!r.ok) throw new Error('no file'); return r.json(); })
+      .then(data => {
+        try {
+          const lsTs   = localStorage.getItem('asset-dashboard-ts') || '0';
+          const fileTs = data.exportedAt || '0';
+          if (fileTs >= lsTs) {
+            if (data.state)  localStorage.setItem('asset-dashboard-v3', JSON.stringify(data.state));
+            if (data.todos)  localStorage.setItem('asset-todos', JSON.stringify(data.todos));
+            if (data.goal)   localStorage.setItem('asset-goal', JSON.stringify(data.goal));
+            if (data.kiwoom) localStorage.setItem('kiwoom-data', JSON.stringify(data.kiwoom));
+            localStorage.setItem('asset-dashboard-ts', fileTs);
+          }
+        } catch(e) { console.warn('data.json 적용 오류:', e); }
+        _initCore();
+      })
+      .catch(() => { console.log('data.json 없음 → localStorage 사용'); _initCore(); });
+  }
 }
 
 function _initCore() {
@@ -1344,7 +1374,12 @@ function setDate() {
   const d = new Date();
   document.getElementById('today-date').textContent = d.toLocaleDateString('ko-KR', { year:'numeric', month:'long', day:'numeric', weekday:'long' });
 }
-function save() { localStorage.setItem('asset-dashboard-v3', JSON.stringify(state)); }
+
+// ★ save() — localStorage + GAS 자동 push (2초 debounce)
+function save() {
+  localStorage.setItem('asset-dashboard-v3', JSON.stringify(state));
+  scheduleGasSync_();
+}
 
 // ═══════════════════════════════════════════
 //  FORMAT
@@ -1408,6 +1443,7 @@ function saveGoal() {
   goal.finName = document.getElementById('inp-goal-fin-name').value || '금융 목표자산';
   goal.finTarget = parseFloat(document.getElementById('inp-goal-fin-target').value) || 0;
   localStorage.setItem('asset-goal', JSON.stringify(goal));
+  scheduleGasSync_();
   updateGoal();
   closeGoalEdit();
 }
@@ -1488,7 +1524,7 @@ function updateTotals() {
   const realty = (aptOwnedGross - jeonse) + totalOf('apt-rent') + totalOf('bank-housing');
 
   let kiFinancial = 0, kiPension = 0, kiIrp1 = 0, kiIrp2 = 0;
-  let kiHasToss = false; // eval에 토스 이미 포함 여부
+  let kiHasToss = false;
   if (kiData && kiData.combined && kiData.combined.length > 0) {
     const latest = kiData.combined[kiData.combined.length - 1];
     const ev = latest.eval || [];
@@ -1498,7 +1534,6 @@ function updateTotals() {
     kiIrp1 = ev[7] || 0;
     kiIrp2 = ev[8] || 0;
   } else {
-    // 엑셀 없을 때: 스냅샷 원시값 사용 (toss 별도 합산)
     ['kiwoom-overseas','kiwoom-obil','kiwoom-practice','kiwoom-jasaju','kiwoom-byuldong','kiwoom-chobil'].forEach(k => {
       kiFinancial += (state[k]?.val || 0);
     });
@@ -1506,12 +1541,10 @@ function updateTotals() {
 
   const financial = totalOf('bank-rent') + totalOf('bank-general')
     + totalOf('stock-kr1') + totalOf('stock-kr2') + totalOf('stock-us')
-    // _hasToss면 eval에 이미 토스 포함 → 별도 합산 제외
     + (kiHasToss ? 0 : (state['toss-obil']?.val || 0) + (state['toss-overseas']?.val || 0))
     + kiFinancial;
   const irp1Val = kiIrp1 > 0 ? kiIrp1 : totalOf('irp1');
   const irp2Val = kiIrp2 > 0 ? kiIrp2 : totalOf('irp2');
-  // kiPension(_hasToss)에 toss-pension 이미 포함 → 중복 방지
   const tossPension = (kiHasToss && kiPension > 0) ? 0 : (state['toss-pension']?.val || 0);
   const pension = irp1Val + irp2Val + tossPension + kiPension;
   const grand = realty + financial + pension;
@@ -1764,9 +1797,6 @@ document.getElementById('toss-input').addEventListener('change', function(e) {
         }
       });
       save(); renderAll();
-      const st = document.getElementById('toss-sync-status');
-      st.textContent = '✓ 토스 엑셀 동기화 완료';
-      setTimeout(() => st.textContent = '', 4000);
     } catch(err) { alert('토스 파일 오류: ' + err.message); }
   };
   reader.readAsArrayBuffer(file);
@@ -1834,18 +1864,58 @@ function renderTodos() {
   }).join('');
   if (editingTodo >= 0) { const inp = document.getElementById('todo-edit-' + editingTodo); if (inp) { inp.focus(); inp.select(); } }
 }
-function addTodo() { const inp = document.getElementById('todo-input'); const text = inp.value.trim(); if (!text) return; todos.push({ text, done: false }); inp.value = ''; localStorage.setItem('asset-todos', JSON.stringify(todos)); renderTodos(); }
-function toggleTodo(i) { if (editingTodo >= 0) return; todos[i].done = !todos[i].done; localStorage.setItem('asset-todos', JSON.stringify(todos)); renderTodos(); }
+function addTodo() {
+  const inp = document.getElementById('todo-input');
+  const text = inp.value.trim();
+  if (!text) return;
+  todos.push({ text, done: false });
+  inp.value = '';
+  localStorage.setItem('asset-todos', JSON.stringify(todos));
+  scheduleGasSync_();
+  renderTodos();
+}
+function toggleTodo(i) {
+  if (editingTodo >= 0) return;
+  todos[i].done = !todos[i].done;
+  localStorage.setItem('asset-todos', JSON.stringify(todos));
+  scheduleGasSync_();
+  renderTodos();
+}
 function startTodoEdit(i) { editingTodo = i; renderTodos(); }
-function saveTodoEdit(i) { const inp = document.getElementById('todo-edit-' + i); if (!inp) return; const text = inp.value.trim(); if (text) todos[i].text = text; editingTodo = -1; localStorage.setItem('asset-todos', JSON.stringify(todos)); renderTodos(); }
+function saveTodoEdit(i) {
+  const inp = document.getElementById('todo-edit-' + i);
+  if (!inp) return;
+  const text = inp.value.trim();
+  if (text) todos[i].text = text;
+  editingTodo = -1;
+  localStorage.setItem('asset-todos', JSON.stringify(todos));
+  scheduleGasSync_();
+  renderTodos();
+}
 function cancelTodoEdit() { editingTodo = -1; renderTodos(); }
 let dragSrcIdx = -1;
 function todoDragStart(e, i) { dragSrcIdx = i; e.dataTransfer.effectAllowed = 'move'; setTimeout(() => { const el = e.currentTarget; if (el) el.classList.add('dragging'); }, 0); }
 function todoDragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; e.currentTarget.classList.add('drag-over'); }
 function todoDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
-function todoDrop(e, targetIdx) { e.preventDefault(); e.currentTarget.classList.remove('drag-over'); if (dragSrcIdx === -1 || dragSrcIdx === targetIdx) return; const moved = todos.splice(dragSrcIdx, 1)[0]; todos.splice(targetIdx, 0, moved); dragSrcIdx = -1; localStorage.setItem('asset-todos', JSON.stringify(todos)); renderTodos(); }
+function todoDrop(e, targetIdx) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (dragSrcIdx === -1 || dragSrcIdx === targetIdx) return;
+  const moved = todos.splice(dragSrcIdx, 1)[0];
+  todos.splice(targetIdx, 0, moved);
+  dragSrcIdx = -1;
+  localStorage.setItem('asset-todos', JSON.stringify(todos));
+  scheduleGasSync_();
+  renderTodos();
+}
 function todoDragEnd(e) { dragSrcIdx = -1; document.querySelectorAll('.todo-item').forEach(el => el.classList.remove('dragging','drag-over')); }
-function deleteTodo(i) { todos.splice(i, 1); if (editingTodo === i) editingTodo = -1; localStorage.setItem('asset-todos', JSON.stringify(todos)); renderTodos(); }
+function deleteTodo(i) {
+  todos.splice(i, 1);
+  if (editingTodo === i) editingTodo = -1;
+  localStorage.setItem('asset-todos', JSON.stringify(todos));
+  scheduleGasSync_();
+  renderTodos();
+}
 
 function addDefaultTodos() {
   if (todos.length === 0) {
