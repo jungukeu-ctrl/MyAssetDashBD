@@ -683,9 +683,8 @@
 //  ★ Google Apps Script 연동 설정
 //  배포 후 아래 URL을 실제 배포 URL로 교체하세요
 // ═══════════════════════════════════════════
-//const GAS_URL = 'YOUR_APPS_SCRIPT_WEB_APP_URL';
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbw0IndMZ0UhSu9EGD8tMSK4un-zbH4gzMc2w3ZdPQtsfe2bZ2C-4fh4CIcobcMFgQne4w/exec';
-// 예: 'https://script.google.com/macros/s/AKfycbw0IndMZ0UhSu9EGD8tMSK4un-zbH4gzMc2w3ZdPQtsfe2bZ2C-4fh4CIcobcMFgQne4w/exec'
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzLbsgd3qkTQCJ9Dj4aDeDPzXcZN5zz-UWZvyZ6_SEWDJBEXFPr7EWE1FyX_gAM555Wgw/exec';
+// 예: 'https://script.google.com/macros/s/AKfycb.../exec'
 
 // ═══════════════════════════════════════════
 //  STATE
@@ -754,22 +753,28 @@ function pushToGAS_() {
   if (!url) return;
   const ts = new Date().toISOString();
   const payload = {
+    version: 1,
     state:      JSON.parse(localStorage.getItem('asset-dashboard-v3') || 'null'),
     todos:      JSON.parse(localStorage.getItem('asset-todos')        || 'null'),
     goal:       JSON.parse(localStorage.getItem('asset-goal')         || 'null'),
     kiwoom:     JSON.parse(localStorage.getItem('kiwoom-data')        || 'null'),
-    exportedAt: ts
+    exportedAt: ts,
   };
   localStorage.setItem('asset-dashboard-ts', ts);
   _syncStatus('☁ 저장 중...', 'var(--teal)');
-  // no-cors: POST는 전달되지만 응답을 읽을 수 없음 (정상 동작)
-  fetch(url, {
-    method: 'POST', mode: 'no-cors',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify(payload)
-  })
-  .then(() => _syncStatus('☁ 저장됨', 'var(--teal)'))
-  .catch(() => _syncStatus('⚠ 저장 실패', 'var(--orange)'));
+
+  // ★ FormData 방식 — GAS redirect 후에도 body 보존됨
+  //   (no-cors + JSON body는 302 redirect 시 body 소실 버그 있음)
+  const form = new FormData();
+  form.append('payload', JSON.stringify(payload));
+
+  fetch(url, { method: 'POST', body: form })
+    .then(r => r.json())
+    .then(res => {
+      if (res.ok) _syncStatus('☁ 저장됨', 'var(--teal)');
+      else _syncStatus('⚠ GAS 오류: ' + res.error, 'var(--orange)');
+    })
+    .catch(() => _syncStatus('⚠ 오프라인', 'var(--orange)'));
 }
 
 // ═══════════════════════════════════════════
