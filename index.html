@@ -683,7 +683,7 @@
 //  ★ Google Apps Script 연동 설정
 //  배포 후 아래 URL을 실제 배포 URL로 교체하세요
 // ═══════════════════════════════════════════
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbzLbsgd3qkTQCJ9Dj4aDeDPzXcZN5zz-UWZvyZ6_SEWDJBEXFPr7EWE1FyX_gAM555Wgw/exec';
+const GAS_URL = 'YOUR_APPS_SCRIPT_WEB_APP_URL';
 // 예: 'https://script.google.com/macros/s/AKfycb.../exec'
 
 // ═══════════════════════════════════════════
@@ -763,18 +763,37 @@ function pushToGAS_() {
   localStorage.setItem('asset-dashboard-ts', ts);
   _syncStatus('☁ 저장 중...', 'var(--teal)');
 
-  // ★ FormData 방식 — GAS redirect 후에도 body 보존됨
-  //   (no-cors + JSON body는 302 redirect 시 body 소실 버그 있음)
-  const form = new FormData();
-  form.append('payload', JSON.stringify(payload));
+  // ★ URLSearchParams + no-cors 방식
+  //   - application/x-www-form-urlencoded = Simple Request → preflight 없음
+  //   - no-cors이므로 모바일 포함 모든 브라우저에서 CORS 차단 없음
+  //   - GAS 302 redirect 후에도 body 보존됨 (Simple Request이므로)
+  //   - no-cors 특성상 응답 못 읽으므로 3초 후 GET으로 timestamp 검증
+  fetch(url, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ payload: JSON.stringify(payload) }).toString(),
+  })
+  .then(() => {
+    _syncStatus('☁ 저장 중...', 'var(--teal)');
+    setTimeout(() => verifyGasSave_(ts), 3000);
+  })
+  .catch(() => _syncStatus('⚠ 오프라인', 'var(--orange)'));
+}
 
-  fetch(url, { method: 'POST', body: form })
+function verifyGasSave_(expectedTs) {
+  const url = _gasUrl();
+  if (!url) return;
+  fetch(url + '?t=' + Date.now())
     .then(r => r.json())
-    .then(res => {
-      if (res.ok) _syncStatus('☁ 저장됨', 'var(--teal)');
-      else _syncStatus('⚠ GAS 오류: ' + res.error, 'var(--orange)');
+    .then(data => {
+      if (data.exportedAt && data.exportedAt >= expectedTs) {
+        _syncStatus('☁ 저장됨', 'var(--teal)');
+      } else {
+        _syncStatus('⚠ 저장 미확인', 'var(--orange)');
+      }
     })
-    .catch(() => _syncStatus('⚠ 오프라인', 'var(--orange)'));
+    .catch(() => _syncStatus('☁ 저장됨 (미확인)', 'var(--text2)'));
 }
 
 // ═══════════════════════════════════════════
