@@ -1302,19 +1302,29 @@ function parseTransferData(type) {
 
 function applyTransferData(type) {
   const deltas = window.pendingPensionDeltas;
-  if (!deltas || !kiData) return;
+  if (!deltas || !kiData.combined) return;
+  
   const idx = 3; // 개인연금저축 인덱스
+  const deltaMonths = Object.keys(deltas).sort();
+  if (deltaMonths.length === 0) return;
+  
+  const firstMonthInJson = deltaMonths[0]; // JSON 데이터의 시작 월 (예: "2026-01")
+
   kiData.combined.forEach((entry, i) => {
-    const ym = entry.month || (entry.date||"").slice(0,7);
-    const prevInvest = i > 0 ? (kiData.combined[i-1].invest[idx] || 0) : 0;
-    // 핵심: 전월 투자금 + 이번 달 실제 입금액 = 이번 달 최종 투자금
-    entry.invest[idx] = prevInvest + (deltas[ym] || 0);
+    const ym = entry.month || (entry.date || "").slice(0, 7);
+    
+    // 핵심 수정: JSON 데이터가 시작되는 월 이후부터만 수정을 시작함
+    if (ym >= firstMonthInJson) {
+      const prevInvest = i > 0 ? (kiData.combined[i-1].invest[idx] || 0) : 0;
+      // 이전 달 확정 원금 + 이번 달 실제 입금액
+      entry.invest[idx] = prevInvest + (deltas[ym] || 0);
+    }
+    // ym < firstMonthInJson인 과거 데이터는 그대로 유지됨 (0으로 초기화 방지)
   });
+
   localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
-  renderAll(); // 기존 렌더링 함수
-  if (typeof renderKiwoom === 'function') renderKiwoom();
-  document.getElementById('pension-transfer-modal').style.display = 'none';
-  alert("3월을 포함한 연금 투자금이 실제 실적으로 업데이트되었습니다.");
+  renderAll();
+  alert("과거 데이터를 보존하며 3월 투자금을 성공적으로 업데이트했습니다.");
 }
   
 function closeKiwoomTransferModal() {
@@ -1415,31 +1425,45 @@ function exportMonthlyXlsx() {
     return [e.date||e.month, ...inv.map(v=>v||0), mainSum];
   });
   const retHeader = ['날짜', ...AI_NAMES, '전체수익률(주요6계좌)'];
+// [수정된 수익률 계산 로직]
   const retRows = combined.map(e => {
     const ev = e.eval || new Array(9).fill(0);
     const inv = e.invest || new Array(9).fill(0);
-    const pcts = AI_NAMES.map((_,i) => inv[i]>0 ? +((ev[i]/inv[i]-1)*100).toFixed(2) : 0);
-    const mainEv = MAIN_IDX.reduce((s,i)=>s+(ev[i]||0),0);
-    const mainIn = MAIN_IDX.reduce((s,i)=>s+(inv[i]||0),0);
-    const mainPct = mainIn>0 ? +((mainEv/mainIn-1)*100).toFixed(2) : 0;
-    return [e.date||e.month, ...pcts, mainPct];
+    
+    // 각 계좌별 수익률 계산 (투자금이 0보다 클 때만 계산)
+    const pcts = AI_NAMES.map((_, i) => {
+      const currentInv = inv[i] || 0;
+      const currentEv = ev[i] || 0;
+      return currentInv > 0 ? +(((currentEv - currentInv) / currentInv) * 100).toFixed(2) : 0;
+    });
+
+    // 주요 6계좌 합계 수익률 계산
+    const mainEv = MAIN_IDX.reduce((s, i) => s + (ev[i] || 0), 0);
+    const mainIn = MAIN_IDX.reduce((s, i) => s + (inv[i] || 0), 0);
+    const mainPct = mainIn > 0 ? +(((mainEv - mainIn) / mainIn) * 100).toFixed(2) : 0;
+    
+    return [e.date || e.month, ...pcts, mainPct];
   });
   const st = JSON.parse(localStorage.getItem('asset-dashboard-v3')||'{}');
+// [수정된 스냅샷 현황 로직]
+  const latest = kiData.combined[kiData.combined.length - 1] || { invest: [], eval: [] };
   const snapRows = [
-    ['항목','값','단위','기준일'],
-    ['오빌모으기', st['toss-obil']?.val||0, '원', st['toss-obil']?.date||''],
-    ['해외자금모으기', st['toss-overseas']?.val||0, '원', st['toss-overseas']?.date||''],
-    ['연습모으기', st['toss-practice']?.val||0, '원', st['toss-practice']?.date||''],
-    ['개인연금저축모으기', st['toss-pension']?.val||0, '원', st['toss-pension']?.date||''],
-    ['키움-해외', st['kiwoom-overseas']?.val||0, '원', st['kiwoom-overseas']?.date||''],
-    ['키움-오빌', st['kiwoom-obil']?.val||0, '원', st['kiwoom-obil']?.date||''],
-    ['키움-연습', st['kiwoom-practice']?.val||0, '원', st['kiwoom-practice']?.date||''],
-    ['키움-자사주', st['kiwoom-jasaju']?.val||0, '원', st['kiwoom-jasaju']?.date||''],
-    ['키움-별동대', st['kiwoom-byuldong']?.val||0, '원', st['kiwoom-byuldong']?.date||''],
-    ['키움-초빌', st['kiwoom-chobil']?.val||0, '원', st['kiwoom-chobil']?.date||''],
-    ['연금-IRP1', st['pension-irp1']?.val||0, '원', st['pension-irp1']?.date||''],
-    ['연금-IRP2', st['pension-irp2']?.val||0, '원', st['pension-irp2']?.date||''],
-    ['연금저축', st['pension-saving']?.val||0, '원', st['pension-saving']?.date||''],
+    ['항목', '값', '단위', '기준일'],
+    ['오빌모으기', st['toss-obil']?.val || 0, '원', st['toss-obil']?.date || ''],
+    ['해외자금모으기', st['toss-overseas']?.val || 0, '원', st['toss-overseas']?.date || ''],
+    ['연습모으기', st['toss-practice']?.val || 0, '원', st['toss-practice']?.date || ''],
+    ['개인연금저축모으기', st['toss-pension']?.val || 0, '원', st['toss-pension']?.date || ''],
+    // 키움/연금 계좌는 kiData의 최신 평가금을 우선 참조
+    ['키움-해외', latest.eval[0] || 0, '원', latest.date || ''],
+    ['키움-오빌', latest.eval[1] || 0, '원', latest.date || ''],
+    ['키움-연습', latest.eval[5] || 0, '원', latest.date || ''],
+    ['키움-자사주', latest.eval[2] || 0, '원', latest.date || ''],
+    ['키움-별동대', latest.eval[4] || 0, '원', latest.date || ''],
+    ['키움-초빌', latest.eval[6] || 0, '원', latest.date || ''],
+    ['연금-IRP1', latest.eval[7] || 0, '원', latest.date || ''],
+    ['연금-IRP2', latest.eval[8] || 0, '원', latest.date || ''],
+    ['연금저축(평가)', latest.eval[3] || 0, '원', latest.date || ''],
+    ['연금저축(원금)', latest.invest[3] || 0, '원', latest.date || ''],
   ];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([evalHeader, ...evalRows]), '월별평가금액');
