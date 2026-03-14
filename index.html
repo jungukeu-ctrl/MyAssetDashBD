@@ -22,7 +22,7 @@
       <div>
         <button class="upload-btn toss-img" onclick="openJsonPasteModal()" title="Gemini Gem에서 추출한 토스 JSON을 붙여넣으세요">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-          토스 JSON 붙여넣기
+          토스모으기내역
         </button>
       </div>
       <input type="file" id="toss-input" accept=".xlsx,.xls" style="display:none">
@@ -30,7 +30,7 @@
       <div>
         <button class="upload-btn kiwoom" onclick="openKiwoomPasteModal()" title="키움 MY페이지 스크린샷 추출 결과 JSON 붙여넣기">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-          키움 스냅샷
+          My키움계좌별자산
         </button>
         <div class="sync-status kiwoom-sync" id="kiwoom-snap-status"></div>
       </div>
@@ -46,13 +46,13 @@
       <div>
         <button class="upload-btn" style="background:rgba(176,137,240,0.1);border-color:rgba(176,137,240,0.3);color:#b089f0" onclick="openPensionPasteModal()" title="토스 연금 스크린샷 추출 결과 JSON 붙여넣기">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-          연금 스냅샷
+          연금평가 by 토스
         </button>
         <div class="sync-status" style="color:#b089f0" id="pension-snap-status"></div>
       </div>
       <!-- 연금 이체내역 -->
       <div>
-        <button class="upload-btn" style="background:rgba(201,168,76,0.1);border-color:rgba(201,168,76,0.3);color:var(--gold2)" onclick="openPensionTransferModal()">💰 연금 이체내역</button>
+        <button class="upload-btn" style="background:rgba(201,168,76,0.1);border-color:rgba(201,168,76,0.3);color:var(--gold2)" onclick="openPensionTransferModal()">💰 삼성증권종합잔고거래내역</button>
       </div>
       <!-- 동기화 -->
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;align-self:center">
