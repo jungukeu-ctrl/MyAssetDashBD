@@ -1,10 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Mono:wght@300;400;500&family=Playfair+Display:wght@700&display=swap');
 
 :root {
-  --bg: #08090f; --bg2: #0f1119; --bg3: #161820;
-  --border: #1e2030; --border2: #252738;
+  --bg: #0a0b12; --bg2: #12141f; --bg3: #1a1d2c;
+  --border: #262a3e; --border2: #2e3350;
   --gold: #c9a84c; --gold2: #e8c97a; --gold-dim: rgba(201,168,76,0.12);
-  --text: #e8eaf0; --text2: #9095a8; --text3: #565a70;
+  --text: #eceef5; --text2: #adb2cc; --text3: #7880a0;
   --green: #4ecdc4; --red: #ff6b6b; --blue: #6e8efb;
   --purple: #b089f0; --orange: #ffb347; --teal: #36d399;
   --card-shadow: 0 4px 32px rgba(0,0,0,0.4);
