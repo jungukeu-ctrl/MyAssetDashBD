@@ -134,9 +134,22 @@
         선택한 계좌의 <strong style="color:var(--text)">월별 투자금(invest[])</strong>이 갱신됩니다.
       </div>
       <textarea id="transfer-paste-area"
-        placeholder='{"type":"kiwoom_transfer","account":"오빌","kiData":[{"date":"2026-03-31","해외":0,"오빌":82788220,...}]}'
+        placeholder='{"type":"kiwoom_transfer","account":"오빌","kiData":[...]} 또는 {"account_number":"...","transactions":[...]}'
         style="width:100%;height:130px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);padding:12px 14px;font-size:12px;font-family:'DM Mono',monospace;outline:none;resize:none;box-sizing:border-box;margin-bottom:10px;line-height:1.6"
         oninput="parseKiwoomTransferPaste()"></textarea>
+      <div id="transfer-acct-select-area" style="display:none;margin-bottom:10px;font-size:12px;color:var(--text3)">
+        계좌 매핑:
+        <select id="transfer-acct-select" onchange="parseKiwoomTransferPaste()"
+          style="background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:4px 10px;font-size:12px;outline:none;margin-left:6px">
+          <option value="">-- 계좌 선택 --</option>
+          <option value="해외">해외</option>
+          <option value="오빌">오빌</option>
+          <option value="자사주">자사주</option>
+          <option value="별동대">별동대</option>
+          <option value="연습">연습</option>
+          <option value="초빌">초빌</option>
+        </select>
+      </div>
       <div class="ai-log" id="transfer-log" style="display:none"></div>
       <div id="transfer-result-area" style="display:none">
         <div style="font-size:11px;color:var(--text3);margin-bottom:6px">
