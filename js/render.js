@@ -2,6 +2,7 @@
 //  ★ 차트 인스턴스 변수
 // ═══════════════════════════════════════════
 let donutChart = null, barChart = null, lineChart = null, returnChart = null;
+let barChartSelectedMonth = null; // null = latest
 
 // ═══════════════════════════════════════════
 //  ★ 스냅샷 카드 렌더
@@ -336,7 +337,11 @@ function renderKiwoom() {
     </div>`;
   }).join('');
 
-  updateBarChart(latest, AI);
+  updateBarMonthSelector();
+  const barEntry = barChartSelectedMonth
+    ? (kiData.combined.find(r => r.month === barChartSelectedMonth || r.date.slice(0,7) === barChartSelectedMonth) || latest)
+    : latest;
+  updateBarChart(barEntry, AI);
   updateLineChart();
   updateReturnChart();
 }
@@ -353,6 +358,29 @@ function updateBarChart(latest, AI) {
   barChart.data.datasets[1].backgroundColor = MAIN_ACCOUNTS.map(a => ACCT_COLORS[a] + 'bb');
   barChart.update();
   document.getElementById('bar-date').textContent = latest.date + ' 기준';
+}
+
+function updateBarMonthSelector() {
+  const sel = document.getElementById('bar-month-select');
+  if (!sel || !kiData || !kiData.combined) return;
+  const months = kiData.combined
+    .map(r => r.date.slice(0, 7))
+    .filter((v, i, a) => a.indexOf(v) === i)
+    .reverse(); // 최신 순
+  const current = sel.value;
+  sel.innerHTML = '<option value="">최신</option>' +
+    months.map(m => `<option value="${m}"${current === m ? ' selected' : ''}>${m}</option>`).join('');
+  if (!months.includes(current)) sel.value = '';
+}
+
+function setBarChartMonth(month) {
+  barChartSelectedMonth = month || null;
+  if (!kiData || !kiData.combined || kiData.combined.length === 0) return;
+  const AI = { '해외':0,'오빌':1,'자사주':2,'개인연금저축':3,'별동대':4,'연습':5,'초빌':6,'퇴직연금001':7,'퇴직연금002':8 };
+  const entry = barChartSelectedMonth
+    ? (kiData.combined.find(r => r.date.slice(0,7) === barChartSelectedMonth) || kiData.combined[kiData.combined.length - 1])
+    : kiData.combined[kiData.combined.length - 1];
+  updateBarChart(entry, AI);
 }
 
 function setChartRange(months) {

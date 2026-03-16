@@ -225,7 +225,15 @@
   <div class="section-title">📈 포트폴리오 분석</div>
   <div class="grid-2" style="margin-bottom:16px">
     <div class="chart-card">
-      <div class="chart-title">계좌별 투자금 vs 평가금액<span class="chart-subtitle" id="bar-date">—</span></div>
+      <div class="chart-title">계좌별 투자금 vs 평가금액
+        <div style="display:flex;align-items:center;gap:8px">
+          <select id="bar-month-select" onchange="setBarChartMonth(this.value)"
+            style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text2);font-size:11px;padding:3px 6px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">
+            <option value="">최신</option>
+          </select>
+          <span class="chart-subtitle" id="bar-date">—</span>
+        </div>
+      </div>
       <div class="chart-container" style="height:220px"><canvas id="bar-chart"></canvas></div>
     </div>
     <div class="chart-card">
