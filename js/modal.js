@@ -273,6 +273,8 @@ function openKiwoomTransferModal() {
   document.getElementById('transfer-paste-area').value = '';
   document.getElementById('transfer-log').style.display = 'none';
   document.getElementById('transfer-result-area').style.display = 'none';
+  document.getElementById('transfer-acct-select-area').style.display = 'none';
+  document.getElementById('transfer-acct-select').value = '';
   document.getElementById('transfer-apply-btn').disabled = true;
   transferPendingResult = null;
 }
@@ -282,31 +284,79 @@ function parseKiwoomTransferPaste() {
   const log        = document.getElementById('transfer-log');
   const resultArea = document.getElementById('transfer-result-area');
   const applyBtn   = document.getElementById('transfer-apply-btn');
+  const acctSelectArea = document.getElementById('transfer-acct-select-area');
   transferPendingResult = null;
   applyBtn.disabled = true;
   resultArea.style.display = 'none';
-  if (!raw) { log.style.display = 'none'; return; }
+  if (!raw) { log.style.display = 'none'; acctSelectArea.style.display = 'none'; return; }
   log.style.display = 'block';
   try {
     const match = raw.match(/\{[\s\S]*\}/);
     if (!match) throw new Error('JSON 형식이 아닙니다');
     const parsed = JSON.parse(match[0]);
-    if (parsed.type !== 'kiwoom_transfer') throw new Error('type이 kiwoom_transfer가 아닙니다');
-    if (!parsed.account) throw new Error('account 필드가 없습니다');
-    if (!Array.isArray(parsed.kiData) || !parsed.kiData.length) throw new Error('kiData 배열이 없습니다');
-    if (KI_TRANSFER_IDX[parsed.account] === undefined) throw new Error(`알 수 없는 계좌: ${parsed.account}`);
-    transferPendingResult = parsed;
-    const acct   = parsed.account;
-    const recent = parsed.kiData.slice(-6);
-    document.getElementById('transfer-acct-name').textContent  = acct;
-    document.getElementById('transfer-row-count').textContent  = parsed.kiData.length;
-    document.getElementById('transfer-preview').innerHTML = recent
-      .map(r => `<span style="color:var(--text3)">${r.date}</span>  <span style="color:var(--blue)">${(r[acct]||0).toLocaleString('ko-KR')}</span> 원`)
-      .join('<br>');
-    resultArea.style.display = 'block';
-    applyBtn.disabled = false;
-    log.style.color = 'var(--teal)';
-    log.textContent = `✅ ${acct} 계좌 · ${parsed.kiData.length}개월 인식됨`;
+
+    if (parsed.type === 'kiwoom_transfer') {
+      // ── 기존 분석기 포맷 ──
+      acctSelectArea.style.display = 'none';
+      if (!parsed.account) throw new Error('account 필드가 없습니다');
+      if (!Array.isArray(parsed.kiData) || !parsed.kiData.length) throw new Error('kiData 배열이 없습니다');
+      if (KI_TRANSFER_IDX[parsed.account] === undefined) throw new Error(`알 수 없는 계좌: ${parsed.account}`);
+      transferPendingResult = parsed;
+      const acct   = parsed.account;
+      const recent = parsed.kiData.slice(-6);
+      document.getElementById('transfer-acct-name').textContent  = acct;
+      document.getElementById('transfer-row-count').textContent  = parsed.kiData.length;
+      document.getElementById('transfer-preview').innerHTML = recent
+        .map(r => `<span style="color:var(--text3)">${r.date}</span>  <span style="color:var(--blue)">${(r[acct]||0).toLocaleString('ko-KR')}</span> 원`)
+        .join('<br>');
+      resultArea.style.display = 'block';
+      applyBtn.disabled = false;
+      log.style.color = 'var(--teal)';
+      log.textContent = `✅ ${acct} 계좌 · ${parsed.kiData.length}개월 인식됨`;
+
+    } else if (Array.isArray(parsed.transactions)) {
+      // ── 키움 이체내역 원본 포맷 (account_number / account_name / transactions) ──
+      acctSelectArea.style.display = 'block';
+      if (!parsed.transactions.length) throw new Error('transactions 배열이 비어 있습니다');
+
+      const acct = document.getElementById('transfer-acct-select').value;
+      if (!acct) {
+        log.style.color = 'var(--text3)';
+        log.textContent = `ℹ️ ${parsed.account_name || parsed.account_number || '계좌'} 인식됨 · 위에서 계좌를 선택하세요`;
+        return;
+      }
+      if (KI_TRANSFER_IDX[acct] === undefined) throw new Error(`알 수 없는 계좌: ${acct}`);
+
+      // 월별 순변동 집계 (입금 +, 출금 -)
+      const monthlyDeltas = {};
+      for (const tx of parsed.transactions) {
+        if (!tx.date) continue;
+        const ym    = tx.date.slice(0, 7);
+        const delta = tx.type === '입금' ? tx.amount : -tx.amount;
+        monthlyDeltas[ym] = (monthlyDeltas[ym] || 0) + delta;
+      }
+      const sortedMonths = Object.keys(monthlyDeltas).sort();
+      if (!sortedMonths.length) throw new Error('유효한 거래내역이 없습니다');
+
+      transferPendingResult = { _rawFormat: true, account: acct, monthlyDeltas };
+      document.getElementById('transfer-acct-name').textContent  = acct;
+      document.getElementById('transfer-row-count').textContent  = sortedMonths.length;
+      document.getElementById('transfer-preview').innerHTML = sortedMonths
+        .map(ym => {
+          const v = monthlyDeltas[ym];
+          const color = v >= 0 ? 'var(--teal)' : 'var(--red)';
+          const sign  = v >= 0 ? '+' : '';
+          return `<span style="color:var(--text3)">${ym}</span>  <span style="color:${color}">${sign}${v.toLocaleString('ko-KR')}</span> 원`;
+        })
+        .join('<br>');
+      resultArea.style.display = 'block';
+      applyBtn.disabled = false;
+      log.style.color = 'var(--teal)';
+      log.textContent = `✅ ${acct} 계좌 · ${sortedMonths.length}개월 감지됨`;
+
+    } else {
+      throw new Error('지원하지 않는 JSON 포맷입니다 (type 또는 transactions 필드가 없습니다)');
+    }
   } catch(e) {
     log.style.color = 'var(--red)';
     log.textContent = '❌ ' + e.message;
@@ -315,29 +365,53 @@ function parseKiwoomTransferPaste() {
 
 function applyKiwoomTransferResult() {
   if (!transferPendingResult) return;
-  const { account, kiData: rows } = transferPendingResult;
+  const { account } = transferPendingResult;
   const idx = KI_TRANSFER_IDX[account];
   if (!kiData) kiData = { combined: [] };
   if (!kiData.combined) kiData.combined = [];
   let updatedCount = 0;
-  for (const row of rows) {
-    const ym = (row.date || '').slice(0, 7);
-    if (!ym) continue;
-    let entry = kiData.combined.find(e => (e.month || (e.date||'').slice(0,7)) === ym);
-    if (!entry) {
-      const prev = kiData.combined[kiData.combined.length - 1];
-      entry = {
-        date: row.date, month: ym,
-        invest: prev ? [...(prev.invest || new Array(9).fill(0))] : new Array(9).fill(0),
-        eval: new Array(9).fill(0),
-      };
-      kiData.combined.push(entry);
-      kiData.combined.sort((a,b) => (a.date||a.month||'').localeCompare(b.date||b.month||''));
+
+  if (transferPendingResult._rawFormat) {
+    // ── 원본 포맷: 월별 순변동을 기존 invest 값에 더함 ──
+    for (const [ym, delta] of Object.entries(transferPendingResult.monthlyDeltas)) {
+      let entry = kiData.combined.find(e => (e.month || (e.date||'').slice(0,7)) === ym);
+      if (!entry) {
+        const prev = kiData.combined[kiData.combined.length - 1];
+        entry = {
+          date: ym + '-28', month: ym,
+          invest: prev ? [...(prev.invest || new Array(9).fill(0))] : new Array(9).fill(0),
+          eval: new Array(9).fill(0),
+        };
+        kiData.combined.push(entry);
+        kiData.combined.sort((a,b) => (a.date||a.month||'').localeCompare(b.date||b.month||''));
+      }
+      if (!entry.invest) entry.invest = new Array(9).fill(0);
+      entry.invest[idx] = (entry.invest[idx] || 0) + delta;
+      updatedCount++;
     }
-    if (!entry.invest) entry.invest = new Array(9).fill(0);
-    entry.invest[idx] = row[account] || 0;
-    updatedCount++;
+  } else {
+    // ── 분석기 포맷: 절대값으로 덮어씀 ──
+    const rows = transferPendingResult.kiData;
+    for (const row of rows) {
+      const ym = (row.date || '').slice(0, 7);
+      if (!ym) continue;
+      let entry = kiData.combined.find(e => (e.month || (e.date||'').slice(0,7)) === ym);
+      if (!entry) {
+        const prev = kiData.combined[kiData.combined.length - 1];
+        entry = {
+          date: row.date, month: ym,
+          invest: prev ? [...(prev.invest || new Array(9).fill(0))] : new Array(9).fill(0),
+          eval: new Array(9).fill(0),
+        };
+        kiData.combined.push(entry);
+        kiData.combined.sort((a,b) => (a.date||a.month||'').localeCompare(b.date||b.month||''));
+      }
+      if (!entry.invest) entry.invest = new Array(9).fill(0);
+      entry.invest[idx] = row[account] || 0;
+      updatedCount++;
+    }
   }
+
   localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
   scheduleGasSync_();
   save();
@@ -351,6 +425,8 @@ function applyKiwoomTransferResult() {
 
 function closeKiwoomTransferModal() {
   document.getElementById('transfer-modal').style.display = 'none';
+  document.getElementById('transfer-acct-select-area').style.display = 'none';
+  document.getElementById('transfer-acct-select').value = '';
   transferPendingResult = null;
 }
 
