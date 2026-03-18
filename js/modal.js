@@ -466,6 +466,12 @@ function applyTransferData(type) {
   const deltas = window.pendingPensionDeltas;
   if (!deltas || !kiData || !kiData.combined) return;
 
+  // TODO(feat): IRP1 자동화 확장 가능
+  //   현재 idx=3(개인연금저축)만 처리. 삼성증권 거래내역 JSON에는 IRP1 이체입금도 포함되므로
+  //   IRP1(idx=7)도 동일 로직으로 확장하면 Pension-tracer의 IRP 납입 수동 입력 모달을 제거할 수 있음.
+  //   작업: parseTransferData()에서 IRP1 delta 별도 산출 → applyTransferData()에서 invest[7]도 누적 업데이트
+  //   참고: Pension-tracer js/render.js _calcPensionContrib() — invest[3] 델타 방식 동일하게 적용
+  
   const idx          = 3; // 개인연금저축 인덱스
   const deltaMonths  = Object.keys(deltas).sort();
   if (deltaMonths.length === 0) return;
