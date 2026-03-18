@@ -168,7 +168,12 @@
     <div class="ai-modal-box" style="background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:28px;width:480px;max-width:95vw;">
       <div class="ai-modal-title" style="color:var(--gold2);font-size:15px;font-weight:500;margin-bottom:4px;">💰 연금 이체내역 JSON 붙여넣기</div>
       <div class="ai-modal-sub" style="font-size:12px;color:var(--text3);margin-bottom:16px;">Gemini Gem에서 추출한 연금 거래내역 JSON을 붙여넣으세요.</div>
-      <textarea id="pension-transfer-area" style="width:100%;height:150px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);padding:12px;font-family:'DM Mono',monospace;font-size:12px;resize:none;" oninput="parseTransferData('pension')"></textarea>
+      <div style="margin-bottom:12px;display:flex;gap:16px;align-items:center;">
+        <span style="font-size:12px;color:var(--text3);">계좌 선택:</span>
+        <label style="font-size:13px;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:4px;"><input type="radio" name="pension-transfer-acct" value="pension" checked onchange="parseTransferData()"> 개인연금저축</label>
+        <label style="font-size:13px;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:4px;"><input type="radio" name="pension-transfer-acct" value="irp1" onchange="parseTransferData()"> IRP 1</label>
+      </div>
+      <textarea id="pension-transfer-area" style="width:100%;height:150px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);padding:12px;font-family:'DM Mono',monospace;font-size:12px;resize:none;" oninput="parseTransferData()"></textarea>
       <div id="pension-transfer-log" style="font-size:12px;margin:10px 0;"></div>
       <div style="display:flex;gap:10px;">
         <button id="pension-transfer-btn" class="upload-btn" style="flex:1;justify-content:center;background:var(--gold);color:#000;" disabled onclick="applyTransferData('pension')">대시보드 적용</button>
