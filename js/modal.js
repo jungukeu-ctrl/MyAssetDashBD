@@ -451,7 +451,7 @@ function parseTransferData() {
     parsed.transactions.forEach(t => {
       if (t.type !== '입금') return;
       const isMatch = acctType === 'irp1'
-        ? t.counterpart === '현금성자산(삼성증권)'
+        ? t.counterpart.includes('현금성자산(삼성증권)')
         : (t.counterpart === '이체입금' || t.counterpart === '유정욱');
       if (isMatch) {
         const ym = t.date.slice(0, 7);
@@ -460,9 +460,10 @@ function parseTransferData() {
     });
     window.pendingPensionDeltas = monthlySum;
     window.pendingPensionAcctType = acctType;
-    log.style.color = 'var(--teal)';
-    log.textContent = '✅ ' + Object.keys(monthlySum).length + '개월분 이체내역 인식 성공';
-    btn.disabled = false;
+    const count = Object.keys(monthlySum).length;
+    log.style.color = count > 0 ? 'var(--teal)' : 'var(--red)';
+    log.textContent = (count > 0 ? '✅ ' : '❌ ') + count + '개월분 이체내역 인식 성공';
+    btn.disabled = count === 0;
   } catch(e) {
     log.style.color = 'var(--red)';
     log.textContent = '❌ 오류: ' + e.message;
