@@ -445,16 +445,45 @@ function parseTransferData(type) {
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('JSON 형식이 아닙니다.');
     const parsed = JSON.parse(jsonMatch[0]);
-    const monthlySum = {};
+    if (!Array.isArray(parsed.transactions)) throw new Error('transactions 배열이 없습니다.');
+
+    // 계좌 유형 감지 (account_name 우선, counterpart 폴백)
+    const accountName = parsed.account_name || '';
+    const isIrp1 = accountName.includes('다이렉트IRP') || accountName.includes('IRP1');
+    const isIrp2 = accountName.includes('개인형IRP')   || accountName.includes('IRP2');
+
+    const pensionSum = {};  // invest[3] — 연금저축
+    const irp1Sum   = {};  // invest[7] — IRP1
+    const irp2Sum   = {};  // invest[8] — IRP2
+
     parsed.transactions.forEach(t => {
-      if (t.type === '입금' && (t.counterpart === '이체입금' || t.counterpart === '유정욱')) {
-        const ym = t.date.slice(0, 7);
-        monthlySum[ym] = (monthlySum[ym] || 0) + t.amount;
+      if (t.type !== '입금' || !t.date) return;
+      const ym = t.date.slice(0, 7);
+      if (isIrp2 && t.counterpart === '현금성자산(삼성증권)') {
+        irp2Sum[ym] = (irp2Sum[ym] || 0) + t.amount;
+      } else if (isIrp1 && t.counterpart === '현금성자산(삼성증권)') {
+        irp1Sum[ym] = (irp1Sum[ym] || 0) + t.amount;
+      } else if (!isIrp1 && !isIrp2 && (t.counterpart === '이체입금' || t.counterpart === '유정욱')) {
+        pensionSum[ym] = (pensionSum[ym] || 0) + t.amount;
       }
     });
-    window.pendingPensionDeltas = monthlySum;
+
+    window.pendingPensionDeltas = pensionSum;
+    window.pendingIrp1Deltas   = irp1Sum;
+    window.pendingIrp2Deltas   = irp2Sum;
+
+    const pCnt   = Object.keys(pensionSum).length;
+    const i1Cnt  = Object.keys(irp1Sum).length;
+    const i2Cnt  = Object.keys(irp2Sum).length;
+    const total  = pCnt + i1Cnt + i2Cnt;
+    if (total === 0) throw new Error('납입 내역이 없습니다 (이체입금/현금성자산 항목 없음)');
+
+    const parts = [];
+    if (pCnt  > 0) parts.push(`연금저축 ${pCnt}개월`);
+    if (i1Cnt > 0) parts.push(`IRP1 ${i1Cnt}개월`);
+    if (i2Cnt > 0) parts.push(`IRP2 ${i2Cnt}개월`);
     log.style.color = 'var(--teal)';
-    log.textContent = '✅ ' + Object.keys(monthlySum).length + '개월분 이체내역 인식 성공';
+    log.textContent = '✅ ' + parts.join(' · ') + ' 납입내역 인식 성공';
     btn.disabled = false;
   } catch(e) {
     log.style.color = 'var(--red)';
@@ -463,29 +492,30 @@ function parseTransferData(type) {
 }
 
 function applyTransferData(type) {
-  const deltas = window.pendingPensionDeltas;
-  if (!deltas || !kiData || !kiData.combined) return;
+  if (!kiData || !kiData.combined) return;
 
-  // TODO(feat): IRP1 자동화 확장 가능
-  //   현재 idx=3(개인연금저축)만 처리. 삼성증권 거래내역 JSON에는 IRP1 이체입금도 포함되므로
-  //   IRP1(idx=7)도 동일 로직으로 확장하면 Pension-tracer의 IRP 납입 수동 입력 모달을 제거할 수 있음.
-  //   작업: parseTransferData()에서 IRP1 delta 별도 산출 → applyTransferData()에서 invest[7]도 누적 업데이트
-  //   참고: Pension-tracer js/render.js _calcPensionContrib() — invest[3] 델타 방식 동일하게 적용
-  
-  const idx          = 3; // 개인연금저축 인덱스
-  const deltaMonths  = Object.keys(deltas).sort();
-  if (deltaMonths.length === 0) return;
+  const toApply = [
+    { deltas: window.pendingPensionDeltas, idx: 3, label: '연금저축' },
+    { deltas: window.pendingIrp1Deltas,   idx: 7, label: 'IRP1' },
+    { deltas: window.pendingIrp2Deltas,   idx: 8, label: 'IRP2' },
+  ].filter(({ deltas }) => deltas && Object.keys(deltas).length > 0);
 
-  // JSON에 포함된 가장 빠른 달 (이전 데이터 보호 기준)
-  const firstJsonMonth = deltaMonths[0];
+  if (toApply.length === 0) return;
 
-  kiData.combined.forEach((entry, i) => {
-    const ym = entry.month || (entry.date || '').slice(0, 7);
-    // 핵심 보호 로직: JSON 데이터 시작 시점부터만 업데이트
-    if (ym >= firstJsonMonth) {
-      const prevInvest = i > 0 ? (kiData.combined[i-1].invest[idx] || 0) : 0;
-      entry.invest[idx] = prevInvest + (deltas[ym] || 0);
-    }
+  const allUpdatedMonths = new Set();
+
+  toApply.forEach(({ deltas, idx }) => {
+    const deltaMonths    = Object.keys(deltas).sort();
+    const firstJsonMonth = deltaMonths[0];
+
+    kiData.combined.forEach((entry, i) => {
+      const ym = entry.month || (entry.date || '').slice(0, 7);
+      if (ym >= firstJsonMonth) {
+        const prevInvest = i > 0 ? (kiData.combined[i-1].invest[idx] || 0) : 0;
+        entry.invest[idx] = prevInvest + (deltas[ym] || 0);
+        allUpdatedMonths.add(ym);
+      }
+    });
   });
 
   localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
@@ -494,10 +524,9 @@ function applyTransferData(type) {
   if (typeof renderKiwoom === 'function') renderKiwoom();
   document.getElementById('pension-transfer-modal').style.display = 'none';
 
-  // ★ 동적 월 표시: 실제 업데이트된 월을 알림에 반영
-  const updatedMonths = deltaMonths.filter(ym => ym >= firstJsonMonth);
-  const monthStr = updatedMonths
+  const labels   = toApply.map(({ label }) => label).join(', ');
+  const monthStr = [...allUpdatedMonths].sort()
     .map(ym => ym.replace(/^(\d{4})-(\d{2})$/, '$1년 $2월'))
     .join(', ');
-  alert(`과거 기록을 보존하며 ${monthStr} 투자금을 성공적으로 업데이트했습니다.`);
+  alert(`[${labels}] 과거 기록을 보존하며 ${monthStr} 투자금을 성공적으로 업데이트했습니다.`);
 }
