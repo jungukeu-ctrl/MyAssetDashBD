@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/sync-plan.sh 2>/dev/null || true",
+            "timeout": 60,
+            "statusMessage": "PLAN.md → main 동기화 중..."
+          }
+        ]
+      }
+    ]
+  }
+}
