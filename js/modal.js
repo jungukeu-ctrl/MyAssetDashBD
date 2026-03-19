@@ -431,20 +431,65 @@ function closeKiwoomTransferModal() {
 }
 
 // ═══════════════════════════════════════════
-//  ★ ISA 잔액 입력 모달
+//  ★ ISA 거래내역 JSON 모달
 // ═══════════════════════════════════════════
 function openIsaModal() {
-  const d = state['isa'] || {};
-  document.getElementById('isa-val-input').value  = d.val  || '';
-  document.getElementById('isa-date-input').value = d.date || new Date().toISOString().slice(0, 10);
+  document.getElementById('isa-paste-area').value = '';
+  document.getElementById('isa-log').style.display = 'none';
+  document.getElementById('isa-result-area').style.display = 'none';
+  document.getElementById('isa-apply-btn').disabled = true;
+  isaPendingResult = null;
   document.getElementById('isa-modal').style.display = 'flex';
+  setTimeout(() => document.getElementById('isa-paste-area').focus(), 100);
+}
+
+function parseIsaJson() {
+  const raw      = document.getElementById('isa-paste-area').value.trim();
+  const log      = document.getElementById('isa-log');
+  const resultArea = document.getElementById('isa-result-area');
+  const applyBtn = document.getElementById('isa-apply-btn');
+  isaPendingResult = null;
+  applyBtn.disabled = true;
+  resultArea.style.display = 'none';
+  if (!raw) { log.style.display = 'none'; return; }
+  log.style.display = 'block';
+  try {
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('JSON 형식이 아닙니다');
+    const parsed = JSON.parse(match[0]);
+    if (!Array.isArray(parsed.transactions) || !parsed.transactions.length) throw new Error('transactions 배열이 없습니다');
+
+    let invest = 0;
+    let latestDate = '';
+    const rows = parsed.transactions.map(tx => {
+      if (tx.type === '입금') invest += tx.amount;
+      else if (tx.type === '출금') invest -= tx.amount;
+      if (tx.date > latestDate) latestDate = tx.date;
+      const color = tx.type === '입금' ? '#5bc8af' : '#ff6b6b';
+      const sign  = tx.type === '입금' ? '+' : '-';
+      return `<div style="color:${color}">${tx.date} ${sign}${tx.amount.toLocaleString('ko-KR')}원 <span style="color:var(--text3);font-size:11px">${tx.counterpart || ''}</span></div>`;
+    });
+
+    isaPendingResult = { val: invest, date: latestDate };
+    document.getElementById('isa-acct-name').textContent = parsed.account_name || parsed.account_number || '—';
+    document.getElementById('isa-preview').innerHTML =
+      rows.join('') +
+      `<div style="border-top:1px solid var(--border);margin-top:6px;padding-top:6px;color:#5bc8af;font-weight:600">
+        투자금: ${invest.toLocaleString('ko-KR')}원 &nbsp;·&nbsp; 기준일: ${latestDate}
+      </div>`;
+    resultArea.style.display = 'block';
+    applyBtn.disabled = false;
+    log.style.color = 'var(--teal)';
+    log.textContent = `✅ ${parsed.transactions.length}건 · 투자금 ${invest.toLocaleString('ko-KR')}원 · ${latestDate}`;
+  } catch(e) {
+    log.style.color = '#ff6b6b';
+    log.textContent = '❌ ' + e.message;
+  }
 }
 
 function applyIsaModal() {
-  const val  = parseInt(document.getElementById('isa-val-input').value, 10);
-  const date = document.getElementById('isa-date-input').value;
-  if (!val || !date) return;
-  state['isa'] = { val, date };
+  if (!isaPendingResult) return;
+  state['isa'] = { val: isaPendingResult.val, date: isaPendingResult.date };
   save();
   renderAll();
   closeIsaModal();
