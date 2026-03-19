@@ -1,0 +1,21 @@
+# MyAssetDashBD — Claude 작업 규칙
+
+## PLAN.md 업데이트 (필수)
+
+**코드를 수정할 때마다 반드시 `PLAN.md`를 업데이트하세요.**
+
+| 상황 | 해야 할 일 |
+|------|-----------|
+| 작업 완료 | `## 4. 완료된 작업` 테이블에 행 추가 |
+| 항목 완료 | `## 5. 남은 작업 목록`에서 해당 행 제거 또는 ✅ 표시 |
+| 새 작업 발견 | `## 5. 남은 작업 목록`에 추가 |
+| Firebase 스키마 변경 | `## 1. 프로젝트 개요` Firebase 구조 섹션 업데이트 |
+| 새 계좌/모달 추가 | `## 2. 계좌 구성` 테이블 업데이트 |
+
+PLAN.md를 수정하면 Stop 훅이 자동으로 현재 브랜치에 커밋하고 main에 동기화합니다.
+
+## 브랜치 규칙
+
+- 개발 브랜치: `claude/new-session-waiting-WGhLa`
+- push 명령: `git push -u origin claude/new-session-waiting-WGhLa`
+- main에는 직접 push하지 않음 (sync-plan.sh가 PLAN.md만 동기화)
