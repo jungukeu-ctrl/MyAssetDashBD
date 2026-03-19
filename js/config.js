@@ -64,6 +64,7 @@ let aiPendingResult       = null;
 let kiwoomPendingResult   = null;
 let pensionPendingResult  = null;
 let transferPendingResult = null;
+let isaPendingResult      = null;
 
 // ═══════════════════════════════════════════
 //  ★ 포맷 함수
