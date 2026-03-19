@@ -551,15 +551,22 @@ function parseTransferData() {
     const irp1Sum   = {};  // invest[7] — IRP1
     const irp2Sum   = {};  // invest[8] — IRP2
 
+    const KNOWN_FILTERED = ['배당금', '이용료', '이자', '환급', '세금'];
+    const unmatched = [];
+
     parsed.transactions.forEach(t => {
-      if (t.type !== '입금' || !t.date) return;
+      const typeStr = String(t.type || '').trim();
+      if (!typeStr.includes('입금') || !t.date) return;
+      const cp = String(t.counterpart || '').trim();
       const ym = t.date.slice(0, 7);
-      if (isIrp2 && t.counterpart === '현금성자산(삼성증권)') {
+      if (isIrp2 && cp.includes('현금성자산')) {
         irp2Sum[ym] = (irp2Sum[ym] || 0) + t.amount;
-      } else if (isIrp1 && t.counterpart === '현금성자산(삼성증권)') {
+      } else if (isIrp1 && cp.includes('현금성자산')) {
         irp1Sum[ym] = (irp1Sum[ym] || 0) + t.amount;
-      } else if (!isIrp1 && !isIrp2 && (t.counterpart === '이체입금' || t.counterpart === '유정욱')) {
+      } else if (!isIrp1 && !isIrp2 && (cp.includes('이체입금') || cp.includes('유정욱'))) {
         pensionSum[ym] = (pensionSum[ym] || 0) + t.amount;
+      } else if (!KNOWN_FILTERED.some(k => cp.includes(k))) {
+        unmatched.push(`${t.date} [${cp}] ${Number(t.amount).toLocaleString()}원`);
       }
     });
 
@@ -573,12 +580,33 @@ function parseTransferData() {
     const total  = pCnt + i1Cnt + i2Cnt;
     if (total === 0) throw new Error('납입 내역이 없습니다 (이체입금/현금성자산 항목 없음)');
 
+    const lines = [];
     const parts = [];
-    if (pCnt  > 0) parts.push(`연금저축 ${pCnt}개월`);
-    if (i1Cnt > 0) parts.push(`IRP1 ${i1Cnt}개월`);
-    if (i2Cnt > 0) parts.push(`IRP2 ${i2Cnt}개월`);
+    if (pCnt  > 0) {
+      parts.push(`연금저축 ${pCnt}개월`);
+      Object.entries(pensionSum).sort().forEach(([ym, amt]) =>
+        lines.push(`  연금저축 ${ym}: ${amt.toLocaleString()}원`)
+      );
+    }
+    if (i1Cnt > 0) {
+      parts.push(`IRP1 ${i1Cnt}개월`);
+      Object.entries(irp1Sum).sort().forEach(([ym, amt]) =>
+        lines.push(`  IRP1 ${ym}: ${amt.toLocaleString()}원`)
+      );
+    }
+    if (i2Cnt > 0) {
+      parts.push(`IRP2 ${i2Cnt}개월`);
+      Object.entries(irp2Sum).sort().forEach(([ym, amt]) =>
+        lines.push(`  IRP2 ${ym}: ${amt.toLocaleString()}원`)
+      );
+    }
+    if (unmatched.length > 0) {
+      lines.push(`⚠️ 미인식 입금 ${unmatched.length}건:`);
+      unmatched.forEach(u => lines.push(`  ${u}`));
+    }
     log.style.color = 'var(--teal)';
-    log.textContent = '✅ ' + parts.join(' · ') + ' 납입내역 인식 성공';
+    log.style.whiteSpace = 'pre-line';
+    log.textContent = '✅ ' + parts.join(' · ') + ' 납입내역 인식 성공\n' + lines.join('\n');
     btn.disabled = false;
   } catch(e) {
     log.style.color = 'var(--red)';
