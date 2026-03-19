@@ -19,11 +19,13 @@ const KIWOOM_SNAP_INFO = {
   'kiwoom-chobil':   { name:'초빌',   acct:'5185-9447', color:'#565a70' },
 };
 
-const PENSION_SNAP_KEYS = ['pension-irp1','pension-irp2','pension-saving'];
+const PENSION_SNAP_KEYS = ['pension-irp1','pension-irp2','pension-saving','isa','ria'];
 const PENSION_SNAP_INFO = {
-  'pension-irp1':   { name:'퇴직연금 IRP 1', label:'유정욱_IRP', evalIdx:7, color:'#e07b6a', tossKey:null },
-  'pension-irp2':   { name:'퇴직연금 IRP 2', label:'개인형IRP',  evalIdx:8, color:'#e0a06a', tossKey:null },
-  'pension-saving': { name:'개인연금저축',    label:'연금저축',    evalIdx:3, color:'#b089f0', tossKey:'toss-pension' },
+  'pension-irp1':   { name:'퇴직연금 IRP 1', label:'유정욱_IRP', evalIdx:7,    color:'#e07b6a', tossKey:null },
+  'pension-irp2':   { name:'퇴직연금 IRP 2', label:'개인형IRP',  evalIdx:8,    color:'#e0a06a', tossKey:null },
+  'pension-saving': { name:'개인연금저축',    label:'연금저축',    evalIdx:3,    color:'#b089f0', tossKey:'toss-pension' },
+  'isa':            { name:'ISA(삼성증권)',   label:'ISA',        evalIdx:null, color:'#5bc8af', tossKey:null },
+  'ria':            { name:'RIA(키움)',       label:'RIA',        evalIdx:null, color:'#ff9f7f', tossKey:null },
 };
 
 const KIWOOM_ACCOUNTS = ['해외','오빌','자사주','개인연금저축','별동대','연습','초빌'];

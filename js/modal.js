@@ -431,6 +431,54 @@ function closeKiwoomTransferModal() {
 }
 
 // ═══════════════════════════════════════════
+//  ★ ISA 잔액 입력 모달
+// ═══════════════════════════════════════════
+function openIsaModal() {
+  const d = state['isa'] || {};
+  document.getElementById('isa-val-input').value  = d.val  || '';
+  document.getElementById('isa-date-input').value = d.date || new Date().toISOString().slice(0, 10);
+  document.getElementById('isa-modal').style.display = 'flex';
+}
+
+function applyIsaModal() {
+  const val  = parseInt(document.getElementById('isa-val-input').value, 10);
+  const date = document.getElementById('isa-date-input').value;
+  if (!val || !date) return;
+  state['isa'] = { val, date };
+  save();
+  renderAll();
+  closeIsaModal();
+}
+
+function closeIsaModal() {
+  document.getElementById('isa-modal').style.display = 'none';
+}
+
+// ═══════════════════════════════════════════
+//  ★ RIA 잔액 입력 모달
+// ═══════════════════════════════════════════
+function openRiaModal() {
+  const d = state['ria'] || {};
+  document.getElementById('ria-val-input').value  = d.val  || '';
+  document.getElementById('ria-date-input').value = d.date || new Date().toISOString().slice(0, 10);
+  document.getElementById('ria-modal').style.display = 'flex';
+}
+
+function applyRiaModal() {
+  const val  = parseInt(document.getElementById('ria-val-input').value, 10);
+  const date = document.getElementById('ria-date-input').value;
+  if (!val || !date) return;
+  state['ria'] = { val, date };
+  save();
+  renderAll();
+  closeRiaModal();
+}
+
+function closeRiaModal() {
+  document.getElementById('ria-modal').style.display = 'none';
+}
+
+// ═══════════════════════════════════════════
 //  ★ 연금 이체내역 모달 (개인연금저축 투자금 소급 계산)
 // ═══════════════════════════════════════════
 function openPensionTransferModal() {
