@@ -542,9 +542,12 @@ function applyIsaEvalModal() {
   }
   entry.eval[9] = val;
   localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
-  scheduleGasSync_();
+  pushToGAS_();
   if (typeof renderKiwoom === 'function') renderKiwoom();
-  closeIsaEvalModal();
+  log.style.display = 'block';
+  log.style.color = 'var(--teal)';
+  log.textContent = `✅ 평가금액 ${val.toLocaleString('ko-KR')}원 (${date}) 저장됨`;
+  setTimeout(() => closeIsaEvalModal(), 1200);
 }
 
 function closeIsaEvalModal() {
