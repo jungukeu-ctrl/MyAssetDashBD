@@ -359,11 +359,16 @@ function renderKiwoom() {
     { key: 'ria', label: 'RIA(키움)',     badge: 'RIA', color: '#ff9f7f', onClick: 'openRiaModal()' },
   ].forEach(({ key, label, badge, color, onClick }) => {
     const d = state[key];
+    const isTransaction = d?.source === 'transaction';
+    const badgeSuffix = isTransaction ? '거래내역' : '수동입력';
+    const bottomLine = isTransaction
+      ? `투자금: ${fmtWon(d.val || 0)} <span style="color:var(--text3);font-size:10px">(거래내역 기준)</span>`
+      : '수익률 미산출 (투자금 미연동)';
     extraCards.push(`<div class="kiwoom-card" style="border-top:2px solid ${color};cursor:pointer" onclick="${onClick}">
-      <div class="k-acct">${label}<span class="kiwoom-badge" style="background:${color}22;color:${color}">${badge} 수동입력</span></div>
+      <div class="k-acct">${label}<span class="kiwoom-badge" style="background:${color}22;color:${color}">${badge} ${badgeSuffix}</span></div>
       <div class="k-eval">${d?.val !== undefined ? fmtWon(d.val || 0) : '—'}<span class="k-unit">잔액</span></div>
       <div class="k-invest-row" style="font-size:11px;color:var(--text3)">${d?.date ? '기준: ' + d.date : '클릭해 잔액 입력'}<br><span style="font-size:10px;color:${color}">✎ 클릭해 수정</span></div>
-      <div class="k-pnl" style="font-size:11px;color:var(--text3)">수익률 미산출 (투자금 미연동)</div>
+      <div class="k-pnl" style="font-size:11px;color:var(--text3)">${bottomLine}</div>
     </div>`);
   });
 
