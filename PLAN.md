@@ -52,15 +52,44 @@ asset-data/
 
 ## 2. 계좌 구성
 
+### 2-0. 증권사별 계좌 분류 (용어 기준)
+
+> ⚠️ "키움계좌"라는 표현 사용 금지. 계좌마다 증권사가 다르다.
+
+| 증권사 | 계좌 | Firebase 키 | eval/invest 인덱스 |
+|--------|------|------------|-------------------|
+| **삼성증권** | 개인연금저축 | `pension-saving` / `toss-pension` | eval[3] / invest[3] |
+| **삼성증권** | 퇴직연금 IRP 1 | `pension-irp1` | eval[7] / invest[7] |
+| **삼성증권** | ISA | `isa` | eval[9] |
+| **키움증권** | 해외주식 | `kiwoom-overseas` / `toss-overseas` | eval[0] / invest[0] |
+| **키움증권** | 오빌(OBil) | `kiwoom-obil` / `toss-obil` | eval[1] / invest[1] |
+| **키움증권** | 초빌 | — | eval[6] / invest[6] |
+| **키움증권** | 연습 | — | eval[5] / invest[5] |
+| **하나투자증권** | 퇴직연금 IRP 2 | `pension-irp2` | eval[8] / invest[8] |
+| **미정(키움 가능성 높음)** | RIA | `ria` | — (수동 입력) |
+
+### 2-1. 토스모으기 계좌 → 증권사 계좌 매핑
+
+| 토스모으기 키 | 대응 계좌 | 증권사 |
+|--------------|---------|--------|
+| `toss-pension` | 개인연금저축 | 삼성증권 |
+| `toss-overseas` | 해외주식 | 키움증권 |
+| `toss-obil` | 오빌(OBil) | 키움증권 |
+| `toss-practice` | 연습 | 키움증권 |
+
+**합산 원칙**: 평가금 = 증권사 eval[idx] + 토스모으기.val / 투자금 = 증권사 invest[idx] + 토스모으기.val
+
+### 2-2. 전체 계좌 목록
+
 | 계좌 | Firebase 키 | 단위 | 섹션 | 비고 |
 |------|------------|------|------|------|
 | 개인연금저축 | `pension-saving` | 원 | pension-snap | toss-pension과 합산 표시 |
-| 퇴직연금 IRP 1 | `pension-irp1` | 원 | pension-snap | kiwoom eval[7] 연동 |
-| 퇴직연금 IRP 2 | `pension-irp2` | 원 | pension-snap | kiwoom eval[8] 연동 |
+| 퇴직연금 IRP 1 | `pension-irp1` | 원 | pension-snap | eval[7] 연동 (삼성증권) |
+| 퇴직연금 IRP 2 | `pension-irp2` | 원 | pension-snap | eval[8] 연동 (하나투자증권) |
 | **ISA(삼성증권)** | `isa` | 원 | pension-snap + 수동 카드 | ✅ 모달·카드 구현 완료 |
-| **RIA(키움)** | `ria` | 원 | kiwoom-snap + pension-snap + 수동 카드 | ✅ 모달·카드 구현 완료 |
-| 해외주식(키움) | `kiwoom-overseas` | 원 | kiwoom-snap | |
-| OBil(오빌) | `kiwoom-obil` | 원 | kiwoom-snap | 연금 무관 계좌 |
+| **RIA(미정)** | `ria` | 원 | kiwoom-snap + pension-snap + 수동 카드 | ✅ 모달·카드 구현 완료 |
+| 해외주식(키움증권) | `kiwoom-overseas` | 원 | kiwoom-snap | |
+| OBil/오빌(키움증권) | `kiwoom-obil` | 원 | kiwoom-snap | 연금 무관 계좌 |
 
 ---
 
@@ -146,12 +175,13 @@ asset-data/
 | B/C | `kiwoom-cards`에 ISA·RIA 잔액 전용 카드 항상 표시 | `render.js` | 2026-03-19 |
 | D/E | `pension-snap-grid`에 ISA·RIA 항상 표시 (ALWAYS_KEYS 분리) | `render.js` | 2026-03-19 |
 | F/G | 연금 섹션 수동 카드 그리드에 ISA·RIA 카드 추가 | `index.html` | 2026-03-19 |
+| PENSION-CARD | 개인연금저축 카드 통합 — 배지/이름 변경, 표시금액·투자금 = 삼성증권 eval/invest[3] + toss-pension.val 합산 | `index.html`, `render.js` | 2026-03-20 |
 
 ---
 
 ## 5. 남은 작업 목록
 
-> **현재 남은 작업 없음** — Phase 1 + 버그픽스 완료.
+> **현재 남은 작업 없음** — Phase 1 + 버그픽스 + 개인연금저축 카드 통합 완료.
 
 ---
 

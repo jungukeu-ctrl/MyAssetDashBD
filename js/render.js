@@ -103,21 +103,36 @@ function renderAll() {
     }
   });
 
-  // 개인연금저축(토스) 투자금/평가/수익 표시
-  const subTp = document.getElementById('sub-toss-pension');
-  if (subTp) {
-    const tpLatest = kiData?.combined?.length ? kiData.combined[kiData.combined.length - 1] : null;
-    const tpEval   = tpLatest?.eval[3]   || 0;
-    const tpInvest = tpLatest?.invest[3] || 0;
-    if (tpEval > 0 && tpInvest > 0) {
-      const pnl      = tpEval - tpInvest;
-      const pnlColor = pnl >= 0 ? 'var(--teal)' : '#ff6b6b';
-      const pnlSign  = pnl >= 0 ? '+' : '';
-      subTp.innerHTML = `투자금 ${fmt(tpInvest/10000)}만 · 평가 <b style="color:var(--gold2)">${fmt(tpEval/10000)}만</b> <span style="color:${pnlColor}">(${pnlSign}${fmt(pnl/10000)}만)</span>`;
-    } else if (tpEval > 0) {
-      subTp.innerHTML = `평가 <b style="color:var(--gold2)">${fmt(tpEval/10000)}만</b>`;
-    } else {
-      subTp.textContent = '';
+  // 개인연금저축 카드 — 삼성증권 eval[3]/invest[3] + 토스모으기 합산
+  {
+    const tpLatest  = kiData?.combined?.length ? kiData.combined[kiData.combined.length - 1] : null;
+    const kiEval    = tpLatest?.eval[3]   || 0;
+    const kiInvest  = tpLatest?.invest[3] || 0;
+    const tossVal   = state['toss-pension']?.val || 0;
+    const totalEval   = kiEval + tossVal;
+    const totalInvest = kiInvest + tossVal;
+
+    const valEl = document.getElementById('val-toss-pension');
+    if (valEl && totalEval > 0) {
+      valEl.textContent = totalEval.toLocaleString('ko-KR');
+      valEl.style.color = 'var(--purple, #b089f0)';
+    }
+
+    const subTp = document.getElementById('sub-toss-pension');
+    if (subTp) {
+      if (totalInvest > 0) {
+        const pnl      = totalEval - totalInvest;
+        const pnlColor = pnl >= 0 ? 'var(--teal)' : '#ff6b6b';
+        const pnlSign  = pnl >= 0 ? '+' : '';
+        const kiPart   = kiInvest > 0 ? `${fmt(kiInvest/10000)}만(삼성증권)` : '';
+        const tossPart = tossVal  > 0 ? `${fmt(tossVal/10000)}만(토스)` : '';
+        const parts    = [kiPart, tossPart].filter(Boolean).join(' + ');
+        subTp.innerHTML = `투자금 ${fmt(totalInvest/10000)}만${parts ? ` = ${parts}` : ''} <span style="color:${pnlColor}">(${pnlSign}${fmt(pnl/10000)}만)</span>`;
+      } else if (tossVal > 0) {
+        subTp.textContent = `토스모으기 ${fmt(tossVal/10000)}만`;
+      } else {
+        subTp.textContent = '';
+      }
     }
   }
 
