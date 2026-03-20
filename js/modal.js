@@ -490,6 +490,26 @@ function parseIsaJson() {
 function applyIsaModal() {
   if (!isaPendingResult) return;
   state['isa'] = { val: isaPendingResult.val, date: isaPendingResult.date, source: 'transaction' };
+
+  // ISA 누적 투자금 → invest[9] 저장 (Pension-tracer 델타 계산용)
+  const ym = isaPendingResult.date.slice(0, 7);
+  if (!kiData) kiData = { combined: [] };
+  if (!kiData.combined) kiData.combined = [];
+  let entry = kiData.combined.find(e => (e.date || e.month || '').slice(0, 7) === ym);
+  if (!entry) {
+    const prev = kiData.combined[kiData.combined.length - 1];
+    entry = {
+      date: isaPendingResult.date, month: ym,
+      invest: prev ? [...(prev.invest || new Array(9).fill(0))] : new Array(9).fill(0),
+      eval: new Array(11).fill(0),
+    };
+    kiData.combined.push(entry);
+    kiData.combined.sort((a, b) => (a.date || a.month || '').localeCompare(b.date || b.month || ''));
+  }
+  if (!entry.invest) entry.invest = new Array(9).fill(0);
+  entry.invest[9] = isaPendingResult.val;
+  localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
+
   save();
   renderAll();
   if (typeof renderKiwoom === 'function') renderKiwoom();
