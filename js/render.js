@@ -351,12 +351,10 @@ function renderKiwoom() {
   `;
 
   const ACCT_LABEL = { '퇴직연금001':'IRP 1', '퇴직연금002':'IRP 2' };
-  // 작업 B/C: ISA·RIA 잔액 전용 카드 (invest/eval 없음, 잔액만 표시)
+  // RIA(키움) 전용 카드 — ISA(삼성증권)는 pension-snap 섹션에서만 표시
   const extraCards = [];
-  [
-    { key: 'isa', label: 'ISA(삼성증권)', badge: 'ISA', color: '#5bc8af', onClick: 'openIsaModal()' },
-    { key: 'ria', label: 'RIA(키움)',     badge: 'RIA', color: '#ff9f7f', onClick: 'openRiaModal()' },
-  ].forEach(({ key, label, badge, color, onClick }) => {
+  {
+    const key = 'ria', label = 'RIA(키움)', badge = 'RIA', color = '#ff9f7f', onClick = 'openRiaModal()';
     const d = state[key];
     const isTransaction = d?.source === 'transaction';
     const badgeSuffix = isTransaction ? '거래내역' : '수동입력';
@@ -369,7 +367,7 @@ function renderKiwoom() {
       <div class="k-invest-row" style="font-size:11px;color:var(--text3)">${d?.date ? '기준: ' + d.date : '클릭해 잔액 입력'}<br><span style="font-size:10px;color:${color}">✎ 클릭해 수정</span></div>
       <div class="k-pnl" style="font-size:11px;color:var(--text3)">${bottomLine}</div>
     </div>`);
-  });
+  }
 
   document.getElementById('kiwoom-cards').innerHTML = MAIN_ACCOUNTS.map(acct => {
     const i      = AI[acct];
