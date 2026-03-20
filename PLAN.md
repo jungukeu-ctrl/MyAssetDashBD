@@ -136,6 +136,8 @@ asset-data/
 | BUG-1 | IRP1 납입 인식 에러 — `mPop 입금`/`이체입금` 키워드 추가, `현금배당` 필터 제외 | `modal.js` | 2026-03-20 |
 | BUG-2 | ISA 거래내역 적용 후 kiwoom-cards 미동기화 — `renderKiwoom()` 호출 추가, `source:'transaction'` 저장 | `modal.js` | 2026-03-20 |
 | BUG-3 | ISA kiwoom-card 뱃지 `수동입력`→`거래내역` 동적 전환, 하단 문구 투자금 표시로 개선 | `render.js` | 2026-03-20 |
+| BUG-4 | IRP1/IRP2 투자금 소스 전환 — 모든 뷰(카드·차트)에서 `state['irp1/2'].val` 대신 `kiData.invest[7/8]` 사용 | `render.js` | 2026-03-20 |
+| BUG-5 | IRP1/IRP2 edit overlay 수동 잔고 입력 제거 → 자동계산 안내 문구로 교체 | `index.html` | 2026-03-20 |
 | A | `kiwoom-snap-grid`에 RIA 카드 항상 표시 | `render.js` | 2026-03-19 |
 | B/C | `kiwoom-cards`에 ISA·RIA 잔액 전용 카드 항상 표시 | `render.js` | 2026-03-19 |
 | D/E | `pension-snap-grid`에 ISA·RIA 항상 표시 (ALWAYS_KEYS 분리) | `render.js` | 2026-03-19 |

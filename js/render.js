@@ -96,17 +96,20 @@ function renderAll() {
       if (k === 'pension-natl') {
         sub.innerHTML = (d.memo ? d.memo.replace(/\n/g,'<br>') + '<br>' : '') + '<span style="color:var(--text3)">⚠ 참고용 — 총 자산 합산 제외</span>';
       } else if (k === 'irp1' || k === 'irp2') {
-        const idxMap = { 'irp1':7, 'irp2':8 };
-        const idx    = idxMap[k];
-        const kiEval = (kiData && kiData.combined && kiData.combined.length > 0) ? (kiData.combined[kiData.combined.length-1].eval[idx] || 0) : 0;
-        const invest = (d.val || 0) * 10000;
+        const idxMap   = { 'irp1':7, 'irp2':8 };
+        const idx      = idxMap[k];
+        const latest   = (kiData?.combined?.length > 0) ? kiData.combined[kiData.combined.length - 1] : null;
+        const kiEval   = latest ? (latest.eval[idx]   || 0) : 0;
+        const kiInvest = latest ? (latest.invest[idx] || 0) : 0;
         if (kiEval > 0) {
           el.textContent = fmt(kiEval / 10000);
+          const invest   = kiInvest > 0 ? kiInvest : (d.val || 0) * 10000;
           const pnl      = kiEval - invest;
           const pnlColor = pnl >= 0 ? 'var(--teal)' : '#ff6b6b';
           const pnlSign  = pnl >= 0 ? '+' : '';
           const memoStr  = d.memo ? d.memo.replace(/\n/g,'<br>') + '<br>' : '';
-          sub.innerHTML  = memoStr + `투자금 ${fmt(invest/10000)}만 · 평가 <b style="color:var(--gold2)">${fmt(kiEval/10000)}만</b> <span style="color:${pnlColor}">(${pnlSign}${fmt(pnl/10000)}만)</span>`;
+          const investSrc = kiInvest > 0 ? '' : ' <span style="color:var(--text3);font-size:10px">(수동)</span>';
+          sub.innerHTML  = memoStr + `투자금 ${fmt(invest/10000)}만${investSrc} · 평가 <b style="color:var(--gold2)">${fmt(kiEval/10000)}만</b> <span style="color:${pnlColor}">(${pnlSign}${fmt(pnl/10000)}만)</span>`;
         } else {
           sub.innerHTML = d.memo ? d.memo.replace(/\n/g,'<br>') : '✎ 카드를 눌러 수정';
         }
@@ -321,14 +324,11 @@ function renderKiwoom() {
   const latest = kiData.combined[kiData.combined.length - 1];
   const prev   = kiData.combined.length > 1 ? kiData.combined[kiData.combined.length - 2] : null;
   const AI = { '해외':0,'오빌':1,'자사주':2,'개인연금저축':3,'별동대':4,'연습':5,'초빌':6,'퇴직연금001':7,'퇴직연금002':8 };
-  const IRP_INVEST_KEY_S = { '퇴직연금001':'irp1', '퇴직연금002':'irp2' };
-
   let totalInvest = 0, totalEval = 0;
   MAIN_ACCOUNTS.forEach(a => {
-    const i      = AI[a];
-    const irpKey = IRP_INVEST_KEY_S[a];
-    totalInvest += irpKey ? ((state[irpKey] || {}).val || 0) * 10000 : (latest.invest[i] || 0);
-    totalEval   += (latest.eval[i] || 0);
+    const i = AI[a];
+    totalInvest += latest.invest[i] || 0;
+    totalEval   += latest.eval[i]   || 0;
   });
 
   const totalPnl = totalEval - totalInvest;
@@ -350,8 +350,7 @@ function renderKiwoom() {
     ${prev ? `<div class="ks-div"></div><div class="ks-item"><div class="ks-label">전월 대비</div><div class="ks-val ${momEval>=0?'pos':'neg'}">${momEval>=0?'+':''}${fmtWon(momEval)}</div></div>` : ''}
   `;
 
-  const ACCT_LABEL    = { '퇴직연금001':'IRP 1', '퇴직연금002':'IRP 2' };
-  const IRP_INVEST_KEY = { '퇴직연금001':'irp1', '퇴직연금002':'irp2' };
+  const ACCT_LABEL = { '퇴직연금001':'IRP 1', '퇴직연금002':'IRP 2' };
   // 작업 B/C: ISA·RIA 잔액 전용 카드 (invest/eval 없음, 잔액만 표시)
   const extraCards = [];
   [
@@ -373,17 +372,16 @@ function renderKiwoom() {
   });
 
   document.getElementById('kiwoom-cards').innerHTML = MAIN_ACCOUNTS.map(acct => {
-    const i         = AI[acct];
-    const investKey = IRP_INVEST_KEY[acct];
-    const invest    = investKey ? ((state[investKey] || {}).val || 0) * 10000 : (latest.invest[i] || 0);
-    const evalu     = latest.eval[i] || 0;
-    const pnl       = evalu - invest;
-    const pct       = invest > 0 ? (evalu / invest - 1) * 100 : 0;
-    const color     = ACCT_COLORS[acct];
-    const pctCls    = pct > 1 ? 'pct-pos' : pct < -1 ? 'pct-neg' : 'pct-neu';
-    const pnlCls    = pnl > 0 ? 'pos' : pnl < 0 ? 'neg' : '';
-    const label     = ACCT_LABEL[acct] || acct;
-    const badge     = investKey ? 'IRP' : '키움';
+    const i      = AI[acct];
+    const invest = latest.invest[i] || 0;   // kiData (pension transfer modal 설정값)
+    const evalu  = latest.eval[i]   || 0;
+    const pnl    = evalu - invest;
+    const pct    = invest > 0 ? (evalu / invest - 1) * 100 : 0;
+    const color  = ACCT_COLORS[acct];
+    const pctCls = pct > 1 ? 'pct-pos' : pct < -1 ? 'pct-neg' : 'pct-neu';
+    const pnlCls = pnl > 0 ? 'pos' : pnl < 0 ? 'neg' : '';
+    const label  = ACCT_LABEL[acct] || acct;
+    const badge  = (i === 7 || i === 8) ? 'IRP' : '키움';
     const evalPct   = invest > 0 ? Math.min(Math.abs(evalu / invest) * 100, 200) : 0;
     const barBase   = Math.max(evalPct, 100);
     return `<div class="kiwoom-card" style="border-top:2px solid ${color}">
@@ -411,9 +409,8 @@ function renderKiwoom() {
 
 function updateBarChart(latest, AI) {
   if (!barChart) return;
-  const IRP_INVEST_BAR = { '퇴직연금001':'irp1', '퇴직연금002':'irp2' };
-  const IRP_LABEL_B    = { '퇴직연금001':'IRP 1', '퇴직연금002':'IRP 2' };
-  const investData = MAIN_ACCOUNTS.map(a => { const k = IRP_INVEST_BAR[a]; return k ? ((state[k]||{}).val||0)*10000 : (latest.invest[AI[a]]||0); });
+  const IRP_LABEL_B = { '퇴직연금001':'IRP 1', '퇴직연금002':'IRP 2' };
+  const investData  = MAIN_ACCOUNTS.map(a => latest.invest[AI[a]] || 0);
   const evalData   = MAIN_ACCOUNTS.map(a => latest.eval[AI[a]] || 0);
   barChart.data.labels = MAIN_ACCOUNTS.map(a => IRP_LABEL_B[a] || a);
   barChart.data.datasets[0].data = investData;
@@ -473,17 +470,14 @@ function updateReturnChart() {
   if (!returnChart || !kiData) return;
   const data          = getFilteredData();
   const AI            = { '해외':0,'오빌':1,'자사주':2,'개인연금저축':3,'별동대':4,'연습':5,'초빌':6,'퇴직연금001':7,'퇴직연금002':8 };
-  const IRP_INVEST_RC = { '퇴직연금001':'irp1', '퇴직연금002':'irp2' };
-  const IRP_LABEL_RC  = { '퇴직연금001':'IRP 1', '퇴직연금002':'IRP 2' };
+  const IRP_LABEL_RC = { '퇴직연금001':'IRP 1', '퇴직연금002':'IRP 2' };
   returnChart.data.labels = data.map(r => r.date.slice(0,7));
   returnChart.data.datasets = MAIN_ACCOUNTS.map(acct => {
-    const irpKey      = IRP_INVEST_RC[acct];
-    const fixedInvest = irpKey ? ((state[irpKey]||{}).val||0)*10000 : 0;
     return {
       label: IRP_LABEL_RC[acct] || acct,
       data:  data.map(r => {
-        const invest = irpKey ? fixedInvest : (r.invest[AI[acct]]||0);
-        const evalu  = r.eval[AI[acct]]||0;
+        const invest = r.invest[AI[acct]] || 0;   // kiData 월별 누적 invest
+        const evalu  = r.eval[AI[acct]]  || 0;
         if (invest <= 0 || evalu <= 0) return null;
         return parseFloat(((evalu/invest-1)*100).toFixed(2));
       }),
