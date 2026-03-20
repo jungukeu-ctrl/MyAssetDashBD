@@ -103,24 +103,68 @@ function renderAll() {
     }
   });
 
+  // 개인연금저축 카드 — 삼성증권 eval[3]/invest[3] + 토스모으기 합산
+  {
+    const tpLatest  = kiData?.combined?.length ? kiData.combined[kiData.combined.length - 1] : null;
+    const kiEval    = tpLatest?.eval[3]   || 0;
+    const kiInvest  = tpLatest?.invest[3] || 0;
+    const tossVal   = state['toss-pension']?.val || 0;
+    const totalEval   = kiEval + tossVal;
+    const totalInvest = kiInvest + tossVal;
+
+    const valEl = document.getElementById('val-toss-pension');
+    if (valEl && totalEval > 0) {
+      valEl.textContent = totalEval.toLocaleString('ko-KR');
+      valEl.style.color = 'var(--purple, #b089f0)';
+    }
+
+    const subTp = document.getElementById('sub-toss-pension');
+    if (subTp) {
+      if (totalInvest > 0) {
+        const pnl      = totalEval - totalInvest;
+        const pnlColor = pnl >= 0 ? 'var(--teal)' : '#ff6b6b';
+        const pnlSign  = pnl >= 0 ? '+' : '';
+        const kiPart   = kiInvest > 0 ? `${fmt(kiInvest/10000)}만(삼성증권)` : '';
+        const tossPart = tossVal  > 0 ? `${fmt(tossVal/10000)}만(토스)` : '';
+        const parts    = [kiPart, tossPart].filter(Boolean).join(' + ');
+        subTp.innerHTML = `투자금 ${fmt(totalInvest/10000)}만${parts ? ` = ${parts}` : ''} <span style="color:${pnlColor}">(${pnlSign}${fmt(pnl/10000)}만)</span>`;
+      } else if (tossVal > 0) {
+        subTp.textContent = `토스모으기 ${fmt(tossVal/10000)}만`;
+      } else {
+        subTp.textContent = '';
+      }
+    }
+  }
+
   // ISA·RIA 수동 카드 렌더 (작업 F/G)
   [
     { key: 'isa', color: '#5bc8af', evalIdx: 9 },
     { key: 'ria', color: '#ff9f7f', evalIdx: null },
   ].forEach(({ key, color, evalIdx }) => {
-    const d     = state[key];
-    const valEl = document.getElementById('val-' + key);
+    const d      = state[key];
+    const valEl  = document.getElementById('val-' + key);
     const unitEl = document.getElementById('unit-' + key);
-    const subEl = document.getElementById('sub-' + key);
+    const subEl  = document.getElementById('sub-' + key);
     if (!valEl) return;
     const latest_ = kiData?.combined?.length ? kiData.combined[kiData.combined.length - 1] : null;
-    const evalu = (evalIdx !== null && latest_?.eval) ? (latest_.eval[evalIdx] || 0) : 0;
-    const displayVal = evalu > 0 ? evalu : (d?.val || 0);
+    const evalu   = (evalIdx !== null && latest_?.eval) ? (latest_.eval[evalIdx] || 0) : 0;
+    const invest  = d?.val || 0;
+    const displayVal = evalu > 0 ? evalu : invest;
     if (displayVal > 0 || d?.val !== undefined) {
       valEl.textContent = displayVal.toLocaleString('ko-KR');
       valEl.style.color = color;
       if (unitEl) unitEl.textContent = evalu > 0 ? '원 (평가)' : '원';
-      if (subEl) subEl.textContent = d?.date ? '기준: ' + d.date : '✎ 클릭해 잔액 입력';
+      if (subEl) {
+        if (evalu > 0 && invest > 0) {
+          const pnl      = evalu - invest;
+          const pnlColor = pnl >= 0 ? 'var(--teal)' : '#ff6b6b';
+          const pnlSign  = pnl >= 0 ? '+' : '';
+          subEl.innerHTML = (d?.date ? '기준: ' + d.date + '<br>' : '') +
+            `투자금 ${fmtWon(invest)} · 평가 <b style="color:var(--gold2)">${fmtWon(evalu)}</b> <span style="color:${pnlColor}">(${pnlSign}${fmtWon(pnl)})</span>`;
+        } else {
+          subEl.textContent = d?.date ? '기준: ' + d.date : '✎ 클릭해 잔액 입력';
+        }
+      }
     } else {
       valEl.textContent = '—';
       valEl.style.color = '';
