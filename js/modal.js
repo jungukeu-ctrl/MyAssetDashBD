@@ -130,7 +130,7 @@ function applyKiwoomResult() {
     entry = {
       date, month: ym,
       invest: prev ? [...(prev.invest || new Array(9).fill(0))] : new Array(9).fill(0),
-      eval: new Array(9).fill(0),
+      eval: new Array(10).fill(0),
       _hasToss: true,
     };
     kiData.combined.push(entry);
@@ -138,7 +138,7 @@ function applyKiwoomResult() {
   } else {
     entry.date = date;
     entry._hasToss = true;
-    if (!entry.eval) entry.eval = new Array(9).fill(0);
+    if (!entry.eval) entry.eval = new Array(10).fill(0);
   }
   accounts.forEach(a => {
     const idx     = KI_SNAP_IDX[a.key];
@@ -232,14 +232,14 @@ function applyPensionResult() {
     entry = {
       date, month: ym,
       invest: prev ? [...(prev.invest || new Array(9).fill(0))] : new Array(9).fill(0),
-      eval: new Array(9).fill(0),
+      eval: new Array(10).fill(0),
       _hasToss: true,
     };
     kiData.combined.push(entry);
     kiData.combined.sort((a, b) => (a.date || a.month || '').localeCompare(b.date || b.month || ''));
   } else {
     entry.date = date;
-    if (!entry.eval) entry.eval = new Array(9).fill(0);
+    if (!entry.eval) entry.eval = new Array(10).fill(0);
     entry._hasToss = true;
   }
   accounts.forEach(a => {
@@ -380,7 +380,7 @@ function applyKiwoomTransferResult() {
         entry = {
           date: ym + '-28', month: ym,
           invest: prev ? [...(prev.invest || new Array(9).fill(0))] : new Array(9).fill(0),
-          eval: new Array(9).fill(0),
+          eval: new Array(10).fill(0),
         };
         kiData.combined.push(entry);
         kiData.combined.sort((a,b) => (a.date||a.month||'').localeCompare(b.date||b.month||''));
@@ -401,7 +401,7 @@ function applyKiwoomTransferResult() {
         entry = {
           date: row.date, month: ym,
           invest: prev ? [...(prev.invest || new Array(9).fill(0))] : new Array(9).fill(0),
-          eval: new Array(9).fill(0),
+          eval: new Array(10).fill(0),
         };
         kiData.combined.push(entry);
         kiData.combined.sort((a,b) => (a.date||a.month||'').localeCompare(b.date||b.month||''));
@@ -498,6 +498,57 @@ function applyIsaModal() {
 
 function closeIsaModal() {
   document.getElementById('isa-modal').style.display = 'none';
+}
+
+// ═══════════════════════════════════════════
+//  ★ ISA 평가금액 수동 입력 모달
+// ═══════════════════════════════════════════
+function openIsaEvalModal() {
+  const today = new Date().toISOString().slice(0, 10);
+  document.getElementById('isa-eval-val-input').value  = '';
+  document.getElementById('isa-eval-date-input').value = today;
+  document.getElementById('isa-eval-log').style.display = 'none';
+  document.getElementById('isa-eval-modal').style.display = 'flex';
+  setTimeout(() => document.getElementById('isa-eval-val-input').focus(), 100);
+}
+
+function applyIsaEvalModal() {
+  const val  = parseInt(document.getElementById('isa-eval-val-input').value, 10);
+  const date = document.getElementById('isa-eval-date-input').value;
+  const log  = document.getElementById('isa-eval-log');
+  if (!val || !date) {
+    log.style.display = 'block';
+    log.style.color = '#ff6b6b';
+    log.textContent = '❌ 평가금액과 기준일을 모두 입력하세요.';
+    return;
+  }
+  const ym = date.slice(0, 7);
+  if (!kiData) kiData = { combined: [] };
+  if (!kiData.combined) kiData.combined = [];
+  let entry = kiData.combined.find(e => (e.date || e.month || '').slice(0, 7) === ym);
+  if (!entry) {
+    const prev = kiData.combined[kiData.combined.length - 1];
+    entry = {
+      date, month: ym,
+      invest: prev ? [...(prev.invest || new Array(9).fill(0))] : new Array(9).fill(0),
+      eval: new Array(10).fill(0),
+    };
+    kiData.combined.push(entry);
+    kiData.combined.sort((a, b) => (a.date || a.month || '').localeCompare(b.date || b.month || ''));
+  } else {
+    entry.date = date;
+    if (!entry.eval) entry.eval = new Array(10).fill(0);
+    else if (entry.eval.length < 10) entry.eval.push(0);
+  }
+  entry.eval[9] = val;
+  localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
+  scheduleGasSync_();
+  if (typeof renderKiwoom === 'function') renderKiwoom();
+  closeIsaEvalModal();
+}
+
+function closeIsaEvalModal() {
+  document.getElementById('isa-eval-modal').style.display = 'none';
 }
 
 // ═══════════════════════════════════════════
