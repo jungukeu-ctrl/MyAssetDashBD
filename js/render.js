@@ -109,7 +109,7 @@ function renderAll() {
     const kiEval    = tpLatest?.eval[3]   || 0;
     const kiInvest  = tpLatest?.invest[3] || 0;
     const tossVal   = state['toss-pension']?.val || 0;
-    const totalEval   = kiEval + tossVal;
+    const totalEval   = kiEval;              // eval[3]에 이미 삼성+토스 합산됨
     const totalInvest = kiInvest + tossVal;
 
     const valEl = document.getElementById('val-toss-pension');
