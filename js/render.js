@@ -103,24 +103,53 @@ function renderAll() {
     }
   });
 
+  // 개인연금저축(토스) 투자금/평가/수익 표시
+  const subTp = document.getElementById('sub-toss-pension');
+  if (subTp) {
+    const tpLatest = kiData?.combined?.length ? kiData.combined[kiData.combined.length - 1] : null;
+    const tpEval   = tpLatest?.eval[3]   || 0;
+    const tpInvest = tpLatest?.invest[3] || 0;
+    if (tpEval > 0 && tpInvest > 0) {
+      const pnl      = tpEval - tpInvest;
+      const pnlColor = pnl >= 0 ? 'var(--teal)' : '#ff6b6b';
+      const pnlSign  = pnl >= 0 ? '+' : '';
+      subTp.innerHTML = `투자금 ${fmt(tpInvest/10000)}만 · 평가 <b style="color:var(--gold2)">${fmt(tpEval/10000)}만</b> <span style="color:${pnlColor}">(${pnlSign}${fmt(pnl/10000)}만)</span>`;
+    } else if (tpEval > 0) {
+      subTp.innerHTML = `평가 <b style="color:var(--gold2)">${fmt(tpEval/10000)}만</b>`;
+    } else {
+      subTp.textContent = '';
+    }
+  }
+
   // ISA·RIA 수동 카드 렌더 (작업 F/G)
   [
     { key: 'isa', color: '#5bc8af', evalIdx: 9 },
     { key: 'ria', color: '#ff9f7f', evalIdx: null },
   ].forEach(({ key, color, evalIdx }) => {
-    const d     = state[key];
-    const valEl = document.getElementById('val-' + key);
+    const d      = state[key];
+    const valEl  = document.getElementById('val-' + key);
     const unitEl = document.getElementById('unit-' + key);
-    const subEl = document.getElementById('sub-' + key);
+    const subEl  = document.getElementById('sub-' + key);
     if (!valEl) return;
     const latest_ = kiData?.combined?.length ? kiData.combined[kiData.combined.length - 1] : null;
-    const evalu = (evalIdx !== null && latest_?.eval) ? (latest_.eval[evalIdx] || 0) : 0;
-    const displayVal = evalu > 0 ? evalu : (d?.val || 0);
+    const evalu   = (evalIdx !== null && latest_?.eval) ? (latest_.eval[evalIdx] || 0) : 0;
+    const invest  = d?.val || 0;
+    const displayVal = evalu > 0 ? evalu : invest;
     if (displayVal > 0 || d?.val !== undefined) {
       valEl.textContent = displayVal.toLocaleString('ko-KR');
       valEl.style.color = color;
       if (unitEl) unitEl.textContent = evalu > 0 ? '원 (평가)' : '원';
-      if (subEl) subEl.textContent = d?.date ? '기준: ' + d.date : '✎ 클릭해 잔액 입력';
+      if (subEl) {
+        if (evalu > 0 && invest > 0) {
+          const pnl      = evalu - invest;
+          const pnlColor = pnl >= 0 ? 'var(--teal)' : '#ff6b6b';
+          const pnlSign  = pnl >= 0 ? '+' : '';
+          subEl.innerHTML = (d?.date ? '기준: ' + d.date + '<br>' : '') +
+            `투자금 ${fmtWon(invest)} · 평가 <b style="color:var(--gold2)">${fmtWon(evalu)}</b> <span style="color:${pnlColor}">(${pnlSign}${fmtWon(pnl)})</span>`;
+        } else {
+          subEl.textContent = d?.date ? '기준: ' + d.date : '✎ 클릭해 잔액 입력';
+        }
+      }
     } else {
       valEl.textContent = '—';
       valEl.style.color = '';
