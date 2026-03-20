@@ -54,11 +54,15 @@
       <div>
         <button class="upload-btn" style="background:rgba(201,168,76,0.1);border-color:rgba(201,168,76,0.3);color:var(--gold2)" onclick="openPensionTransferModal()">💰 삼성증권종합잔고거래내역</button>
       </div>
-      <!-- ISA 잔액 입력 -->
-      <div>
-        <button class="upload-btn" style="background:rgba(91,200,175,0.1);border-color:rgba(91,200,175,0.3);color:#5bc8af" onclick="openIsaModal()" title="ISA(삼성증권) 잔액 수동 입력">
+      <!-- ISA 거래내역 / ISA 평가금액 -->
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <button class="upload-btn" style="background:rgba(91,200,175,0.1);border-color:rgba(91,200,175,0.3);color:#5bc8af" onclick="openIsaModal()" title="ISA(삼성증권) 거래내역 JSON 입력">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-          ISA(삼성증권)
+          ISA 거래내역
+        </button>
+        <button class="upload-btn" style="background:rgba(91,200,175,0.07);border-color:rgba(91,200,175,0.25);color:#5bc8af;font-size:11px" onclick="openIsaEvalModal()" title="ISA 평가금액 수동 입력">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          ISA 평가금액
         </button>
       </div>
       <!-- RIA 잔액 입력 -->
@@ -211,6 +215,29 @@
       </div>
       <button class="ai-apply-btn" id="isa-apply-btn" style="background:#5bc8af;color:#0f1117" disabled onclick="applyIsaModal()">대시보드 적용</button>
       <button class="ai-cancel-btn" onclick="closeIsaModal()">닫기</button>
+    </div>
+  </div>
+
+  <!-- ISA 평가금액 수동 입력 모달 -->
+  <div id="isa-eval-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:200;align-items:center;justify-content:center">
+    <div class="ai-modal-box" style="border-color:rgba(91,200,175,0.3)">
+      <div class="ai-modal-title" style="color:#5bc8af">ISA 평가금액 입력</div>
+      <div class="ai-modal-sub">ISA 계좌 평가금액을 원 단위로 입력하세요.<br>
+        <span style="font-size:10px;color:var(--text3)">월별 수익 추이 차트에 반영됩니다.</span>
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:5px">평가금액 (원)</label>
+        <input type="number" id="isa-eval-val-input" placeholder="예: 12000000"
+          style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:10px 14px;border-radius:8px;font-size:14px;outline:none;font-family:'DM Mono',monospace;box-sizing:border-box">
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:5px">기준일</label>
+        <input type="date" id="isa-eval-date-input"
+          style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:10px 14px;border-radius:8px;font-size:14px;outline:none;font-family:'DM Mono',monospace;box-sizing:border-box">
+      </div>
+      <div class="ai-log" id="isa-eval-log" style="display:none"></div>
+      <button class="ai-apply-btn" style="background:#5bc8af;color:#0f1117" onclick="applyIsaEvalModal()">적용</button>
+      <button class="ai-cancel-btn" onclick="closeIsaEvalModal()">닫기</button>
     </div>
   </div>
 
@@ -447,7 +474,7 @@
     </div>
     <!-- 작업 F: ISA 수동 잔액 카드 -->
     <div class="asset-card" style="border-left:3px solid #5bc8af30;cursor:pointer" onclick="openIsaModal()">
-      <div class="cat-badge" style="background:#5bc8af18;color:#5bc8af;border-color:#5bc8af30">ISA <span style="opacity:.7;font-size:9px">수동입력</span></div>
+      <div class="cat-badge" style="background:#5bc8af18;color:#5bc8af;border-color:#5bc8af30">ISA <span style="opacity:.7;font-size:9px">거래내역</span></div>
       <div class="name">ISA(삼성증권)</div>
       <div class="amount-row"><div class="amount" id="val-isa">—</div><div class="unit" id="unit-isa">원</div></div>
       <div class="sub-info" id="sub-isa" style="font-size:10px">✎ 클릭해 잔액 입력</div>

@@ -312,7 +312,7 @@ function renderKiwoom() {
   ].forEach(({ key, label, badge, color }) => {
     const d = state[key];
     const isTransaction = d?.source === 'transaction';
-    const badgeSuffix = isTransaction ? '거래내역' : '수동입력';
+    const badgeSuffix = key === 'isa' ? '거래내역' : (isTransaction ? '거래내역' : '수동입력');
     const bottomLine = isTransaction
       ? `투자금: ${fmtWon(d.val || 0)} <span style="color:var(--text3);font-size:10px">(거래내역 기준)</span>`
       : '수익률 미산출 (투자금 미연동)';

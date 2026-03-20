@@ -141,6 +141,7 @@ asset-data/
 | BUG-6 | ISA 카드 중복 제거 — 키움 섹션 extraCard에서 ISA 제거, pension-snap 단일 진입점 유지 | `render.js` | 2026-03-20 |
 | BUG-7 | pension-snap 섹션 전체 제거 — 계좌별 카드 1개로 통합, kiwoom 섹션 상세 카드로 일원화 | `render.js`, `index.html` | 2026-03-20 |
 | BUG-8 | ISA·RIA 카드 클릭 모달 제거 — 표시 전용, 모달은 상단 버튼으로만 접근 | `render.js` | 2026-03-20 |
+| ISA-E | ISA 뱃지 `수동입력`→`거래내역` 고정, ISA 평가금액 버튼/모달 추가 (eval[9] 저장) | `index.html`, `modal.js`, `render.js` | 2026-03-20 |
 | A | `kiwoom-snap-grid`에 RIA 카드 항상 표시 | `render.js` | 2026-03-19 |
 | B/C | `kiwoom-cards`에 ISA·RIA 잔액 전용 카드 항상 표시 | `render.js` | 2026-03-19 |
 | D/E | `pension-snap-grid`에 ISA·RIA 항상 표시 (ALWAYS_KEYS 분리) | `render.js` | 2026-03-19 |
