@@ -489,9 +489,10 @@ function parseIsaJson() {
 
 function applyIsaModal() {
   if (!isaPendingResult) return;
-  state['isa'] = { val: isaPendingResult.val, date: isaPendingResult.date };
+  state['isa'] = { val: isaPendingResult.val, date: isaPendingResult.date, source: 'transaction' };
   save();
   renderAll();
+  if (typeof renderKiwoom === 'function') renderKiwoom();
   closeIsaModal();
 }
 
@@ -551,7 +552,8 @@ function parseTransferData() {
     const irp1Sum   = {};  // invest[7] — IRP1
     const irp2Sum   = {};  // invest[8] — IRP2
 
-    const KNOWN_FILTERED = ['배당금', '이용료', '이자', '환급', '세금'];
+    const KNOWN_FILTERED = ['배당금', '현금배당', '이용료', '이자', '환급', '세금'];
+    const IRP_DEPOSIT_KEYS = ['현금성자산', 'mPop 입금', '이체입금'];
     const unmatched = [];
 
     parsed.transactions.forEach(t => {
@@ -559,9 +561,9 @@ function parseTransferData() {
       if (!typeStr.includes('입금') || !t.date) return;
       const cp = String(t.counterpart || '').trim();
       const ym = t.date.slice(0, 7);
-      if (isIrp2 && cp.includes('현금성자산')) {
+      if (isIrp2 && IRP_DEPOSIT_KEYS.some(k => cp.includes(k))) {
         irp2Sum[ym] = (irp2Sum[ym] || 0) + t.amount;
-      } else if (isIrp1 && cp.includes('현금성자산')) {
+      } else if (isIrp1 && IRP_DEPOSIT_KEYS.some(k => cp.includes(k))) {
         irp1Sum[ym] = (irp1Sum[ym] || 0) + t.amount;
       } else if (!isIrp1 && !isIrp2 && (cp.includes('이체입금') || cp.includes('유정욱'))) {
         pensionSum[ym] = (pensionSum[ym] || 0) + t.amount;

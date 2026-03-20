@@ -133,6 +133,9 @@ asset-data/
 | 1-5 | Firebase PUT 자동 포함 확인 | `firebase.js` | ✅ 별도 작업 불필요 |
 | 2-1 | ISA 모달을 거래내역 JSON 파싱 방식으로 전환 | `index.html`, `modal.js`, `config.js` | 2026-03-19 |
 | IRP | IRP1/IRP2 납입 자동 계산 — invest[7]/[8] 델타 방식 | `modal.js` | 2026-03-19 |
+| BUG-1 | IRP1 납입 인식 에러 — `mPop 입금`/`이체입금` 키워드 추가, `현금배당` 필터 제외 | `modal.js` | 2026-03-20 |
+| BUG-2 | ISA 거래내역 적용 후 kiwoom-cards 미동기화 — `renderKiwoom()` 호출 추가, `source:'transaction'` 저장 | `modal.js` | 2026-03-20 |
+| BUG-3 | ISA kiwoom-card 뱃지 `수동입력`→`거래내역` 동적 전환, 하단 문구 투자금 표시로 개선 | `render.js` | 2026-03-20 |
 | A | `kiwoom-snap-grid`에 RIA 카드 항상 표시 | `render.js` | 2026-03-19 |
 | B/C | `kiwoom-cards`에 ISA·RIA 잔액 전용 카드 항상 표시 | `render.js` | 2026-03-19 |
 | D/E | `pension-snap-grid`에 ISA·RIA 항상 표시 (ALWAYS_KEYS 분리) | `render.js` | 2026-03-19 |
@@ -142,7 +145,7 @@ asset-data/
 
 ## 5. 남은 작업 목록
 
-> **현재 남은 작업 없음** — Phase 1 전체 완료.
+> **현재 남은 작업 없음** — Phase 1 + 버그픽스 완료.
 
 ---
 
@@ -150,10 +153,9 @@ asset-data/
 
 | 브랜치 | 상태 | 비고 |
 |--------|------|------|
-| `claude/auto-sync-pension-data-iqIFx` | ✅ GitHub push 완료 (2026-03-19) | |
-| `main` ← `claude/auto-sync-pension-data-iqIFx` | ⏳ PR 머지 대기 | GitHub 웹에서 머지 필요 |
-
-**PR 링크**: https://github.com/jungukeu-ctrl/MyAssetDashBD/pull/new/claude/auto-sync-pension-data-iqIFx
+| `claude/auto-sync-pension-data-iqIFx` | ✅ 머지 완료 (2026-03-19) | PR #12 |
+| `claude/fix-transaction-sync-m8PrB` | ✅ GitHub push 완료 (2026-03-20) | IRP1 인식 + ISA 동기화 버그픽스 |
+| `main` ← `claude/fix-transaction-sync-m8PrB` | ⏳ PR 머지 대기 | GitHub 웹에서 머지 필요 |
 
 ---
 
