@@ -58,6 +58,7 @@ function applyAiResult() {
   });
   save();
   renderAll();
+  if (typeof renderKiwoom === 'function') renderKiwoom();
   closeAiModal();
 }
 
@@ -252,7 +253,6 @@ function applyPensionResult() {
   scheduleGasSync_();
   save();
   renderAll();
-  renderPensionSnap();
   if (kiData) renderKiwoom();
   closePensionModal();
   const st = document.getElementById('pension-snap-status');
@@ -543,6 +543,7 @@ function applyIsaEvalModal() {
   entry.eval[9] = val;
   localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
   pushToGAS_();
+  renderAll();
   if (typeof renderKiwoom === 'function') renderKiwoom();
   log.style.display = 'block';
   log.style.color = 'var(--teal)';
@@ -571,6 +572,7 @@ function applyRiaModal() {
   state['ria'] = { val, date };
   save();
   renderAll();
+  if (typeof renderKiwoom === 'function') renderKiwoom();
   closeRiaModal();
 }
 
