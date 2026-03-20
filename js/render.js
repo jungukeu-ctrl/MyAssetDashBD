@@ -9,20 +9,19 @@ let barChartSelectedMonth = null; // null = latest
 // ═══════════════════════════════════════════
 function renderKiwoomSnap() {
   const keys = KIWOOM_SNAP_KEYS.filter(k => state[k]?.val !== undefined);
-  // RIA는 항상 표시하므로 kiwoom 데이터 없어도 섹션 유지
-  if (!keys.length && state['ria']?.val === undefined) {
+  if (!keys.length) {
     document.getElementById('kiwoom-snap-cards').style.display = 'none'; return;
   }
   const latestDate = keys.map(k => state[k]?.date || '').sort().pop();
   document.getElementById('kiwoom-snap-date').textContent = '기준: ' + (latestDate || '—');
-  const mainCards = keys.map(k => {
+  document.getElementById('kiwoom-snap-grid').innerHTML = keys.map(k => {
     const info = KIWOOM_SNAP_INFO[k];
     const d = state[k];
     const kiVal   = d?.val || 0;
     const tossKey = KI_TOSS_PAIR[k];
     const tossVal = tossKey ? (state[tossKey]?.val || 0) : 0;
-    const combined   = kiVal + tossVal;
-    const subDetail  = tossVal > 0
+    const combined  = kiVal + tossVal;
+    const subDetail = tossVal > 0
       ? `키움 ${kiVal.toLocaleString('ko-KR')} + 토스 ${tossVal.toLocaleString('ko-KR')}`
       : `키움 ${kiVal.toLocaleString('ko-KR')}`;
     return `<div class="asset-card" style="border-left:3px solid ${info.color}30;cursor:default">
@@ -31,53 +30,8 @@ function renderKiwoomSnap() {
       <div class="amount-row"><div class="amount" style="font-size:16px;color:${info.color}">${combined.toLocaleString('ko-KR')}</div><div class="unit">원</div></div>
       <div class="sub-info" style="font-size:10px;line-height:1.5">${subDetail}<br>${d?.date ? '기준: '+d.date : '—'}</div>
     </div>`;
-  });
-
-  // RIA 카드: 항상 표시 (데이터 없으면 "미입력" 안내)
-  const riaD = state['ria'];
-  const riaColor = '#ff9f7f';
-  mainCards.push(`<div class="asset-card" style="border-left:3px solid ${riaColor}30;cursor:pointer" onclick="openRiaModal()">
-    <div class="cat-badge" style="background:${riaColor}18;color:${riaColor};border-color:${riaColor}30">RIA <span style="opacity:.7;font-size:9px">수동입력</span></div>
-    <div class="name" style="font-size:13px">RIA(키움) <span style="font-size:10px;color:var(--text3)">✎ 클릭해 수정</span></div>
-    <div class="amount-row"><div class="amount" style="font-size:16px;color:${riaColor}">${riaD?.val !== undefined ? (riaD.val || 0).toLocaleString('ko-KR') : '—'}</div><div class="unit">원</div></div>
-    <div class="sub-info" style="font-size:10px;line-height:1.5">${riaD?.date ? '기준: '+riaD.date : '클릭해 잔액 입력'}</div>
-  </div>`);
-
-  document.getElementById('kiwoom-snap-grid').innerHTML = mainCards.join('');
-  document.getElementById('kiwoom-snap-cards').style.display = 'block';
-}
-
-function renderPensionSnap() {
-  // IRP/연금저축: 데이터 있을 때만 / ISA·RIA: 항상 표시
-  const ALWAYS_KEYS = new Set(['isa', 'ria']);
-  const dataKeys = PENSION_SNAP_KEYS.filter(k => !ALWAYS_KEYS.has(k) && state[k]?.val !== undefined);
-  const keys = [...dataKeys, 'isa', 'ria'];
-
-  if (dataKeys.length === 0) {
-    // IRP/연금저축 데이터 없어도 ISA·RIA 때문에 섹션 유지
-  }
-  const latestDate = keys.filter(k => state[k]?.date).map(k => state[k].date).sort().pop();
-  document.getElementById('pension-snap-date').textContent = '기준: ' + (latestDate || '—');
-  document.getElementById('pension-snap-grid').innerHTML = keys.map(k => {
-    const info    = PENSION_SNAP_INFO[k];
-    const d       = state[k];
-    const rawVal  = d?.val || 0;
-    const tossVal = info.tossKey ? (state[info.tossKey]?.val || 0) : 0;
-    const combined = rawVal + tossVal;
-    const isAlways = ALWAYS_KEYS.has(k);
-    const sub = tossVal > 0
-      ? `연금 ${rawVal.toLocaleString('ko-KR')} + 토스 ${tossVal.toLocaleString('ko-KR')}`
-      : (rawVal > 0 ? rawVal.toLocaleString('ko-KR') + '원' : (isAlways ? '클릭해 잔액 입력' : '0원'));
-    const clickAttr = k === 'isa' ? 'onclick="openIsaModal()"' : k === 'ria' ? 'onclick="openRiaModal()"' : '';
-    return `<div class="asset-card" style="border-left:3px solid ${info.color}30;cursor:${isAlways ? 'pointer' : 'default'}" ${clickAttr}>
-      <div class="cat-badge badge-pension">연금</div>
-      <div class="name" style="font-size:12px">${info.name}</div>
-      <div style="font-size:10px;color:var(--text3);margin-bottom:6px">${info.label}</div>
-      <div class="amount-row"><div class="amount" style="font-size:16px;color:${info.color}">${combined > 0 ? combined.toLocaleString('ko-KR') : '—'}</div><div class="unit">원</div></div>
-      <div class="sub-info" style="font-size:10px;line-height:1.5">${sub}<br>${d?.date ? '기준: '+d.date : (isAlways ? '✎ 클릭해 수정' : '—')}</div>
-    </div>`;
   }).join('');
-  document.getElementById('pension-snap-cards').style.display = 'block';
+  document.getElementById('kiwoom-snap-cards').style.display = 'block';
 }
 
 // ═══════════════════════════════════════════
@@ -85,7 +39,6 @@ function renderPensionSnap() {
 // ═══════════════════════════════════════════
 function renderAll() {
   renderKiwoomSnap();
-  renderPensionSnap();
 
   MANUAL_KEYS.forEach(k => {
     const d  = state[k] || {};
@@ -351,23 +304,25 @@ function renderKiwoom() {
   `;
 
   const ACCT_LABEL = { '퇴직연금001':'IRP 1', '퇴직연금002':'IRP 2' };
-  // RIA(키움) 전용 카드 — ISA(삼성증권)는 pension-snap 섹션에서만 표시
+  // ISA·RIA 잔액 표시 전용 카드 (클릭 모달 없음 — 모달은 상단 버튼으로만 접근)
   const extraCards = [];
-  {
-    const key = 'ria', label = 'RIA(키움)', badge = 'RIA', color = '#ff9f7f', onClick = 'openRiaModal()';
+  [
+    { key: 'isa', label: 'ISA(삼성증권)', badge: 'ISA', color: '#5bc8af' },
+    { key: 'ria', label: 'RIA(키움)',     badge: 'RIA', color: '#ff9f7f' },
+  ].forEach(({ key, label, badge, color }) => {
     const d = state[key];
     const isTransaction = d?.source === 'transaction';
     const badgeSuffix = isTransaction ? '거래내역' : '수동입력';
     const bottomLine = isTransaction
       ? `투자금: ${fmtWon(d.val || 0)} <span style="color:var(--text3);font-size:10px">(거래내역 기준)</span>`
       : '수익률 미산출 (투자금 미연동)';
-    extraCards.push(`<div class="kiwoom-card" style="border-top:2px solid ${color};cursor:pointer" onclick="${onClick}">
+    extraCards.push(`<div class="kiwoom-card" style="border-top:2px solid ${color}">
       <div class="k-acct">${label}<span class="kiwoom-badge" style="background:${color}22;color:${color}">${badge} ${badgeSuffix}</span></div>
       <div class="k-eval">${d?.val !== undefined ? fmtWon(d.val || 0) : '—'}<span class="k-unit">잔액</span></div>
-      <div class="k-invest-row" style="font-size:11px;color:var(--text3)">${d?.date ? '기준: ' + d.date : '클릭해 잔액 입력'}<br><span style="font-size:10px;color:${color}">✎ 클릭해 수정</span></div>
+      <div class="k-invest-row" style="font-size:11px;color:var(--text3)">${d?.date ? '기준: ' + d.date : '미입력'}</div>
       <div class="k-pnl" style="font-size:11px;color:var(--text3)">${bottomLine}</div>
     </div>`);
-  }
+  });
 
   document.getElementById('kiwoom-cards').innerHTML = MAIN_ACCOUNTS.map(acct => {
     const i      = AI[acct];
