@@ -176,12 +176,13 @@ asset-data/
 | D/E | `pension-snap-grid`에 ISA·RIA 항상 표시 (ALWAYS_KEYS 분리) | `render.js` | 2026-03-19 |
 | F/G | 연금 섹션 수동 카드 그리드에 ISA·RIA 카드 추가 | `index.html` | 2026-03-19 |
 | PENSION-CARD | 개인연금저축 카드 통합 — 배지/이름 변경, 표시금액·투자금 = 삼성증권 eval/invest[3] + toss-pension.val 합산 | `index.html`, `render.js` | 2026-03-20 |
+| CHART-ISA-RIA | ISA(eval[9])/RIA(eval[10]) 포트폴리오 차트 3종 추가 — MAIN_ACCOUNTS 확장, ACCT_COLORS 추가, AI 매핑 업데이트, kiwoom-cards 중복 방지(CHART_ONLY_ACCOUNTS 필터) | `config.js`, `render.js` | 2026-03-20 |
 
 ---
 
 ## 5. 남은 작업 목록
 
-> **현재 남은 작업 없음** — Phase 1 + 버그픽스 + 개인연금저축 카드 통합 완료.
+> **현재 남은 작업 없음** — Phase 1 + 버그픽스 + 개인연금저축 카드 통합 + ISA/RIA 차트 추가 완료.
 
 ---
 

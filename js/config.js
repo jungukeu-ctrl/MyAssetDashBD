@@ -25,15 +25,16 @@ const PENSION_SNAP_INFO = {
   'pension-irp2':   { name:'퇴직연금 IRP 2', label:'개인형IRP',  evalIdx:8,    color:'#e0a06a', tossKey:null },
   'pension-saving': { name:'개인연금저축',    label:'연금저축',    evalIdx:3,    color:'#b089f0', tossKey:'toss-pension' },
   'isa':            { name:'ISA(삼성증권)',   label:'ISA',        evalIdx:null, color:'#5bc8af', tossKey:null },
-  'ria':            { name:'RIA(키움)',       label:'RIA',        evalIdx:null, color:'#ff9f7f', tossKey:null },
+  'ria':            { name:'RIA(키움)',       label:'RIA',        evalIdx:10,   color:'#ff9f7f', tossKey:null },
 };
 
 const KIWOOM_ACCOUNTS = ['해외','오빌','자사주','개인연금저축','별동대','연습','초빌'];
-const MAIN_ACCOUNTS   = ['해외','오빌','연습','개인연금저축','퇴직연금001','퇴직연금002'];
+const MAIN_ACCOUNTS   = ['해외','오빌','연습','개인연금저축','퇴직연금001','퇴직연금002','ISA','RIA'];
 const ACCT_COLORS = {
   '해외':'#6e8efb', '오빌':'#ffb347', '연습':'#4ecdc4',
   '개인연금저축':'#b089f0', '자사주':'#ff6b6b', '별동대':'#c9a84c',
-  '초빌':'#565a70', '퇴직연금001':'#e07b6a', '퇴직연금002':'#e0a06a'
+  '초빌':'#565a70', '퇴직연금001':'#e07b6a', '퇴직연금002':'#e0a06a',
+  'ISA':'#5bc8af', 'RIA':'#ff9f7f'
 };
 
 const CAT_LABELS = ['부동산', '금융자산', '연금/IRP'];

@@ -326,7 +326,7 @@ function renderKiwoom() {
   if (!kiData || !kiData.combined || kiData.combined.length === 0) return;
   const latest = kiData.combined[kiData.combined.length - 1];
   const prev   = kiData.combined.length > 1 ? kiData.combined[kiData.combined.length - 2] : null;
-  const AI = { '해외':0,'오빌':1,'자사주':2,'개인연금저축':3,'별동대':4,'연습':5,'초빌':6,'퇴직연금001':7,'퇴직연금002':8 };
+  const AI = { '해외':0,'오빌':1,'자사주':2,'개인연금저축':3,'별동대':4,'연습':5,'초빌':6,'퇴직연금001':7,'퇴직연금002':8,'ISA':9,'RIA':10 };
   let totalInvest = 0, totalEval = 0;
   MAIN_ACCOUNTS.forEach(a => {
     const i = AI[a];
@@ -343,7 +343,7 @@ function renderKiwoom() {
   document.getElementById('kiwoom-summary').innerHTML = `
     <div class="ks-item"><div class="ks-label">기준일</div><div class="ks-val" style="font-size:14px">${latest.date}</div></div>
     <div class="ks-div"></div>
-    <div class="ks-item"><div class="ks-label">총 투자금 (주요 6계좌)</div><div class="ks-val">${fmtWon(totalInvest)}</div></div>
+    <div class="ks-item"><div class="ks-label">총 투자금 (주요 8계좌)</div><div class="ks-val">${fmtWon(totalInvest)}</div></div>
     <div class="ks-div"></div>
     <div class="ks-item"><div class="ks-label">총 평가금액</div><div class="ks-val" style="color:var(--gold2)">${fmtWon(totalEval)}</div></div>
     <div class="ks-div"></div>
@@ -358,7 +358,7 @@ function renderKiwoom() {
   const extraCards = [];
   [
     { key: 'isa', label: 'ISA(삼성증권)', badge: 'ISA', color: '#5bc8af', evalIdx: 9 },
-    { key: 'ria', label: 'RIA(키움)',     badge: 'RIA', color: '#ff9f7f', evalIdx: null },
+    { key: 'ria', label: 'RIA(키움)',     badge: 'RIA', color: '#ff9f7f', evalIdx: 10 },
   ].forEach(({ key, label, badge, color, evalIdx }) => {
     const d = state[key];
     const badgeSuffix = key === 'isa' ? '거래내역' : (d?.source === 'transaction' ? '거래내역' : '수동입력');
@@ -408,7 +408,8 @@ function renderKiwoom() {
     }
   });
 
-  document.getElementById('kiwoom-cards').innerHTML = MAIN_ACCOUNTS.map(acct => {
+  const CHART_ONLY_ACCOUNTS = ['ISA', 'RIA']; // extraCards로 별도 렌더, 여기서 제외
+  document.getElementById('kiwoom-cards').innerHTML = MAIN_ACCOUNTS.filter(a => !CHART_ONLY_ACCOUNTS.includes(a)).map(acct => {
     const i      = AI[acct];
     const invest = latest.invest[i] || 0;   // kiData (pension transfer modal 설정값)
     const evalu  = latest.eval[i]   || 0;
@@ -473,7 +474,7 @@ function updateBarMonthSelector() {
 function setBarChartMonth(month) {
   barChartSelectedMonth = month || null;
   if (!kiData || !kiData.combined || kiData.combined.length === 0) return;
-  const AI = { '해외':0,'오빌':1,'자사주':2,'개인연금저축':3,'별동대':4,'연습':5,'초빌':6,'퇴직연금001':7,'퇴직연금002':8 };
+  const AI = { '해외':0,'오빌':1,'자사주':2,'개인연금저축':3,'별동대':4,'연습':5,'초빌':6,'퇴직연금001':7,'퇴직연금002':8,'ISA':9,'RIA':10 };
   const entry = barChartSelectedMonth
     ? (kiData.combined.find(r => r.date.slice(0,7) === barChartSelectedMonth) || kiData.combined[kiData.combined.length - 1])
     : kiData.combined[kiData.combined.length - 1];
@@ -496,7 +497,7 @@ function getFilteredData() {
 function updateLineChart() {
   if (!lineChart || !kiData) return;
   const data = getFilteredData();
-  const AI   = { '해외':0,'오빌':1,'자사주':2,'개인연금저축':3,'별동대':4,'연습':5,'초빌':6,'퇴직연금001':7,'퇴직연금002':8 };
+  const AI   = { '해외':0,'오빌':1,'자사주':2,'개인연금저축':3,'별동대':4,'연습':5,'초빌':6,'퇴직연금001':7,'퇴직연금002':8,'ISA':9,'RIA':10 };
   lineChart.data.labels = data.map(r => r.date.slice(0,7));
   lineChart.data.datasets[0].data = data.map(r => MAIN_ACCOUNTS.reduce((s,a) => s+(r.eval[AI[a]]||0), 0));
   lineChart.data.datasets[1].data = data.map(r => MAIN_ACCOUNTS.reduce((s,a) => s+(r.invest[AI[a]]||0), 0));
@@ -506,7 +507,7 @@ function updateLineChart() {
 function updateReturnChart() {
   if (!returnChart || !kiData) return;
   const data          = getFilteredData();
-  const AI            = { '해외':0,'오빌':1,'자사주':2,'개인연금저축':3,'별동대':4,'연습':5,'초빌':6,'퇴직연금001':7,'퇴직연금002':8 };
+  const AI            = { '해외':0,'오빌':1,'자사주':2,'개인연금저축':3,'별동대':4,'연습':5,'초빌':6,'퇴직연금001':7,'퇴직연금002':8,'ISA':9,'RIA':10 };
   const IRP_LABEL_RC = { '퇴직연금001':'IRP 1', '퇴직연금002':'IRP 2' };
   returnChart.data.labels = data.map(r => r.date.slice(0,7));
   returnChart.data.datasets = MAIN_ACCOUNTS.map(acct => {
