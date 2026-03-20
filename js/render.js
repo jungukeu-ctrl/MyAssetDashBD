@@ -105,20 +105,26 @@ function renderAll() {
 
   // ISA·RIA 수동 카드 렌더 (작업 F/G)
   [
-    { key: 'isa', color: '#5bc8af' },
-    { key: 'ria', color: '#ff9f7f' },
-  ].forEach(({ key, color }) => {
+    { key: 'isa', color: '#5bc8af', evalIdx: 9 },
+    { key: 'ria', color: '#ff9f7f', evalIdx: null },
+  ].forEach(({ key, color, evalIdx }) => {
     const d     = state[key];
     const valEl = document.getElementById('val-' + key);
+    const unitEl = document.getElementById('unit-' + key);
     const subEl = document.getElementById('sub-' + key);
     if (!valEl) return;
-    if (d?.val !== undefined) {
-      valEl.textContent = (d.val || 0).toLocaleString('ko-KR');
+    const latest_ = kiData?.combined?.length ? kiData.combined[kiData.combined.length - 1] : null;
+    const evalu = (evalIdx !== null && latest_?.eval) ? (latest_.eval[evalIdx] || 0) : 0;
+    const displayVal = evalu > 0 ? evalu : (d?.val || 0);
+    if (displayVal > 0 || d?.val !== undefined) {
+      valEl.textContent = displayVal.toLocaleString('ko-KR');
       valEl.style.color = color;
-      if (subEl) subEl.textContent = d.date ? '기준: ' + d.date : '✎ 클릭해 잔액 입력';
+      if (unitEl) unitEl.textContent = evalu > 0 ? '원 (평가)' : '원';
+      if (subEl) subEl.textContent = d?.date ? '기준: ' + d.date : '✎ 클릭해 잔액 입력';
     } else {
       valEl.textContent = '—';
       valEl.style.color = '';
+      if (unitEl) unitEl.textContent = '원';
       if (subEl) subEl.textContent = '✎ 클릭해 잔액 입력';
     }
   });
@@ -307,21 +313,55 @@ function renderKiwoom() {
   // ISA·RIA 잔액 표시 전용 카드 (클릭 모달 없음 — 모달은 상단 버튼으로만 접근)
   const extraCards = [];
   [
-    { key: 'isa', label: 'ISA(삼성증권)', badge: 'ISA', color: '#5bc8af' },
-    { key: 'ria', label: 'RIA(키움)',     badge: 'RIA', color: '#ff9f7f' },
-  ].forEach(({ key, label, badge, color }) => {
+    { key: 'isa', label: 'ISA(삼성증권)', badge: 'ISA', color: '#5bc8af', evalIdx: 9 },
+    { key: 'ria', label: 'RIA(키움)',     badge: 'RIA', color: '#ff9f7f', evalIdx: null },
+  ].forEach(({ key, label, badge, color, evalIdx }) => {
     const d = state[key];
-    const isTransaction = d?.source === 'transaction';
-    const badgeSuffix = key === 'isa' ? '거래내역' : (isTransaction ? '거래내역' : '수동입력');
-    const bottomLine = isTransaction
-      ? `투자금: ${fmtWon(d.val || 0)} <span style="color:var(--text3);font-size:10px">(거래내역 기준)</span>`
-      : '수익률 미산출 (투자금 미연동)';
-    extraCards.push(`<div class="kiwoom-card" style="border-top:2px solid ${color}">
-      <div class="k-acct">${label}<span class="kiwoom-badge" style="background:${color}22;color:${color}">${badge} ${badgeSuffix}</span></div>
-      <div class="k-eval">${d?.val !== undefined ? fmtWon(d.val || 0) : '—'}<span class="k-unit">잔액</span></div>
-      <div class="k-invest-row" style="font-size:11px;color:var(--text3)">${d?.date ? '기준: ' + d.date : '미입력'}</div>
-      <div class="k-pnl" style="font-size:11px;color:var(--text3)">${bottomLine}</div>
-    </div>`);
+    const badgeSuffix = key === 'isa' ? '거래내역' : (d?.source === 'transaction' ? '거래내역' : '수동입력');
+    const evalu  = (evalIdx !== null && latest.eval) ? (latest.eval[evalIdx] || 0) : 0;
+    const invest = d?.val || 0;
+
+    if (evalu > 0 && invest > 0) {
+      // IRP와 동일한 구조: 평가금액 + 투자금 + 수익/수익률 + 바 차트
+      const pnl    = evalu - invest;
+      const pct    = (evalu / invest - 1) * 100;
+      const pnlCls = pnl > 0 ? 'pos' : pnl < 0 ? 'neg' : '';
+      const pctCls = pct > 1 ? 'pct-pos' : pct < -1 ? 'pct-neg' : 'pct-neu';
+      const evalPct = Math.min(Math.abs(evalu / invest) * 100, 200);
+      const barBase = Math.max(evalPct, 100);
+      extraCards.push(`<div class="kiwoom-card" style="border-top:2px solid ${color}">
+        <div class="k-acct">${label}<span class="kiwoom-badge" style="background:${color}22;color:${color}">${badge} ${badgeSuffix}</span></div>
+        <div class="k-eval">${fmtWon(evalu)}<span class="k-unit">평가</span></div>
+        <div class="k-invest-row">
+          <div style="font-size:11px;color:var(--text3);display:flex;justify-content:space-between"><span>투자금</span><span style="color:var(--text2)">${fmtWon(invest)}</span></div>
+          <div style="position:relative;height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;margin-top:2px">
+            <div style="position:absolute;top:0;left:0;height:100%;width:${(100/barBase*100).toFixed(1)}%;background:var(--text3);border-radius:4px;opacity:0.5"></div>
+            <div style="position:absolute;top:0;left:0;height:100%;width:${(evalPct/barBase*100).toFixed(1)}%;background:${color};border-radius:4px;opacity:0.7"></div>
+          </div>
+        </div>
+        <div class="k-pnl"><div class="k-pnl-amt ${pnlCls}">${pnl >= 0 ? '+' : ''}${fmtWon(pnl)}</div><div class="k-pnl-pct ${pctCls}">${fmtPct(pct)}</div></div>
+      </div>`);
+    } else if (evalu > 0) {
+      // 평가금액만 있음 (투자금 미입력)
+      extraCards.push(`<div class="kiwoom-card" style="border-top:2px solid ${color}">
+        <div class="k-acct">${label}<span class="kiwoom-badge" style="background:${color}22;color:${color}">${badge} ${badgeSuffix}</span></div>
+        <div class="k-eval">${fmtWon(evalu)}<span class="k-unit">평가</span></div>
+        <div class="k-invest-row" style="font-size:11px;color:var(--text3)">${d?.date ? '기준: ' + d.date : '미입력'}</div>
+        <div class="k-pnl" style="font-size:11px;color:var(--text3)">투자금 미연동 (거래내역 재입력 필요)</div>
+      </div>`);
+    } else {
+      // eval 없음 → 기존 방식 (잔액/투자금만 표시)
+      const isTransaction = d?.source === 'transaction';
+      const bottomLine = isTransaction
+        ? `투자금: ${fmtWon(d.val || 0)} <span style="color:var(--text3);font-size:10px">(거래내역 기준)</span>`
+        : '수익률 미산출 (투자금 미연동)';
+      extraCards.push(`<div class="kiwoom-card" style="border-top:2px solid ${color}">
+        <div class="k-acct">${label}<span class="kiwoom-badge" style="background:${color}22;color:${color}">${badge} ${badgeSuffix}</span></div>
+        <div class="k-eval">${d?.val !== undefined ? fmtWon(d.val || 0) : '—'}<span class="k-unit">잔액</span></div>
+        <div class="k-invest-row" style="font-size:11px;color:var(--text3)">${d?.date ? '기준: ' + d.date : '미입력'}</div>
+        <div class="k-pnl" style="font-size:11px;color:var(--text3)">${bottomLine}</div>
+      </div>`);
+    }
   });
 
   document.getElementById('kiwoom-cards').innerHTML = MAIN_ACCOUNTS.map(acct => {
