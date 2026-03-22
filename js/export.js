@@ -24,29 +24,29 @@ function exportMonthlyXlsx() {
     return;
   }
 
-  const AI_NAMES = ['해외','오빌','자사주','개인연금저축','별동대','연습','초빌','IRP1(유정욱)','IRP2(개인형)'];
-  const MAIN_IDX = [0, 1, 5, 3, 7, 8]; // 주요 6계좌 인덱스
+  const AI_NAMES = ['해외','오빌','자사주','개인연금저축','별동대','연습','초빌','IRP 1','IRP 2','ISA','RIA'];
+  const MAIN_IDX = [0, 1, 5, 3, 7, 8, 9, 10]; // 주요 8계좌 인덱스
   const combined = kiData.combined;
   const st       = state || {};
 
   // 1. 월별 평가금액
   const evalRows = combined.map(e => {
-    const ev      = e.eval || new Array(9).fill(0);
+    const ev      = e.eval || new Array(11).fill(0);
     const mainSum = MAIN_IDX.reduce((s, i) => s + (ev[i] || 0), 0);
-    return [e.date || e.month, ...ev.map(v => v || 0), mainSum];
+    return [e.date || e.month, ...AI_NAMES.map((_, i) => ev[i] || 0), mainSum];
   });
 
   // 2. 월별 투자금
   const investRows = combined.map(e => {
-    const inv     = e.invest || new Array(9).fill(0);
+    const inv     = e.invest || new Array(11).fill(0);
     const mainSum = MAIN_IDX.reduce((s, i) => s + (inv[i] || 0), 0);
-    return [e.date || e.month, ...inv.map(v => v || 0), mainSum];
+    return [e.date || e.month, ...AI_NAMES.map((_, i) => inv[i] || 0), mainSum];
   });
 
   // 3. 월별 수익률 (공식: (평가금 - 투자금) / 투자금 * 100)
   const retRows = combined.map(e => {
-    const ev  = e.eval   || new Array(9).fill(0);
-    const inv = e.invest || new Array(9).fill(0);
+    const ev  = e.eval   || new Array(11).fill(0);
+    const inv = e.invest || new Array(11).fill(0);
     const pcts = AI_NAMES.map((_, i) => {
       const currentIn = inv[i] || 0;
       const currentEv = ev[i]  || 0;
@@ -72,11 +72,13 @@ function exportMonthlyXlsx() {
     ['키움-오빌(평가)',      latest.eval[1] || 0,              '원', latest.date || ''],
     ['연금-IRP1(평가)',      latest.eval[7] || 0,              '원', latest.date || ''],
     ['연금-IRP2(평가)',      latest.eval[8] || 0,              '원', latest.date || ''],
+    ['ISA(평가)',            st['isa']?.val            || 0,   '원', st['isa']?.date            || ''],
+    ['RIA(평가)',            latest.eval[10]           || 0,   '원', latest.date || ''],
   ];
 
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['날짜', ...AI_NAMES, '합계(주요6계좌)'], ...evalRows]),   '월별평가금액');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['날짜', ...AI_NAMES, '합계(주요6계좌)'], ...investRows]), '월별투자금');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['날짜', ...AI_NAMES, '합계(주요8계좌)'], ...evalRows]),   '월별평가금액');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['날짜', ...AI_NAMES, '합계(주요8계좌)'], ...investRows]), '월별투자금');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['날짜', ...AI_NAMES, '전체수익률(%)'],    ...retRows]),    '월별수익률(%)');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(snapRows), '스냅샷현황');
   XLSX.writeFile(wb, `asset_monthly_${new Date().toISOString().slice(0, 10)}.xlsx`);
@@ -125,6 +127,14 @@ document.getElementById('toss-input').addEventListener('change', function(e) {
           if (de && r.date) {
             de.textContent = r.isFallback ? '최종 데이터: ' + r.date + ' (이번 달 미조회)' : '기준: ' + r.date;
             de.style.color = r.isFallback ? 'var(--orange)' : '';
+          }
+          // toss-pension 갱신 시 eval[3] 재계산 (pension-saving + 새 toss값)
+          if (key === 'toss-pension' && kiData?.combined?.length) {
+            const latest = kiData.combined[kiData.combined.length - 1];
+            if (!latest.eval) latest.eval = [];
+            const pensionSavingVal = state['pension-saving']?.val || 0;
+            latest.eval[3] = pensionSavingVal + r.balance;
+            localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
           }
         }
       });
