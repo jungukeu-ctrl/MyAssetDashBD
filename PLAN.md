@@ -194,6 +194,8 @@ asset-data/
 | `claude/auto-sync-pension-data-iqIFx` | ✅ 머지 완료 (2026-03-19) | PR #12 |
 | `claude/fix-transaction-sync-m8PrB` | ✅ GitHub push 완료 (2026-03-20) | IRP1 인식 + ISA 동기화 버그픽스 |
 | `main` ← `claude/fix-transaction-sync-m8PrB` | ⏳ PR 머지 대기 | GitHub 웹에서 머지 필요 |
+| `claude/fix-firebase-data-reset-0VePA` | ✅ GitHub push 완료 (2026-03-23) | Firebase PUT→PATCH 버그픽스 (pension-tracker 데이터 보호) |
+| `main` ← `claude/fix-firebase-data-reset-0VePA` | ⏳ PR 머지 대기 | GitHub 웹에서 머지 필요 |
 
 ---
 
