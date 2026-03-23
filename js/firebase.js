@@ -1,6 +1,7 @@
 // ═══════════════════════════════════════════
 //  ★ Firebase 동기화
-//  저장: PUT https://<db>/asset-data.json
+//  저장: PATCH https://<db>/asset-data.json  ← PUT 대신 PATCH 사용
+//        (pension-tracker 등 타 앱 키를 덮어쓰지 않기 위함)
 //  읽기: GET https://<db>/asset-data.json
 // ═══════════════════════════════════════════
 
@@ -97,7 +98,7 @@ function pushToGAS_() {
   _syncStatus('☁ 저장 중...', 'var(--text3)');
 
   fetch(url, {
-    method:  'PUT',
+    method:  'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify(payload),
   })
