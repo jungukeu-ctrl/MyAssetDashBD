@@ -3,6 +3,7 @@
 //  저장: PATCH https://<db>/asset-data.json
 //  읽기: GET   https://<db>/asset-data.json
 //  인증: Firebase Auth REST API → ?auth=<idToken>
+//  UI  : 로그인 오버레이 & 로그아웃 버튼을 JS로 동적 주입
 // ═══════════════════════════════════════════
 
 // ─── Auth 상수 ───────────────────────────────────────────────────
@@ -13,6 +14,68 @@ const _LS_REFRESH  = 'fb_refresh_token';
 const _LS_EXPIRY   = 'fb_token_expiry';
 
 let _onAuthReady_ = null;
+
+// ─── 로그인 오버레이 + 로그아웃 버튼 DOM 주입 ───────────────────
+function _injectAuthUI_() {
+  // 로그인 오버레이
+  const overlay = document.createElement('div');
+  overlay.id = 'login-overlay';
+  overlay.style.cssText = [
+    'display:flex', 'position:fixed', 'inset:0',
+    'background:#0f1117', 'z-index:9999',
+    'align-items:center', 'justify-content:center',
+  ].join(';');
+  overlay.innerHTML = `
+    <div style="background:#1a1d27;border:1px solid #2a2d3a;border-radius:16px;
+                padding:36px;width:360px;max-width:92vw;text-align:center">
+      <div style="font-size:20px;font-weight:500;color:#e8eaf0;margin-bottom:4px">My Asset Board</div>
+      <div style="font-size:12px;color:#6b7280;margin-bottom:28px">로그인하여 계속하세요</div>
+      <div style="margin-bottom:12px;text-align:left">
+        <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:5px">이메일</label>
+        <input type="email" id="login-email" autocomplete="email" placeholder="example@email.com"
+          style="width:100%;background:#0f1117;border:1px solid #2a2d3a;color:#e8eaf0;
+                 padding:10px 14px;border-radius:8px;font-size:14px;outline:none;box-sizing:border-box"
+          onkeydown="if(event.key==='Enter')document.getElementById('login-pw').focus()">
+      </div>
+      <div style="margin-bottom:20px;text-align:left">
+        <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:5px">비밀번호</label>
+        <input type="password" id="login-pw" autocomplete="current-password"
+          style="width:100%;background:#0f1117;border:1px solid #2a2d3a;color:#e8eaf0;
+                 padding:10px 14px;border-radius:8px;font-size:14px;outline:none;box-sizing:border-box"
+          onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div id="login-error"
+           style="display:none;font-size:12px;color:#ff6b6b;margin-bottom:14px;text-align:left"></div>
+      <button onclick="doLogin()" id="login-btn"
+        style="width:100%;background:#c9a84c;color:#0f1117;border:none;padding:12px;
+               border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;
+               font-family:'Noto Sans KR',sans-serif">
+        로그인
+      </button>
+    </div>`;
+  document.body.insertBefore(overlay, document.body.firstChild);
+
+  // 로그아웃 버튼 — 수동 동기화 버튼 옆에 삽입
+  const syncBtn = document.getElementById('manual-sync-btn');
+  if (syncBtn && syncBtn.parentNode) {
+    const logoutBtn = document.createElement('button');
+    logoutBtn.title = '로그아웃';
+    logoutBtn.textContent = '⎋ 로그아웃';
+    logoutBtn.style.cssText = [
+      'background:none', 'border:1px solid var(--border)', 'color:var(--text3)',
+      'padding:3px 10px', 'border-radius:6px', 'cursor:pointer',
+      "font-size:10px", "font-family:'Noto Sans KR',sans-serif", 'white-space:nowrap',
+    ].join(';');
+    logoutBtn.onclick = doLogout;
+
+    // sync 버튼과 logout 버튼을 flex 행으로 감싸기
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'display:flex;gap:6px';
+    syncBtn.parentNode.insertBefore(wrapper, syncBtn);
+    wrapper.appendChild(syncBtn);
+    wrapper.appendChild(logoutBtn);
+  }
+}
 
 // ─── 토큰 저장 ───────────────────────────────────────────────────
 function _saveTokens_(idToken, refreshToken, expiresIn) {
@@ -86,7 +149,7 @@ function doLogout() {
   _showLoginOverlay_();
 }
 
-// ─── 오버레이 UI ─────────────────────────────────────────────────
+// ─── 오버레이 표시/숨김 ──────────────────────────────────────────
 function _showLoginOverlay_() {
   const el = document.getElementById('login-overlay');
   if (el) el.style.display = 'flex';
@@ -105,12 +168,13 @@ function _showLoginError_(msg) {
 // ─── 앱 초기화 진입점 (init.js에서 호출) ─────────────────────────
 async function checkAndInitAuth_(callback) {
   _onAuthReady_ = callback;
+  _injectAuthUI_();          // 오버레이 & 로그아웃 버튼 삽입
   try {
-    await _getValidToken_();
+    await _getValidToken_(); // 저장된 토큰 유효하면 바로 통과
     _hideLoginOverlay_();
     callback();
   } catch {
-    _showLoginOverlay_();
+    _showLoginOverlay_();    // 토큰 없음/만료 → 로그인 화면
   }
 }
 
