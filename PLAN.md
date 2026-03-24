@@ -65,8 +65,8 @@ asset-data/
 | **키움증권** | 오빌(OBil) | `kiwoom-obil` / `toss-obil` | eval[1] / invest[1] |
 | **키움증권** | 초빌 | — | eval[6] / invest[6] |
 | **키움증권** | 연습 | — | eval[5] / invest[5] |
+| **키움증권** | RIA (6598-2304) | `kiwoom-ria` | eval[10] |
 | **하나투자증권** | 퇴직연금 IRP 2 | `pension-irp2` | eval[8] / invest[8] |
-| **미정(키움 가능성 높음)** | RIA | `ria` | — (수동 입력) |
 
 ### 2-1. 토스모으기 계좌 → 증권사 계좌 매핑
 
@@ -87,7 +87,7 @@ asset-data/
 | 퇴직연금 IRP 1 | `pension-irp1` | 원 | pension-snap | eval[7] 연동 (삼성증권) |
 | 퇴직연금 IRP 2 | `pension-irp2` | 원 | pension-snap | eval[8] 연동 (하나투자증권) |
 | **ISA(삼성증권)** | `isa` | 원 | pension-snap + 수동 카드 | ✅ 모달·카드 구현 완료 |
-| **RIA(미정)** | `ria` | 원 | kiwoom-snap + pension-snap + 수동 카드 | ✅ 모달·카드 구현 완료 |
+| **RIA(키움, 6598-2304)** | `kiwoom-ria` | 원 | kiwoom-snap (JSON 스냅샷) | eval[10], kiwoom-analyzer 통해 입력 |
 | 해외주식(키움증권) | `kiwoom-overseas` | 원 | kiwoom-snap | |
 | OBil/오빌(키움증권) | `kiwoom-obil` | 원 | kiwoom-snap | 연금 무관 계좌 |
 
