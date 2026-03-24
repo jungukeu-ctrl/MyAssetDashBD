@@ -192,12 +192,12 @@ function updateTotals() {
     const latest = kiData.combined[kiData.combined.length - 1];
     const ev = latest.eval || [];
     kiHasToss = !!latest._hasToss;
-    [0, 1, 2, 4, 5, 6].forEach(i => { kiFinancial += (ev[i] || 0); });
+    [0, 1, 2, 4, 5, 6, 10].forEach(i => { kiFinancial += (ev[i] || 0); });
     kiPension += (ev[3] || 0);
     kiIrp1 = ev[7] || 0;
     kiIrp2 = ev[8] || 0;
   } else {
-    ['kiwoom-overseas','kiwoom-obil','kiwoom-practice','kiwoom-jasaju','kiwoom-byuldong','kiwoom-chobil'].forEach(k => {
+    ['kiwoom-overseas','kiwoom-ria','kiwoom-obil','kiwoom-practice','kiwoom-jasaju','kiwoom-byuldong','kiwoom-chobil'].forEach(k => {
       kiFinancial += (state[k]?.val || 0);
     });
   }
