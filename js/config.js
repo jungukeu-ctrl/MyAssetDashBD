@@ -1,7 +1,11 @@
 // ═══════════════════════════════════════════
-//  ★ Firebase URL
+//  ★ Firebase URL & Auth
 // ═══════════════════════════════════════════
 const FIREBASE_URL = 'https://my-asset-dashboard-9e6f9-default-rtdb.asia-southeast1.firebasedatabase.app';
+
+// Firebase 콘솔 → 프로젝트 설정 → 일반 → 웹 API 키 값을 입력
+// 선행 조건: Authentication → Sign-in method → 이메일/비밀번호 '사용 설정' 필요
+const FIREBASE_API_KEY = 'YOUR_FIREBASE_WEB_API_KEY';
 
 // ═══════════════════════════════════════════
 //  ★ 키 / 상수 정의
