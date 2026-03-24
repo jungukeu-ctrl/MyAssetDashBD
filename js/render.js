@@ -500,7 +500,11 @@ function updateLineChart() {
   const AI   = { '해외':0,'오빌':1,'자사주':2,'개인연금저축':3,'별동대':4,'연습':5,'초빌':6,'퇴직연금001':7,'퇴직연금002':8,'ISA':9,'RIA':10 };
   lineChart.data.labels = data.map(r => r.date.slice(0,7));
   lineChart.data.datasets[0].data = data.map(r => MAIN_ACCOUNTS.reduce((s,a) => s+(r.eval[AI[a]]||0), 0));
-  lineChart.data.datasets[1].data = data.map(r => MAIN_ACCOUNTS.reduce((s,a) => s+(r.invest[AI[a]]||0), 0));
+  // RIA는 invest 추적 없음 → eval[10]을 투자금 대리값으로 사용
+  lineChart.data.datasets[1].data = data.map(r => MAIN_ACCOUNTS.reduce((s,a) => {
+    const inv = r.invest[AI[a]] || 0;
+    return s + (a === 'RIA' ? (inv || r.eval[AI[a]] || 0) : inv);
+  }, 0));
   lineChart.update();
 }
 
@@ -514,8 +518,11 @@ function updateReturnChart() {
     return {
       label: IRP_LABEL_RC[acct] || acct,
       data:  data.map(r => {
-        const invest = r.invest[AI[acct]] || 0;   // kiData 월별 누적 invest
         const evalu  = r.eval[AI[acct]]  || 0;
+        // RIA는 invest 추적 없음 → eval을 투자금 대리값으로 사용 (0% 수익률 표시)
+        const invest = acct === 'RIA'
+          ? ((r.invest[AI[acct]] || 0) || evalu)
+          : (r.invest[AI[acct]] || 0);
         if (invest <= 0 || evalu <= 0) return null;
         return parseFloat(((evalu/invest-1)*100).toFixed(2));
       }),
