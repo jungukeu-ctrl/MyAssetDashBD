@@ -112,10 +112,11 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
     {"key": "kiwoom-practice", "name": "연습",  "balance": 숫자},
     {"key": "kiwoom-jasaju",   "name": "자사주","balance": 숫자},
     {"key": "kiwoom-byuldong", "name": "별동대","balance": 숫자},
-    {"key": "kiwoom-chobil",   "name": "초빌",  "balance": 숫자}
+    {"key": "kiwoom-chobil",   "name": "초빌",  "balance": 숫자},
+    {"key": "ria",             "name": "RIA",   "balance": 숫자}
   ]
 }
-계좌번호→key: 5211-3751→kiwoom-overseas, 5128-4051→kiwoom-obil, 5806-1320→kiwoom-practice, 6139-5535→kiwoom-jasaju, 5845-3671→kiwoom-byuldong, 5185-9447→kiwoom-chobil
+계좌번호→key: 5211-3751→kiwoom-overseas, 5128-4051→kiwoom-obil, 5806-1320→kiwoom-practice, 6139-5535→kiwoom-jasaju, 5845-3671→kiwoom-byuldong, 5185-9447→kiwoom-chobil, 6598-2304→ria
 화면에 보이는 계좌만 포함. balance는 총자산 원 단위 정수. date는 오늘 날짜.</div>
       <div class="step-btns">
         <button class="prompt-copy-btn" id="copy-prompt-btn" onclick="copyPrompt()">📋 프롬프트 복사</button>
@@ -182,6 +183,7 @@ const ACCT_MAP = [
   {acct:'6139-5535', key:'kiwoom-jasaju',   name:'자사주',color:'#ff6b6b'},
   {acct:'5845-3671', key:'kiwoom-byuldong', name:'별동대',color:'#c9a84c'},
   {acct:'5185-9447', key:'kiwoom-chobil',   name:'초빌',  color:'#565a70'},
+  {acct:'6598-2304', key:'ria',             name:'RIA',   color:'#ff9f7f'},
 ];
 let resultJson = null;
 
@@ -248,8 +250,8 @@ function generateFromManual() {
 }
 
 function showResult(parsed) {
-  const COLORS = {'kiwoom-overseas':'#6e8efb','kiwoom-obil':'#ffb347','kiwoom-practice':'#4ecdc4','kiwoom-jasaju':'#ff6b6b','kiwoom-byuldong':'#c9a84c','kiwoom-chobil':'#565a70'};
-  const ACCTS  = {'kiwoom-overseas':'5211-3751','kiwoom-obil':'5128-4051','kiwoom-practice':'5806-1320','kiwoom-jasaju':'6139-5535','kiwoom-byuldong':'5845-3671','kiwoom-chobil':'5185-9447'};
+  const COLORS = {'kiwoom-overseas':'#6e8efb','kiwoom-obil':'#ffb347','kiwoom-practice':'#4ecdc4','kiwoom-jasaju':'#ff6b6b','kiwoom-byuldong':'#c9a84c','kiwoom-chobil':'#565a70','ria':'#ff9f7f'};
+  const ACCTS  = {'kiwoom-overseas':'5211-3751','kiwoom-obil':'5128-4051','kiwoom-practice':'5806-1320','kiwoom-jasaju':'6139-5535','kiwoom-byuldong':'5845-3671','kiwoom-chobil':'5185-9447','ria':'6598-2304'};
   document.getElementById('account-cards').innerHTML = parsed.accounts.map(a => `
     <div class="account-card" style="border-left:3px solid ${COLORS[a.key]||'#6e8efb'}40">
       <div class="acc-left">

@@ -17,6 +17,7 @@ const KIWOOM_SNAP_INFO = {
   'kiwoom-jasaju':   { name:'자사주', acct:'6139-5535', color:'#ff6b6b' },
   'kiwoom-byuldong': { name:'별동대', acct:'5845-3671', color:'#c9a84c' },
   'kiwoom-chobil':   { name:'초빌',   acct:'5185-9447', color:'#565a70' },
+  'ria':             { name:'RIA',    acct:'6598-2304', color:'#ff9f7f' },
 };
 
 const PENSION_SNAP_KEYS = ['pension-irp1','pension-irp2','pension-saving','isa','ria'];
@@ -42,7 +43,8 @@ const CAT_COLORS = ['#6e8efb', '#4ecdc4', '#c9a84c'];
 
 const KI_SNAP_IDX = {
   'kiwoom-overseas':0, 'kiwoom-obil':1, 'kiwoom-jasaju':2,
-  'kiwoom-byuldong':4, 'kiwoom-practice':5, 'kiwoom-chobil':6
+  'kiwoom-byuldong':4, 'kiwoom-practice':5, 'kiwoom-chobil':6,
+  'ria':10
 };
 const KI_TOSS_PAIR = {
   'kiwoom-overseas':'toss-overseas',

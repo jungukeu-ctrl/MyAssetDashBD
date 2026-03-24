@@ -120,7 +120,7 @@ function applyKiwoomResult() {
   const { date, accounts } = kiwoomPendingResult;
   const ym = date.slice(0, 7);
   accounts.forEach(a => {
-    if (!KIWOOM_SNAP_KEYS.includes(a.key)) return;
+    if (!KIWOOM_SNAP_KEYS.includes(a.key) && a.key !== 'ria') return;
     state[a.key] = { val: a.balance, date };
   });
   if (!kiData) kiData = { combined: [] };
@@ -131,7 +131,7 @@ function applyKiwoomResult() {
     entry = {
       date, month: ym,
       invest: prev ? [...(prev.invest || new Array(9).fill(0))] : new Array(9).fill(0),
-      eval: new Array(10).fill(0),
+      eval: new Array(11).fill(0),
       _hasToss: true,
     };
     kiData.combined.push(entry);
@@ -139,7 +139,8 @@ function applyKiwoomResult() {
   } else {
     entry.date = date;
     entry._hasToss = true;
-    if (!entry.eval) entry.eval = new Array(10).fill(0);
+    if (!entry.eval) entry.eval = new Array(11).fill(0);
+    else if (entry.eval.length < 11) entry.eval.push(...new Array(11 - entry.eval.length).fill(0));
   }
   accounts.forEach(a => {
     const idx     = KI_SNAP_IDX[a.key];
@@ -233,14 +234,15 @@ function applyPensionResult() {
     entry = {
       date, month: ym,
       invest: prev ? [...(prev.invest || new Array(9).fill(0))] : new Array(9).fill(0),
-      eval: new Array(10).fill(0),
+      eval: new Array(11).fill(0),
       _hasToss: true,
     };
     kiData.combined.push(entry);
     kiData.combined.sort((a, b) => (a.date || a.month || '').localeCompare(b.date || b.month || ''));
   } else {
     entry.date = date;
-    if (!entry.eval) entry.eval = new Array(10).fill(0);
+    if (!entry.eval) entry.eval = new Array(11).fill(0);
+    else if (entry.eval.length < 11) entry.eval.push(...new Array(11 - entry.eval.length).fill(0));
     entry._hasToss = true;
   }
   accounts.forEach(a => {
@@ -380,7 +382,7 @@ function applyKiwoomTransferResult() {
         entry = {
           date: ym + '-28', month: ym,
           invest: prev ? [...(prev.invest || new Array(9).fill(0))] : new Array(9).fill(0),
-          eval: new Array(10).fill(0),
+          eval: new Array(11).fill(0),
         };
         kiData.combined.push(entry);
         kiData.combined.sort((a,b) => (a.date||a.month||'').localeCompare(b.date||b.month||''));
@@ -401,7 +403,7 @@ function applyKiwoomTransferResult() {
         entry = {
           date: row.date, month: ym,
           invest: prev ? [...(prev.invest || new Array(9).fill(0))] : new Array(9).fill(0),
-          eval: new Array(10).fill(0),
+          eval: new Array(11).fill(0),
         };
         kiData.combined.push(entry);
         kiData.combined.sort((a,b) => (a.date||a.month||'').localeCompare(b.date||b.month||''));
@@ -531,13 +533,14 @@ function applyIsaEvalModal() {
     entry = {
       date, month: ym,
       invest: prev ? [...(prev.invest || new Array(9).fill(0))] : new Array(9).fill(0),
-      eval: new Array(10).fill(0),
+      eval: new Array(11).fill(0),
     };
     kiData.combined.push(entry);
     kiData.combined.sort((a, b) => (a.date || a.month || '').localeCompare(b.date || b.month || ''));
   } else {
     entry.date = date;
-    if (!entry.eval) entry.eval = new Array(10).fill(0);
+    if (!entry.eval) entry.eval = new Array(11).fill(0);
+    else if (entry.eval.length < 11) entry.eval.push(...new Array(11 - entry.eval.length).fill(0));
     else if (entry.eval.length < 10) entry.eval.push(0);
   }
   entry.eval[9] = val;
