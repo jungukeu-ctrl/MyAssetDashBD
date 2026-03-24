@@ -129,5 +129,5 @@ function _initCore() {
   if (kiData) renderKiwoom();
 }
 
-// ★ 페이지 로드 시 실행
-init();
+// ★ 페이지 로드 시 실행 — Firebase 인증 확인 후 앱 초기화
+checkAndInitAuth_(init);
