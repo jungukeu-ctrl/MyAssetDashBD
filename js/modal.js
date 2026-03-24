@@ -131,7 +131,7 @@ function applyKiwoomResult() {
     entry = {
       date, month: ym,
       invest: prev ? [...(prev.invest || new Array(9).fill(0))] : new Array(9).fill(0),
-      eval: new Array(10).fill(0),
+      eval: new Array(11).fill(0),
       _hasToss: true,
     };
     kiData.combined.push(entry);
@@ -139,7 +139,7 @@ function applyKiwoomResult() {
   } else {
     entry.date = date;
     entry._hasToss = true;
-    if (!entry.eval) entry.eval = new Array(10).fill(0);
+    if (!entry.eval) entry.eval = new Array(11).fill(0);
   }
   accounts.forEach(a => {
     const idx     = KI_SNAP_IDX[a.key];

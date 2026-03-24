@@ -9,9 +9,10 @@ const FIREBASE_URL = 'https://my-asset-dashboard-9e6f9-default-rtdb.asia-southea
 const MANUAL_KEYS = ['apt-owned','apt-rent','bank-housing','bank-rent','bank-general','stock-kr1','stock-kr2','stock-us','irp1','irp2','pension-natl'];
 const TOSS_KEYS   = ['toss-obil','toss-overseas','toss-pension','toss-practice'];
 
-const KIWOOM_SNAP_KEYS = ['kiwoom-overseas','kiwoom-obil','kiwoom-practice','kiwoom-jasaju','kiwoom-byuldong','kiwoom-chobil'];
+const KIWOOM_SNAP_KEYS = ['kiwoom-overseas','kiwoom-ria','kiwoom-obil','kiwoom-practice','kiwoom-jasaju','kiwoom-byuldong','kiwoom-chobil'];
 const KIWOOM_SNAP_INFO = {
   'kiwoom-overseas': { name:'해외',   acct:'5211-3751', color:'#6e8efb' },
+  'kiwoom-ria':      { name:'RIA',    acct:'6598-2304', color:'#ff9f7f' },
   'kiwoom-obil':     { name:'오빌',   acct:'5128-4051', color:'#ffb347' },
   'kiwoom-practice': { name:'연습',   acct:'5806-1320', color:'#4ecdc4' },
   'kiwoom-jasaju':   { name:'자사주', acct:'6139-5535', color:'#ff6b6b' },
@@ -42,7 +43,8 @@ const CAT_COLORS = ['#6e8efb', '#4ecdc4', '#c9a84c'];
 
 const KI_SNAP_IDX = {
   'kiwoom-overseas':0, 'kiwoom-obil':1, 'kiwoom-jasaju':2,
-  'kiwoom-byuldong':4, 'kiwoom-practice':5, 'kiwoom-chobil':6
+  'kiwoom-byuldong':4, 'kiwoom-practice':5, 'kiwoom-chobil':6,
+  'kiwoom-ria':10
 };
 const KI_TOSS_PAIR = {
   'kiwoom-overseas':'toss-overseas',
