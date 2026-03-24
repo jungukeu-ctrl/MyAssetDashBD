@@ -178,12 +178,13 @@ asset-data/
 | PENSION-CARD | 개인연금저축 카드 통합 — 배지/이름 변경, 표시금액·투자금 = 삼성증권 eval/invest[3] + toss-pension.val 합산 | `index.html`, `render.js` | 2026-03-20 |
 | CHART-ISA-RIA | ISA(eval[9])/RIA(eval[10]) 포트폴리오 차트 3종 추가 — MAIN_ACCOUNTS 확장, ACCT_COLORS 추가, AI 매핑 업데이트, kiwoom-cards 중복 방지(CHART_ONLY_ACCOUNTS 필터) | `config.js`, `render.js` | 2026-03-20 |
 | BUG-FIREBASE | Firebase 저장 방식 PUT → PATCH 변경 — pension-tracker 키 보존 (PUT은 asset-data 전체 교체로 pension-tracker 삭제됨) | `firebase.js` | 2026-03-23 |
+| RIA-SNAP | kiwoom-ria(6598-2304) 스냅샷 지원 — eval[10] 차트/합계 반영 | `config.js`, `render.js` | 2026-03-24 |
 
 ---
 
 ## 5. 남은 작업 목록
 
-> **현재 남은 작업 없음** — Phase 1 + 버그픽스 + 개인연금저축 카드 통합 + ISA/RIA 차트 추가 + Firebase PUT→PATCH 버그픽스 완료.
+> **현재 남은 작업 없음** — Phase 1 + 버그픽스 + 개인연금저축 카드 통합 + ISA/RIA 차트 추가 + Firebase PUT→PATCH 버그픽스 + RIA eval[10] 연동 완료.
 
 ---
 
@@ -192,8 +193,9 @@ asset-data/
 | 브랜치 | 상태 | 비고 |
 |--------|------|------|
 | `claude/auto-sync-pension-data-iqIFx` | ✅ 머지 완료 (2026-03-19) | PR #12 |
-| `claude/fix-transaction-sync-m8PrB` | ✅ GitHub push 완료 (2026-03-20) | IRP1 인식 + ISA 동기화 버그픽스 |
-| `main` ← `claude/fix-transaction-sync-m8PrB` | ⏳ PR 머지 대기 | GitHub 웹에서 머지 필요 |
+| `claude/fix-transaction-sync-m8PrB` | ✅ 머지 완료 | IRP1 인식 + ISA 동기화 버그픽스 |
+| `claude/fix-firebase-data-reset-0VePA` | ✅ 머지 완료 | Firebase PUT→PATCH 버그픽스 |
+| `claude/add-kiwoom-ria-support-Rhc1C` | ✅ 머지 완료 (PR #28, 2026-03-24) | kiwoom-ria 스냅샷 지원 및 차트/합계 반영 |
 
 ---
 
