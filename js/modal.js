@@ -140,6 +140,16 @@ function applyKiwoomResult() {
     entry.date = date;
     entry._hasToss = true;
     if (!entry.eval) entry.eval = new Array(11).fill(0);
+    // invest 동기화: 직전 entry invest가 더 높은 항목만 갱신
+    // (이체내역을 뒤늦게 적용한 경우 이후 월이 구 값으로 남는 문제 해소)
+    const ei = kiData.combined.indexOf(entry);
+    const prevE = ei > 0 ? kiData.combined[ei - 1] : null;
+    if (prevE?.invest) {
+      if (!entry.invest) entry.invest = [];
+      prevE.invest.forEach((v, i) => {
+        if (i !== 10 && (v || 0) > (entry.invest[i] || 0)) entry.invest[i] = v;
+      });
+    }
   }
   accounts.forEach(a => {
     const idx     = KI_SNAP_IDX[a.key];
