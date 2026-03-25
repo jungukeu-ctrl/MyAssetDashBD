@@ -4,10 +4,12 @@
 let donutChart = null, barChart = null, lineChart = null, returnChart = null;
 let barChartSelectedMonth = null; // null = latest
 
-// RIA 투자금 조정 헬퍼 (라인·바·요약 전용)
-// invest[0](해외)에 RIA 이전금이 포함되어 있으므로 invest[10]은 별도 추가하지 않음.
-// 개별 수익률 차트(updateReturnChart)에서만 investVal 폴백 별도 적용.
+// RIA 투자금 조정 헬퍼 (선 그래프·요약 totalInvest 전용)
+// invest[0](해외)에 RIA 이전금이 이미 포함되어 있으므로 invest[10]은 총합에서 제외.
+// stale kiData.invest[10] 값도 이 함수로 무력화됨.
+// 막대그래프·수익률 차트의 RIA는 각 위치에서 state['ria'].investVal 별도 사용.
 function _adjInvest(r, idx) {
+  if (idx === 10) return 0;
   return r.invest?.[idx] || 0;
 }
 
@@ -143,10 +145,9 @@ function renderAll() {
     }
   }
 
-  // ISA·RIA 수동 카드 렌더 (작업 F/G)
+  // ISA 수동 카드 렌더 (작업 F)
   [
     { key: 'isa', color: '#5bc8af', evalIdx: 9 },
-    { key: 'ria', color: '#ff9f7f', evalIdx: null },
   ].forEach(({ key, color, evalIdx }) => {
     const d      = state[key];
     const valEl  = document.getElementById('val-' + key);
@@ -455,7 +456,10 @@ function renderKiwoom() {
 function updateBarChart(latest, AI) {
   if (!barChart) return;
   const IRP_LABEL_B = { '퇴직연금001':'IRP 1', '퇴직연금002':'IRP 2' };
-  const investData  = MAIN_ACCOUNTS.map(a => _adjInvest(latest, AI[a]));
+  const investData  = MAIN_ACCOUNTS.map(a => {
+    if (a === 'RIA') return (latest.eval[AI['RIA']] > 0) ? (state['ria']?.investVal || 0) : 0;
+    return _adjInvest(latest, AI[a]);
+  });
   const evalData   = MAIN_ACCOUNTS.map(a => latest.eval[AI[a]] || 0);
   barChart.data.labels = MAIN_ACCOUNTS.map(a => IRP_LABEL_B[a] || a);
   barChart.data.datasets[0].data = investData;
