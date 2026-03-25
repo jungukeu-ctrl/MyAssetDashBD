@@ -572,16 +572,6 @@ function applyRiaModal() {
   const date      = document.getElementById('ria-date-input').value;
   if (!val || !date) return;
   state['ria'] = { val, date, investVal };
-  // invest[10] 갱신 — eval[10] > 0 인 모든 항목에 매입금액 반영
-  if (investVal > 0 && kiData?.combined) {
-    kiData.combined.forEach(entry => {
-      if ((entry.eval?.[10] || 0) > 0) {
-        if (!entry.invest) entry.invest = [];
-        entry.invest[10] = investVal;
-      }
-    });
-    localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
-  }
   save();
   renderAll();
   if (typeof renderKiwoom === 'function') renderKiwoom();

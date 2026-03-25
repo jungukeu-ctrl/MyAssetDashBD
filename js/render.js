@@ -4,14 +4,10 @@
 let donutChart = null, barChart = null, lineChart = null, returnChart = null;
 let barChartSelectedMonth = null; // null = latest
 
-// RIA 투자금 조정 헬퍼
-// - invest[10](RIA): kiData 저장값 우선, 없으면 state['ria'].investVal 사용
-// - invest[0](해외): kiData 원본 그대로 (이미 계좌이전 반영된 값이므로 건드리지 않음)
+// RIA 투자금 조정 헬퍼 (라인·바·요약 전용)
+// invest[0](해외)에 RIA 이전금이 포함되어 있으므로 invest[10]은 별도 추가하지 않음.
+// 개별 수익률 차트(updateReturnChart)에서만 investVal 폴백 별도 적용.
 function _adjInvest(r, idx) {
-  if (idx === 10) {
-    const riaActive = (r.eval?.[10] || 0) > 0;
-    return r.invest?.[10] || (riaActive ? (state['ria']?.investVal || 0) : 0);
-  }
   return r.invest?.[idx] || 0;
 }
 
@@ -526,7 +522,8 @@ function updateReturnChart() {
       label: IRP_LABEL_RC[acct] || acct,
       data:  data.map(r => {
         const evalu  = r.eval[AI[acct]] || 0;
-        const invest = _adjInvest(r, AI[acct]);
+        // RIA는 kiData invest[10]이 없을 수 있어 investVal 폴백 사용 (개별 수익률 전용)
+        const invest = r.invest?.[AI[acct]] || (acct === 'RIA' ? (state['ria']?.investVal || 0) : 0);
         if (invest <= 0 || evalu <= 0) return null;
         return parseFloat(((evalu/invest-1)*100).toFixed(2));
       }),
