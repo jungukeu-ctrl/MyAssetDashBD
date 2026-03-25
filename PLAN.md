@@ -179,6 +179,7 @@ asset-data/
 | CHART-ISA-RIA | ISA(eval[9])/RIA(eval[10]) 포트폴리오 차트 3종 추가 — MAIN_ACCOUNTS 확장, ACCT_COLORS 추가, AI 매핑 업데이트, kiwoom-cards 중복 방지(CHART_ONLY_ACCOUNTS 필터) | `config.js`, `render.js` | 2026-03-20 |
 | BUG-FIREBASE | Firebase 저장 방식 PUT → PATCH 변경 — pension-tracker 키 보존 (PUT은 asset-data 전체 교체로 pension-tracker 삭제됨) | `firebase.js` | 2026-03-23 |
 | RIA-SNAP | kiwoom-ria(6598-2304) 스냅샷 지원 — eval[10] 차트/합계 반영 | `config.js`, `render.js` | 2026-03-24 |
+| BUG-RIA-INVEST | RIA 투자금 이중계산 수정 — _adjInvest 헬퍼: invest[0](해외)에서 RIA 매입금 차감, invest[10]에 매입금 반영, RIA 모달에 매입금액 입력 필드 추가 | `index.html`, `modal.js`, `render.js` | 2026-03-25 |
 
 ---
 
