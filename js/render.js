@@ -6,12 +6,12 @@ let barChartSelectedMonth = null; // null = latest
 
 // RIA 투자금 조정 헬퍼
 // - invest[10](RIA): kiData 저장값 우선, 없으면 state['ria'].investVal 사용
-// - invest[0](해외): RIA 활성 월에 한해 RIA 매입금 차감 (계좌이전 이중계산 방지)
+// - invest[0](해외): kiData 원본 그대로 (이미 계좌이전 반영된 값이므로 건드리지 않음)
 function _adjInvest(r, idx) {
-  const riaActive = (r.eval?.[10] || 0) > 0;
-  const riaInv    = r.invest?.[10] || (riaActive ? (state['ria']?.investVal || 0) : 0);
-  if (idx === 0)  return Math.max(0, (r.invest?.[0] || 0) - (riaActive ? riaInv : 0));
-  if (idx === 10) return riaInv;
+  if (idx === 10) {
+    const riaActive = (r.eval?.[10] || 0) > 0;
+    return r.invest?.[10] || (riaActive ? (state['ria']?.investVal || 0) : 0);
+  }
   return r.invest?.[idx] || 0;
 }
 
