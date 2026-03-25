@@ -560,16 +560,28 @@ function closeIsaEvalModal() {
 // ═══════════════════════════════════════════
 function openRiaModal() {
   const d = state['ria'] || {};
-  document.getElementById('ria-val-input').value  = d.val  || '';
-  document.getElementById('ria-date-input').value = d.date || new Date().toISOString().slice(0, 10);
+  document.getElementById('ria-val-input').value     = d.val       || '';
+  document.getElementById('ria-invest-input').value  = d.investVal || '';
+  document.getElementById('ria-date-input').value    = d.date || new Date().toISOString().slice(0, 10);
   document.getElementById('ria-modal').style.display = 'flex';
 }
 
 function applyRiaModal() {
-  const val  = parseInt(document.getElementById('ria-val-input').value, 10);
-  const date = document.getElementById('ria-date-input').value;
+  const val       = parseInt(document.getElementById('ria-val-input').value,    10);
+  const investVal = parseInt(document.getElementById('ria-invest-input').value, 10) || 0;
+  const date      = document.getElementById('ria-date-input').value;
   if (!val || !date) return;
-  state['ria'] = { val, date };
+  state['ria'] = { val, date, investVal };
+  // invest[10] 갱신 — eval[10] > 0 인 모든 항목에 매입금액 반영
+  if (investVal > 0 && kiData?.combined) {
+    kiData.combined.forEach(entry => {
+      if ((entry.eval?.[10] || 0) > 0) {
+        if (!entry.invest) entry.invest = [];
+        entry.invest[10] = investVal;
+      }
+    });
+    localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
+  }
   save();
   renderAll();
   if (typeof renderKiwoom === 'function') renderKiwoom();

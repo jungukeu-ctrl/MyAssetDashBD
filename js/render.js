@@ -4,6 +4,17 @@
 let donutChart = null, barChart = null, lineChart = null, returnChart = null;
 let barChartSelectedMonth = null; // null = latest
 
+// RIA 투자금 조정 헬퍼
+// - invest[10](RIA): kiData 저장값 우선, 없으면 state['ria'].investVal 사용
+// - invest[0](해외): RIA 활성 월에 한해 RIA 매입금 차감 (계좌이전 이중계산 방지)
+function _adjInvest(r, idx) {
+  const riaActive = (r.eval?.[10] || 0) > 0;
+  const riaInv    = r.invest?.[10] || (riaActive ? (state['ria']?.investVal || 0) : 0);
+  if (idx === 0)  return Math.max(0, (r.invest?.[0] || 0) - (riaActive ? riaInv : 0));
+  if (idx === 10) return riaInv;
+  return r.invest?.[idx] || 0;
+}
+
 // ═══════════════════════════════════════════
 //  ★ 스냅샷 카드 렌더
 // ═══════════════════════════════════════════
@@ -330,8 +341,8 @@ function renderKiwoom() {
   let totalInvest = 0, totalEval = 0;
   MAIN_ACCOUNTS.forEach(a => {
     const i = AI[a];
-    totalInvest += latest.invest[i] || 0;
-    totalEval   += latest.eval[i]   || 0;
+    totalInvest += _adjInvest(latest, i);
+    totalEval   += latest.eval[i] || 0;
   });
 
   const totalPnl = totalEval - totalInvest;
@@ -363,7 +374,7 @@ function renderKiwoom() {
     const d = state[key];
     const badgeSuffix = key === 'isa' ? '거래내역' : (d?.source === 'transaction' ? '거래내역' : '수동입력');
     const evalu  = (evalIdx !== null && latest.eval) ? (latest.eval[evalIdx] || 0) : 0;
-    const invest = d?.val || 0;
+    const invest = key === 'ria' ? (d?.investVal || 0) : (d?.val || 0);
 
     if (evalu > 0 && invest > 0) {
       // IRP와 동일한 구조: 평가금액 + 투자금 + 수익/수익률 + 바 차트
@@ -448,7 +459,7 @@ function renderKiwoom() {
 function updateBarChart(latest, AI) {
   if (!barChart) return;
   const IRP_LABEL_B = { '퇴직연금001':'IRP 1', '퇴직연금002':'IRP 2' };
-  const investData  = MAIN_ACCOUNTS.map(a => latest.invest[AI[a]] || 0);
+  const investData  = MAIN_ACCOUNTS.map(a => _adjInvest(latest, AI[a]));
   const evalData   = MAIN_ACCOUNTS.map(a => latest.eval[AI[a]] || 0);
   barChart.data.labels = MAIN_ACCOUNTS.map(a => IRP_LABEL_B[a] || a);
   barChart.data.datasets[0].data = investData;
@@ -500,11 +511,7 @@ function updateLineChart() {
   const AI   = { '해외':0,'오빌':1,'자사주':2,'개인연금저축':3,'별동대':4,'연습':5,'초빌':6,'퇴직연금001':7,'퇴직연금002':8,'ISA':9,'RIA':10 };
   lineChart.data.labels = data.map(r => r.date.slice(0,7));
   lineChart.data.datasets[0].data = data.map(r => MAIN_ACCOUNTS.reduce((s,a) => s+(r.eval[AI[a]]||0), 0));
-  // RIA는 invest 추적 없음 → eval[10]을 투자금 대리값으로 사용
-  lineChart.data.datasets[1].data = data.map(r => MAIN_ACCOUNTS.reduce((s,a) => {
-    const inv = r.invest[AI[a]] || 0;
-    return s + (a === 'RIA' ? (inv || r.eval[AI[a]] || 0) : inv);
-  }, 0));
+  lineChart.data.datasets[1].data = data.map(r => MAIN_ACCOUNTS.reduce((s,a) => s + _adjInvest(r, AI[a]), 0));
   lineChart.update();
 }
 
@@ -518,11 +525,8 @@ function updateReturnChart() {
     return {
       label: IRP_LABEL_RC[acct] || acct,
       data:  data.map(r => {
-        const evalu  = r.eval[AI[acct]]  || 0;
-        // RIA는 invest 추적 없음 → eval을 투자금 대리값으로 사용 (0% 수익률 표시)
-        const invest = acct === 'RIA'
-          ? ((r.invest[AI[acct]] || 0) || evalu)
-          : (r.invest[AI[acct]] || 0);
+        const evalu  = r.eval[AI[acct]] || 0;
+        const invest = _adjInvest(r, AI[acct]);
         if (invest <= 0 || evalu <= 0) return null;
         return parseFloat(((evalu/invest-1)*100).toFixed(2));
       }),
