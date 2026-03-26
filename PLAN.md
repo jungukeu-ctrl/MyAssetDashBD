@@ -180,6 +180,7 @@ asset-data/
 | BUG-FIREBASE | Firebase 저장 방식 PUT → PATCH 변경 — pension-tracker 키 보존 (PUT은 asset-data 전체 교체로 pension-tracker 삭제됨) | `firebase.js` | 2026-03-23 |
 | RIA-SNAP | kiwoom-ria(6598-2304) 스냅샷 지원 — eval[10] 차트/합계 반영 | `config.js`, `render.js` | 2026-03-24 |
 | BUG-RIA-INVEST | RIA 투자금 이중계산 수정 — _adjInvest 헬퍼: invest[0](해외)에서 RIA 매입금 차감, invest[10]에 매입금 반영, RIA 모달에 매입금액 입력 필드 추가 | `index.html`, `modal.js`, `render.js` | 2026-03-25 |
+| BUG-TOSS-INVEST | 선 그래프 총 투자금 점선에 toss 모으기 잔고 미반영 수정 — 최신 데이터 포인트에 toss-pension/overseas/obil/practice 잔고 합산. 해외→toss 이전 시 투자금 감소처럼 보이던 구조적 버그 해소 | `render.js` | 2026-03-26 |
 
 ---
 
