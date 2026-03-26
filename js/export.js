@@ -134,14 +134,21 @@ document.getElementById('toss-input').addEventListener('change', function(e) {
             de.textContent = r.isFallback ? '최종 데이터: ' + r.date + ' (이번 달 미조회)' : '기준: ' + r.date;
             de.style.color = r.isFallback ? 'var(--orange)' : '';
           }
+          // tossHistory 해당 월 자동 업데이트
+          if (kiData && r.date) {
+            const ym = r.date.slice(0, 7);
+            if (!kiData.tossHistory) kiData.tossHistory = {};
+            if (!kiData.tossHistory[key]) kiData.tossHistory[key] = {};
+            kiData.tossHistory[key][ym] = r.balance;
+          }
           // toss-pension 갱신 시 eval[3] 재계산 (pension-saving + 새 toss값)
           if (key === 'toss-pension' && kiData?.combined?.length) {
             const latest = kiData.combined[kiData.combined.length - 1];
             if (!latest.eval) latest.eval = [];
             const pensionSavingVal = state['pension-saving']?.val || 0;
             latest.eval[3] = pensionSavingVal + r.balance;
-            localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
           }
+          if (kiData) localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
         }
       });
       save(); renderAll();
