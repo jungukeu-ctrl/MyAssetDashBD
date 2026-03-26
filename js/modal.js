@@ -52,10 +52,18 @@ function parseJsonPaste() {
 function applyAiResult() {
   if (!aiPendingResult) return;
   const { date, accounts } = aiPendingResult;
+  const ym = date.slice(0, 7);
   accounts.forEach(a => {
     if (!a.key || !TOSS_KEYS.includes(a.key)) return;
     state[a.key] = { val: a.balance, date, isFallback: false };
+    // tossHistory 해당 월 자동 업데이트
+    if (kiData) {
+      if (!kiData.tossHistory) kiData.tossHistory = {};
+      if (!kiData.tossHistory[a.key]) kiData.tossHistory[a.key] = {};
+      kiData.tossHistory[a.key][ym] = a.balance;
+    }
   });
+  if (kiData) localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
   save();
   renderAll();
   if (typeof renderKiwoom === 'function') renderKiwoom();
@@ -723,3 +731,4 @@ function applyTransferData(type) {
     .join(', ');
   alert(`[${labels}] 과거 기록을 보존하며 ${monthStr} 투자금을 성공적으로 업데이트했습니다.`);
 }
+

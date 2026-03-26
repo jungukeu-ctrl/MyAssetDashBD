@@ -36,9 +36,15 @@ function exportMonthlyXlsx() {
     return [e.date || e.month, ...AI_NAMES.map((_, i) => ev[i] || 0), mainSum];
   });
 
-  // 2. 월별 투자금
+  // 2. 월별 투자금 (tossHistory 합산)
+  const th = kiData?.tossHistory || {};
   const investRows = combined.map(e => {
-    const inv     = e.invest || new Array(11).fill(0);
+    const inv = [...(e.invest || new Array(11).fill(0))]; // 원본 보존을 위해 복사
+    const ym  = (e.date || e.month || '').slice(0, 7);
+    inv[0] = (inv[0] || 0) + (th['toss-overseas']?.[ym] || 0);
+    inv[1] = (inv[1] || 0) + (th['toss-obil']?.[ym]     || 0);
+    inv[3] = (inv[3] || 0) + (th['toss-pension']?.[ym]  || 0);
+    inv[5] = (inv[5] || 0) + (th['toss-practice']?.[ym] || 0);
     const mainSum = MAIN_IDX.reduce((s, i) => s + (inv[i] || 0), 0);
     return [e.date || e.month, ...AI_NAMES.map((_, i) => inv[i] || 0), mainSum];
   });
@@ -128,14 +134,21 @@ document.getElementById('toss-input').addEventListener('change', function(e) {
             de.textContent = r.isFallback ? '최종 데이터: ' + r.date + ' (이번 달 미조회)' : '기준: ' + r.date;
             de.style.color = r.isFallback ? 'var(--orange)' : '';
           }
+          // tossHistory 해당 월 자동 업데이트
+          if (kiData && r.date) {
+            const ym = r.date.slice(0, 7);
+            if (!kiData.tossHistory) kiData.tossHistory = {};
+            if (!kiData.tossHistory[key]) kiData.tossHistory[key] = {};
+            kiData.tossHistory[key][ym] = r.balance;
+          }
           // toss-pension 갱신 시 eval[3] 재계산 (pension-saving + 새 toss값)
           if (key === 'toss-pension' && kiData?.combined?.length) {
             const latest = kiData.combined[kiData.combined.length - 1];
             if (!latest.eval) latest.eval = [];
             const pensionSavingVal = state['pension-saving']?.val || 0;
             latest.eval[3] = pensionSavingVal + r.balance;
-            localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
           }
+          if (kiData) localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
         }
       });
       save(); renderAll();
