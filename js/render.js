@@ -4,12 +4,14 @@
 let donutChart = null, barChart = null, lineChart = null, returnChart = null;
 let barChartSelectedMonth = null; // null = latest
 
-// RIA 투자금 조정 헬퍼 (선 그래프·요약 totalInvest 전용)
-// invest[0](해외)에 RIA 이전금이 이미 포함되어 있으므로 invest[10]은 총합에서 제외.
-// stale kiData.invest[10] 값도 이 함수로 무력화됨.
-// 막대그래프·수익률 차트의 RIA는 각 위치에서 state['ria'].investVal 별도 사용.
+// RIA 투자금 조정 헬퍼 (선 그래프·요약 totalInvest·막대그래프 공용)
+// RIA는 2026-03에 해외계좌에서 주식 출고됨 → invest[0]에 RIA 매입금 포함된 채로 집계됨.
+// 2026-03 이후 월만 해외(idx=0)에서 RIA 매입금 차감, RIA(idx=10)에 복원 → 총합 불변.
 function _adjInvest(r, idx) {
-  if (idx === 10) return 0;
+  const riaInvest = state['ria']?.investVal || 0;
+  const afterRia  = (r.date?.slice(0, 7) || '') >= '2026-03';
+  if (idx === 10) return afterRia ? riaInvest : 0;
+  if (idx === 0)  return (r.invest?.[0] || 0) - (afterRia ? riaInvest : 0);
   return r.invest?.[idx] || 0;
 }
 
@@ -402,7 +404,8 @@ function renderKiwoom() {
     const i        = AI[acct];
     const tossKey  = ACCT_TOSS_KEY[acct];
     const tossVal  = tossKey ? (state[tossKey]?.val || 0) : 0;
-    const invest   = (latest.invest[i] || 0) + tossVal;
+    const riaAdj   = (i === 0) ? (state['ria']?.investVal || 0) : 0;
+    const invest   = (latest.invest[i] || 0) + tossVal - riaAdj;
     const evalu    = latest.eval[i]   || 0;
     const pnl    = evalu - invest;
     const pct    = invest > 0 ? (evalu / invest - 1) * 100 : 0;
@@ -522,8 +525,11 @@ function updateReturnChart() {
       label: IRP_LABEL_RC[acct] || acct,
       data:  data.map(r => {
         const evalu  = r.eval[AI[acct]] || 0;
-        // RIA는 kiData invest[10]이 없을 수 있어 investVal 폴백 사용 (개별 수익률 전용)
-        const invest = r.invest?.[AI[acct]] || (acct === 'RIA' ? (state['ria']?.investVal || 0) : 0);
+        // RIA: investVal 사용. 해외: 2026-03 이후 RIA 매입금 차감(출고 보정).
+        const riaInvest = state['ria']?.investVal || 0;
+        const afterRia  = (r.date?.slice(0, 7) || '') >= '2026-03';
+        const rawInvest = r.invest?.[AI[acct]] || (acct === 'RIA' ? riaInvest : 0);
+        const invest    = acct === '해외' ? rawInvest - (afterRia ? riaInvest : 0) : rawInvest;
         if (invest <= 0 || evalu <= 0) return null;
         return parseFloat(((evalu/invest-1)*100).toFixed(2));
       }),
