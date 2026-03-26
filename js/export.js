@@ -87,6 +87,17 @@ function exportMonthlyXlsx() {
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['날짜', ...AI_NAMES, '합계(주요8계좌)'], ...investRows]), '월별투자금');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['날짜', ...AI_NAMES, '전체수익률(%)'],    ...retRows]),    '월별수익률(%)');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(snapRows), '스냅샷현황');
+
+  // 토스모으기이력 시트
+  const tossLabels = { 'toss-overseas':'해외', 'toss-pension':'개인연금저축', 'toss-obil':'오빌', 'toss-practice':'연습' };
+  const tossKeys   = Object.keys(tossLabels);
+  const thAll      = kiData?.tossHistory || {};
+  const allYms     = [...new Set(tossKeys.flatMap(k => Object.keys(thAll[k] || {})))].sort();
+  const tossRows   = allYms.map(ym =>
+    [ym, ...tossKeys.map(k => thAll[k]?.[ym] || 0)]
+  );
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['월', ...Object.values(tossLabels)], ...tossRows]), '토스모으기이력');
+
   XLSX.writeFile(wb, `asset_monthly_${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
 
