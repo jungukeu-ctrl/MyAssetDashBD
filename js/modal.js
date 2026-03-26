@@ -573,22 +573,49 @@ function closeIsaEvalModal() {
 }
 
 // ═══════════════════════════════════════════
-//  ★ RIA 잔액 입력 모달
+//  ★ RIA 매입금액 입력 모달
 // ═══════════════════════════════════════════
+// SPY 고정 정보 (매입평단·수량 변경 시 여기서 수정)
+const _RIA_SPY_AVG_USD  = 463.8826;
+const _RIA_SPY_SHARES   = 52;
+const _RIA_SPY_TOTAL_USD = _RIA_SPY_AVG_USD * _RIA_SPY_SHARES; // 24,121.8952 USD
+
+async function _fetchRiaFxRate() {
+  const fxEl    = document.getElementById('ria-fx-info');
+  const investEl = document.getElementById('ria-invest-input');
+  fxEl.textContent = '환율 조회 중...';
+  try {
+    const res  = await fetch('https://open.er-api.com/v6/latest/USD');
+    const data = await res.json();
+    const rate = Math.round(data.rates.KRW);
+    const calc = Math.round(_RIA_SPY_TOTAL_USD * rate);
+    fxEl.innerHTML =
+      `USD/KRW <strong style="color:#ff9f7f">${rate.toLocaleString()}원</strong> &nbsp;·&nbsp; ` +
+      `${_RIA_SPY_AVG_USD} × ${_RIA_SPY_SHARES}주 = ` +
+      `<strong style="color:var(--text)">${_RIA_SPY_TOTAL_USD.toLocaleString(undefined,{maximumFractionDigits:4})} USD</strong>` +
+      ` × ${rate.toLocaleString()} = ` +
+      `<strong style="color:#ff9f7f">${calc.toLocaleString()}원</strong>`;
+    // 기존 저장값 없으면 자동 채우기
+    if (!investEl.value) investEl.value = calc;
+  } catch (e) {
+    fxEl.textContent = '환율 조회 실패 — 직접 입력하세요';
+  }
+}
+
 function openRiaModal() {
   const d = state['ria'] || {};
-  document.getElementById('ria-val-input').value     = d.val       || '';
-  document.getElementById('ria-invest-input').value  = d.investVal || '';
-  document.getElementById('ria-date-input').value    = d.date || new Date().toISOString().slice(0, 10);
+  document.getElementById('ria-invest-input').value = d.investVal || '';
+  document.getElementById('ria-date-input').value   = d.date || new Date().toISOString().slice(0, 10);
   document.getElementById('ria-modal').style.display = 'flex';
+  _fetchRiaFxRate();
 }
 
 function applyRiaModal() {
-  const val       = parseInt(document.getElementById('ria-val-input').value,    10);
   const investVal = parseInt(document.getElementById('ria-invest-input').value, 10) || 0;
   const date      = document.getElementById('ria-date-input').value;
-  if (!val || !date) return;
-  state['ria'] = { val, date, investVal };
+  if (!date) return;
+  const prev = state['ria'] || {};
+  state['ria'] = { val: prev.val || 0, date, investVal };
   save();
   renderAll();
   if (typeof renderKiwoom === 'function') renderKiwoom();

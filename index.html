@@ -241,19 +241,17 @@
     </div>
   </div>
 
-  <!-- RIA 잔액 입력 모달 -->
+  <!-- RIA 매입금액 입력 모달 -->
   <div id="ria-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:200;align-items:center;justify-content:center">
     <div class="ai-modal-box" style="border-color:rgba(255,159,127,0.3)">
-      <div class="ai-modal-title" style="color:#ff9f7f">RIA(키움) 잔액 입력</div>
-      <div class="ai-modal-sub">RIA 계좌 현재 잔액을 원 단위로 입력하세요.<br><span style="font-size:10px;color:var(--text3)">OBil(오빌)과는 별개 계좌입니다.</span></div>
-      <div style="margin-bottom:12px">
-        <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:5px">잔액 (원)</label>
-        <input type="number" id="ria-val-input" placeholder="예: 5000000"
-          style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:10px 14px;border-radius:8px;font-size:14px;outline:none;font-family:'DM Mono',monospace;box-sizing:border-box">
+      <div class="ai-modal-title" style="color:#ff9f7f">RIA(키움) 매입금액 입력</div>
+      <div class="ai-modal-sub">SPY 매입금액을 당일 환율로 자동 계산합니다.<br><span style="font-size:10px;color:var(--text3)">평가 잔액은 키움 계좌 모달에서 자동 반영됩니다.</span></div>
+      <div id="ria-fx-info" style="margin-bottom:12px;padding:10px 14px;background:rgba(255,159,127,0.08);border:1px solid rgba(255,159,127,0.2);border-radius:8px;font-size:12px;color:var(--text3);font-family:'DM Mono',monospace">
+        환율 조회 중...
       </div>
       <div style="margin-bottom:12px">
-        <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:5px">매입금액(투자금) (원) <span style="font-size:10px">— 해외계좌 이전분, 고정값</span></label>
-        <input type="number" id="ria-invest-input" placeholder="예: 35900623"
+        <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:5px">매입금액(투자금) (원) <span style="font-size:10px">— 자동 계산, 수동 수정 가능</span></label>
+        <input type="number" id="ria-invest-input" placeholder="환율 조회 후 자동 입력"
           style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:10px 14px;border-radius:8px;font-size:14px;outline:none;font-family:'DM Mono',monospace;box-sizing:border-box">
       </div>
       <div style="margin-bottom:16px">
