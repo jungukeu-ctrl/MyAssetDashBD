@@ -509,9 +509,15 @@ function updateLineChart() {
   if (!lineChart || !kiData) return;
   const data = getFilteredData();
   const AI   = { '해외':0,'오빌':1,'자사주':2,'개인연금저축':3,'별동대':4,'연습':5,'초빌':6,'퇴직연금001':7,'퇴직연금002':8,'ISA':9,'RIA':10 };
+  // 투자금 = 키움이체내역 + 토스모으기 잔고 (최신 데이터 포인트에만 합산)
+  const tossInvest = ['toss-pension','toss-overseas','toss-obil','toss-practice']
+    .reduce((s, k) => s + (state[k]?.val || 0), 0);
   lineChart.data.labels = data.map(r => r.date.slice(0,7));
   lineChart.data.datasets[0].data = data.map(r => MAIN_ACCOUNTS.reduce((s,a) => s+(r.eval[AI[a]]||0), 0));
-  lineChart.data.datasets[1].data = data.map(r => MAIN_ACCOUNTS.reduce((s,a) => s + _adjInvest(r, AI[a]), 0));
+  lineChart.data.datasets[1].data = data.map((r, i, arr) => {
+    const kiInvest = MAIN_ACCOUNTS.reduce((s,a) => s + _adjInvest(r, AI[a]), 0);
+    return i === arr.length - 1 ? kiInvest + tossInvest : kiInvest;
+  });
   lineChart.update();
 }
 
