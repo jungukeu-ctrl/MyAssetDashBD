@@ -36,9 +36,15 @@ function exportMonthlyXlsx() {
     return [e.date || e.month, ...AI_NAMES.map((_, i) => ev[i] || 0), mainSum];
   });
 
-  // 2. 월별 투자금
+  // 2. 월별 투자금 (tossHistory 합산)
+  const th = kiData?.tossHistory || {};
   const investRows = combined.map(e => {
-    const inv     = e.invest || new Array(11).fill(0);
+    const inv = [...(e.invest || new Array(11).fill(0))]; // 원본 보존을 위해 복사
+    const ym  = (e.date || e.month || '').slice(0, 7);
+    inv[0] = (inv[0] || 0) + (th['toss-overseas']?.[ym] || 0);
+    inv[1] = (inv[1] || 0) + (th['toss-obil']?.[ym]     || 0);
+    inv[3] = (inv[3] || 0) + (th['toss-pension']?.[ym]  || 0);
+    inv[5] = (inv[5] || 0) + (th['toss-practice']?.[ym] || 0);
     const mainSum = MAIN_IDX.reduce((s, i) => s + (inv[i] || 0), 0);
     return [e.date || e.month, ...AI_NAMES.map((_, i) => inv[i] || 0), mainSum];
   });

@@ -509,9 +509,22 @@ function updateLineChart() {
   if (!lineChart || !kiData) return;
   const data = getFilteredData();
   const AI   = { '해외':0,'오빌':1,'자사주':2,'개인연금저축':3,'별동대':4,'연습':5,'초빌':6,'퇴직연금001':7,'퇴직연금002':8,'ISA':9,'RIA':10 };
+  const th   = kiData.tossHistory || {};
+  // toss 계좌 → invest 인덱스 (합산 전용, eval은 스냅샷 저장 시 이미 포함됨)
+  const TOSS_KEYS = ['toss-overseas', 'toss-obil', 'toss-pension', 'toss-practice'];
   lineChart.data.labels = data.map(r => r.date.slice(0,7));
   lineChart.data.datasets[0].data = data.map(r => MAIN_ACCOUNTS.reduce((s,a) => s+(r.eval[AI[a]]||0), 0));
-  lineChart.data.datasets[1].data = data.map(r => MAIN_ACCOUNTS.reduce((s,a) => s + _adjInvest(r, AI[a]), 0));
+  lineChart.data.datasets[1].data = data.map((r, i, arr) => {
+    const ym  = r.date.slice(0, 7);
+    let inv   = MAIN_ACCOUNTS.reduce((s, a) => s + _adjInvest(r, AI[a]), 0);
+    const isLast = i === arr.length - 1;
+    TOSS_KEYS.forEach(k => {
+      const histVal = th[k]?.[ym] || 0;
+      // 최신 월: state 현재값 vs 이력값 중 큰 값 (폴백 처리)
+      inv += isLast ? Math.max(state[k]?.val || 0, histVal) : histVal;
+    });
+    return inv;
+  });
   lineChart.update();
 }
 

@@ -723,3 +723,107 @@ function applyTransferData(type) {
     .join(', ');
   alert(`[${labels}] 과거 기록을 보존하며 ${monthStr} 투자금을 성공적으로 업데이트했습니다.`);
 }
+
+// ═══════════════════════════════════════════
+//  ★ 토스 잔고 이력 모달 (월별 tossHistory 저장)
+// ═══════════════════════════════════════════
+function openTossHistoryModal() {
+  document.getElementById('toss-history-paste-area').value = '';
+  document.getElementById('toss-history-preview').style.display = 'none';
+  document.getElementById('toss-history-apply-btn').disabled = true;
+  document.getElementById('toss-history-modal').style.display = 'flex';
+  setTimeout(() => document.getElementById('toss-history-paste-area').focus(), 100);
+}
+
+function closeTossHistoryModal() {
+  document.getElementById('toss-history-modal').style.display = 'none';
+}
+
+// TSV 파싱: { 'toss-obil': { 'YYYY-MM': 잔고, ... }, ... }
+function parseTossHistoryTsv(text) {
+  const COL_MAP = {
+    '해외':       'toss-overseas',
+    '개인연금저축': 'toss-pension',
+    '오빌':       'toss-obil',
+    '연습':       'toss-practice'
+  };
+  const lines = text.trim().split(/\r?\n/);
+  let headerIdx = -1;
+  const colIdx = { _date: -1 };
+
+  for (let i = 0; i < lines.length; i++) {
+    const cells = lines[i].split('\t').map(c => c.trim());
+    const dateCol = cells.findIndex(c => c === '일자');
+    if (dateCol >= 0) {
+      headerIdx = i;
+      colIdx._date = dateCol;
+      cells.forEach((c, j) => { if (COL_MAP[c]) colIdx[COL_MAP[c]] = j; });
+      break;
+    }
+  }
+  if (headerIdx < 0 || colIdx._date < 0) return null;
+
+  const tossHistory = {};
+  Object.values(COL_MAP).forEach(k => { tossHistory[k] = {}; });
+
+  for (let i = headerIdx + 1; i < lines.length; i++) {
+    const cells = lines[i].split('\t').map(c => c.trim());
+    const dateStr = cells[colIdx._date] || '';
+    if (!dateStr || !/^\d{4}-\d{2}/.test(dateStr)) continue;
+    const ym = dateStr.slice(0, 7);
+
+    Object.values(COL_MAP).forEach(tossKey => {
+      const j = colIdx[tossKey];
+      if (j === undefined || j < 0 || j >= cells.length) return;
+      const raw = cells[j];
+      if (!raw || raw === '-' || raw === '—' || raw === '') return;
+      const num = parseInt(raw.replace(/,/g, '').replace(/\s/g, ''), 10);
+      if (!isNaN(num)) tossHistory[tossKey][ym] = Math.max(0, num);
+    });
+  }
+  return tossHistory;
+}
+
+function previewTossHistory() {
+  const raw      = document.getElementById('toss-history-paste-area').value;
+  const preview  = document.getElementById('toss-history-preview');
+  const applyBtn = document.getElementById('toss-history-apply-btn');
+  applyBtn.disabled = true;
+  preview.style.display = 'none';
+  if (!raw.trim()) return;
+
+  const parsed = parseTossHistoryTsv(raw);
+  if (!parsed) return;
+
+  const LABELS = { 'toss-overseas':'해외', 'toss-pension':'개인연금저축', 'toss-obil':'오빌', 'toss-practice':'연습' };
+  const rows = Object.entries(LABELS).map(([k, label]) => {
+    const months  = Object.keys(parsed[k] || {}).sort();
+    const count   = months.length;
+    const latestYm  = months[months.length - 1] || '—';
+    const latestVal = latestYm !== '—' ? (parsed[k][latestYm] || 0).toLocaleString('ko-KR') : '—';
+    return `<tr><td>${label}</td><td style="text-align:right">${count}개월</td><td style="text-align:right">${latestYm}</td><td style="text-align:right">${latestVal}</td></tr>`;
+  }).join('');
+
+  const totalMonths = Object.values(parsed).reduce((s, v) => Math.max(s, Object.keys(v).length), 0);
+  if (totalMonths === 0) return;
+
+  document.getElementById('toss-history-preview-tbody').innerHTML = rows;
+  preview.style.display = 'block';
+  applyBtn.disabled = false;
+}
+
+function applyTossHistoryModal() {
+  const raw    = document.getElementById('toss-history-paste-area').value;
+  const parsed = parseTossHistoryTsv(raw);
+  if (!parsed) { alert('파싱 실패: 헤더에 "일자" 열이 있는 탭 구분 데이터인지 확인하세요.'); return; }
+  if (!kiData)  { alert('키움 데이터가 없습니다. 먼저 스냅샷을 적용하세요.'); return; }
+
+  kiData.tossHistory = parsed;
+  localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
+
+  updateLineChart();
+  closeTossHistoryModal();
+
+  const totalMonths = Object.values(parsed).reduce((s, v) => Math.max(s, Object.keys(v).length), 0);
+  alert(`✅ 토스 잔고 이력 적용 완료 (${totalMonths}개월 데이터)\n선 그래프 투자금(점선)이 업데이트되었습니다.`);
+}

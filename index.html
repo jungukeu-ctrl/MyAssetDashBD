@@ -18,11 +18,14 @@
       <div class="date" id="today-date"></div>
     </div>
     <div class="upload-btns">
-      <!-- 토스 JSON 붙여넣기 -->
-      <div>
+      <!-- 토스 JSON 붙여넣기 / 이력 입력 -->
+      <div style="display:flex;flex-direction:column;gap:4px">
         <button class="upload-btn toss-img" onclick="openJsonPasteModal()" title="Gemini Gem에서 추출한 토스 JSON을 붙여넣으세요">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
           토스모으기내역
+        </button>
+        <button class="upload-btn" style="background:rgba(32,212,148,0.08);border-color:rgba(32,212,148,0.3);color:#20d494;font-size:11px" onclick="openTossHistoryModal()" title="월별 토스 잔고 이력을 붙여넣어 투자금 차트에 반영">
+          📊 토스 잔고이력
         </button>
       </div>
       <input type="file" id="toss-input" accept=".xlsx,.xls" style="display:none">
@@ -263,6 +266,29 @@
       </div>
       <button class="ai-apply-btn" style="background:#ff9f7f;color:#0f1117" onclick="applyRiaModal()">적용</button>
       <button class="ai-cancel-btn" onclick="closeRiaModal()">닫기</button>
+    </div>
+  </div>
+
+  <!-- 토스 잔고 이력 모달 -->
+  <div id="toss-history-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:200;align-items:center;justify-content:center">
+    <div class="ai-modal-box" style="border-color:rgba(32,212,148,0.3)">
+      <div class="ai-modal-title" style="color:#20d494">📊 토스 모으기 잔고 이력 입력</div>
+      <div class="ai-modal-sub">스프레드시트에서 복사한 탭 구분 데이터를 붙여넣으세요.<br>
+        열 순서: <b>일자 / 해외 / 개인연금저축 / 오빌 / 연습</b> (기타 열 무시)<br>
+        <span style="font-size:10px;color:var(--text3)">월별 마지막 잔고가 선 그래프 투자금(점선) 및 엑셀 내보내기에 반영됩니다.</span>
+      </div>
+      <textarea id="toss-history-paste-area"
+        placeholder="일자&#9;해외&#9;개인연금저축&#9;오빌&#9;연습&#9;...&#10;2021-11-24&#9;-&#9;-&#9;30,011,004&#9;2,000,511&#9;..."
+        style="width:100%;height:160px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);padding:12px 14px;font-size:11px;font-family:'DM Mono',monospace;outline:none;resize:vertical;box-sizing:border-box;margin-bottom:10px;line-height:1.6"
+        oninput="previewTossHistory()"></textarea>
+      <div id="toss-history-preview" style="display:none;margin-bottom:10px">
+        <table class="ai-result-table">
+          <thead><tr><th>계좌</th><th style="text-align:right">인식 월수</th><th style="text-align:right">최신 월</th><th style="text-align:right">최신 잔고 (원)</th></tr></thead>
+          <tbody id="toss-history-preview-tbody"></tbody>
+        </table>
+      </div>
+      <button class="ai-apply-btn" id="toss-history-apply-btn" style="background:#20d494;color:#0f1117" disabled onclick="applyTossHistoryModal()">투자금 이력 적용</button>
+      <button class="ai-cancel-btn" onclick="closeTossHistoryModal()">닫기</button>
     </div>
   </div>
 
