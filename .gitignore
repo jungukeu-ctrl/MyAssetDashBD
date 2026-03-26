@@ -1,2 +1,3 @@
 # 런타임 플래그 파일 (코드작성 훅)
 .claude/code-authorized
+node_modules/
