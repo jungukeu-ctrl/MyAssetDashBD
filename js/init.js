@@ -131,3 +131,54 @@ function _initCore() {
 
 // ★ 페이지 로드 시 실행 — Firebase 인증 확인 후 앱 초기화
 checkAndInitAuth_(init);
+
+// ═══════════════════════════════════════════
+//  ★ 토스 잔고 이력 시드 (콘솔 전용)
+//  사용법: seedTossHistory(`일자\t해외\t...\n2021-11-24\t-\t...`)
+// ═══════════════════════════════════════════
+function seedTossHistory(tsvText) {
+  const COL_MAP = { '해외':'toss-overseas', '개인연금저축':'toss-pension', '오빌':'toss-obil', '연습':'toss-practice' };
+  const lines = tsvText.trim().split(/\r?\n/);
+  let headerIdx = -1;
+  const colIdx = { _date: -1 };
+
+  for (let i = 0; i < lines.length; i++) {
+    const cells = lines[i].split('\t').map(c => c.trim());
+    const di = cells.findIndex(c => c === '일자');
+    if (di >= 0) {
+      headerIdx = i; colIdx._date = di;
+      cells.forEach((c, j) => { if (COL_MAP[c]) colIdx[COL_MAP[c]] = j; });
+      break;
+    }
+  }
+  if (headerIdx < 0) { console.error('[seedTossHistory] 헤더에 "일자" 열을 찾을 수 없습니다.'); return; }
+
+  const th = {};
+  Object.values(COL_MAP).forEach(k => { th[k] = {}; });
+
+  for (let i = headerIdx + 1; i < lines.length; i++) {
+    const cells = lines[i].split('\t').map(c => c.trim());
+    const dateStr = cells[colIdx._date] || '';
+    if (!dateStr || !/^\d{4}-\d{2}/.test(dateStr)) continue;
+    const ym = dateStr.slice(0, 7);
+    Object.values(COL_MAP).forEach(k => {
+      const j = colIdx[k];
+      if (j === undefined || j < 0 || j >= cells.length) return;
+      const raw = cells[j];
+      if (!raw || raw === '-' || raw === '—') return;
+      const num = parseInt(raw.replace(/,/g, '').replace(/\s/g, ''), 10);
+      if (!isNaN(num)) th[k][ym] = Math.max(0, num);
+    });
+  }
+
+  if (!kiData) { console.error('[seedTossHistory] kiData 없음. 먼저 스냅샷을 적용하세요.'); return; }
+  kiData.tossHistory = th;
+  localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
+  if (typeof updateLineChart === 'function') updateLineChart();
+
+  Object.entries(COL_MAP).forEach(([label, k]) => {
+    const months = Object.keys(th[k]).sort();
+    console.log(`[seedTossHistory] ${label}(${k}): ${months.length}개월 (${months[0] || '—'} ~ ${months[months.length-1] || '—'})`);
+  });
+  console.log('[seedTossHistory] ✅ 완료. 엑셀 내보내기 또는 차트를 확인하세요.');
+}
