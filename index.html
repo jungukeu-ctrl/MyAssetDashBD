@@ -311,13 +311,6 @@
 
   <!-- 키움 포트폴리오 현황 -->
   <div class="section-title">📊 키움 포트폴리오 현황</div>
-  <div id="kiwoom-snap-cards" style="display:none;margin-bottom:14px">
-    <div style="font-size:11px;color:var(--text3);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
-      <span>📸 MY페이지 스냅샷 (평가금액)</span>
-      <span id="kiwoom-snap-date" style="font-family:'DM Mono',monospace;font-size:10px"></span>
-    </div>
-    <div class="grid-3" id="kiwoom-snap-grid"></div>
-  </div>
   <div class="kiwoom-summary" id="kiwoom-summary">
     <div class="kiwoom-no-data">⬆ 키움 스냅샷 또는 이체내역 입력 후 데이터가 표시됩니다</div>
   </div>
@@ -405,6 +398,12 @@
       <div class="name">연습모으기</div>
       <div class="amount-row"><div class="amount" id="val-toss-practice">0</div><div class="unit">원</div></div>
       <div class="sub-info">토스 모으기 계좌<br><span id="date-toss-practice" style="font-size:10px">—</span></div>
+    </div>
+    <div class="asset-card">
+      <div class="cat-badge badge-bank">토스<span class="toss-badge">동기화됨</span></div>
+      <div class="name">개인연금저축모으기</div>
+      <div class="amount-row"><div class="amount" id="val-toss-pension-bank">0</div><div class="unit">원</div></div>
+      <div class="sub-info">토스 모으기 계좌<br><span id="date-toss-pension-bank" style="font-size:10px">—</span></div>
     </div>
     <div class="asset-card" id="card-bank-housing">
       <button class="edit-trigger" onclick="openEdit('bank-housing')">✎</button>

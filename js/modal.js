@@ -170,7 +170,6 @@ function applyKiwoomResult() {
   scheduleGasSync_();
   save();
   renderAll();
-  renderKiwoomSnap();
   if (kiData) renderKiwoom();
   closeKiwoomModal();
   const st = document.getElementById('kiwoom-snap-status');

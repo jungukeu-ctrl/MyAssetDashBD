@@ -14,40 +14,9 @@ function _adjInvest(r, idx) {
 }
 
 // ═══════════════════════════════════════════
-//  ★ 스냅샷 카드 렌더
-// ═══════════════════════════════════════════
-function renderKiwoomSnap() {
-  const keys = KIWOOM_SNAP_KEYS.filter(k => state[k]?.val !== undefined);
-  if (!keys.length) {
-    document.getElementById('kiwoom-snap-cards').style.display = 'none'; return;
-  }
-  const latestDate = keys.map(k => state[k]?.date || '').sort().pop();
-  document.getElementById('kiwoom-snap-date').textContent = '기준: ' + (latestDate || '—');
-  document.getElementById('kiwoom-snap-grid').innerHTML = keys.map(k => {
-    const info = KIWOOM_SNAP_INFO[k];
-    const d = state[k];
-    const kiVal   = d?.val || 0;
-    const tossKey = KI_TOSS_PAIR[k];
-    const tossVal = tossKey ? (state[tossKey]?.val || 0) : 0;
-    const combined  = kiVal + tossVal;
-    const subDetail = tossVal > 0
-      ? `키움 ${kiVal.toLocaleString('ko-KR')} + 토스 ${tossVal.toLocaleString('ko-KR')}`
-      : `키움 ${kiVal.toLocaleString('ko-KR')}`;
-    return `<div class="asset-card" style="border-left:3px solid ${info.color}30;cursor:default">
-      <div class="cat-badge" style="background:${info.color}18;color:${info.color};border-color:${info.color}30">키움+토스</div>
-      <div class="name" style="font-size:13px">${info.name} <span style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace">${info.acct}</span></div>
-      <div class="amount-row"><div class="amount" style="font-size:16px;color:${info.color}">${combined.toLocaleString('ko-KR')}</div><div class="unit">원</div></div>
-      <div class="sub-info" style="font-size:10px;line-height:1.5">${subDetail}<br>${d?.date ? '기준: '+d.date : '—'}</div>
-    </div>`;
-  }).join('');
-  document.getElementById('kiwoom-snap-cards').style.display = 'block';
-}
-
-// ═══════════════════════════════════════════
 //  ★ 전체 렌더
 // ═══════════════════════════════════════════
 function renderAll() {
-  renderKiwoomSnap();
 
   MANUAL_KEYS.forEach(k => {
     const d  = state[k] || {};
@@ -142,6 +111,17 @@ function renderAll() {
       } else {
         subTp.textContent = '';
       }
+    }
+  }
+
+  // 은행섹션 개인연금저축모으기 카드 렌더
+  {
+    const tp      = state['toss-pension'] || {};
+    const bankEl  = document.getElementById('val-toss-pension-bank');
+    const dateEl  = document.getElementById('date-toss-pension-bank');
+    if (bankEl) bankEl.textContent = fmt(tp.val || 0);
+    if (dateEl && tp.date) {
+      dateEl.textContent = '기준: ' + tp.date;
     }
   }
 
@@ -417,10 +397,13 @@ function renderKiwoom() {
   });
 
   const CHART_ONLY_ACCOUNTS = ['ISA', 'RIA']; // extraCards로 별도 렌더, 여기서 제외
+  const ACCT_TOSS_KEY = { '해외': 'toss-overseas', '오빌': 'toss-obil', '개인연금저축': 'toss-pension', '연습': 'toss-practice' };
   document.getElementById('kiwoom-cards').innerHTML = MAIN_ACCOUNTS.filter(a => !CHART_ONLY_ACCOUNTS.includes(a)).map(acct => {
-    const i      = AI[acct];
-    const invest = latest.invest[i] || 0;   // kiData (pension transfer modal 설정값)
-    const evalu  = latest.eval[i]   || 0;
+    const i        = AI[acct];
+    const tossKey  = ACCT_TOSS_KEY[acct];
+    const tossVal  = tossKey ? (state[tossKey]?.val || 0) : 0;
+    const invest   = (latest.invest[i] || 0) + tossVal;
+    const evalu    = latest.eval[i]   || 0;
     const pnl    = evalu - invest;
     const pct    = invest > 0 ? (evalu / invest - 1) * 100 : 0;
     const color  = ACCT_COLORS[acct];
