@@ -182,6 +182,7 @@ asset-data/
 | BUG-RIA-INVEST | RIA 투자금 이중계산 수정 — _adjInvest 헬퍼: invest[0](해외)에서 RIA 매입금 차감, invest[10]에 매입금 반영, RIA 모달에 매입금액 입력 필드 추가 | `index.html`, `modal.js`, `render.js` | 2026-03-25 |
 | BUG-TOSS-INVEST | 선 그래프 총 투자금 점선에 toss 모으기 잔고 미반영 수정 — 최신 데이터 포인트에 toss-pension/overseas/obil/practice 잔고 합산. 해외→toss 이전 시 투자금 감소처럼 보이던 구조적 버그 해소 | `render.js` | 2026-03-26 |
 | BUG-TOSS-HISTORY | 선 그래프 투자금(점선) 과거 월별 toss 잔고 미반영 수정 — kiData.tossHistory 구조 추가, updateLineChart() 전체 구간 tossHistory 반영(최신 월 state 폴백), exportMonthlyXlsx() 월별투자금 시트 toss 합산. tossHistory는 JSON/엑셀 모달 적용 시 해당 월 자동 업데이트(별도 이력 모달 없음) | `index.html`, `modal.js`, `render.js`, `export.js` | 2026-03-26 |
+| RIA-FX | RIA 모달 개선 — ria-val-input 제거(평가 잔액은 키움 계좌 모달에서 자동 반영), 매입금액 환율 자동 계산(open.er-api.com, SPY 463.8826×52주×당일 USD/KRW), 기존 investVal 있으면 자동 채우기 생략 | `index.html`, `modal.js` | 2026-03-26 |
 | TOSS-SEED | 토스 잔고 이력 시드 데이터(2021-11~2026-02) 코드 직접 삽입 — _TOSS_HISTORY_SEED 상수 + _applyTossHistorySeed() 로 _initCore() 최초 로드 시 자동 적용. 이미 존재하는 월은 덮어쓰지 않음 | `init.js` | 2026-03-26 |
 | UPDATE-CARD | kiwoom-snap 섹션(MY페이지 스냅샷) 삭제 — index.html div, render.js renderKiwoomSnap() 함수, modal.js 호출 제거. kiwoom-cards 투자금에 toss-overseas/obil/pension/practice 현재 잔고 합산. 은행/토스모으기 섹션에 개인연금저축모으기 카드(val-toss-pension-bank) 추가 | `index.html`, `render.js`, `modal.js` | 2026-03-26 |
 
