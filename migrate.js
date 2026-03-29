@@ -17,7 +17,7 @@ const fs   = require('fs');
 const path = require('path');
 
 // ── 상수 ──────────────────────────────────────────────────────────
-const XLSX_FILE = path.join(__dirname, '데이터원본_2602.xlsx');
+const XLSX_FILE = path.join(__dirname, '데이터원본_2603.xlsx');
 
 // 평가금액 컬럼 → eval 인덱스
 const EVAL_COL_IDX = {
