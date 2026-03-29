@@ -149,12 +149,12 @@ console.log(`  → ${Object.keys(tossMonthMap).length}개 월 (${Object.keys(tos
 const tossLatestDate = Object.values(tossLatestByKey).reduce((max, {date}) => date > max ? date : max, '');
 console.log(`  최신 날짜: ${tossLatestDate}`);
 
-// ── 4. 새 combined 배열 구성 (2026-03 제외) ────────────────────────
+// ── 4. 새 combined 배열 구성 ─────────────────────────────────────────
 console.log('\n[4] combined 배열 구성...');
 const allMonths = [...new Set([
   ...Object.keys(evalMonthMap),
   ...Object.keys(investMonthMap),
-])].filter(m => m !== '2026-03').sort();
+])].sort();
 
 const newCombinedFromExcel = allMonths.map(month => {
   const eRow = evalMonthMap[month];
