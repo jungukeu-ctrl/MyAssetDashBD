@@ -242,6 +242,41 @@ body::before {
 .tab-btn.active { background: rgba(110,142,251,0.15); border-color: rgba(110,142,251,0.35); color: var(--blue); }
 .tab-btn:hover:not(.active) { border-color: var(--border2); color: var(--text2); }
 
+/* ─── Bar Chart Month Scroll ─── */
+.bar-month-scroll-wrap {
+  overflow-x: auto;
+  margin-bottom: 12px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.bar-month-scroll-wrap::-webkit-scrollbar { display: none; }
+.bar-month-scroll {
+  display: flex;
+  gap: 6px;
+  width: max-content;
+  padding: 2px 2px 4px;
+}
+.bar-month-chip {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg3);
+  color: var(--text3);
+  font-size: 11px;
+  font-family: 'DM Mono', monospace;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+  user-select: none;
+}
+.bar-month-chip:hover { border-color: var(--border2); color: var(--text2); }
+.bar-month-chip.active {
+  background: rgba(201,168,76,0.15);
+  border-color: rgba(201,168,76,0.45);
+  color: var(--gold2);
+  font-weight: 500;
+}
+
 /* ─── Misc ─── */
 .footer { margin-top: 40px; text-align: center; font-size: 11px; color: var(--text3); }
 @media (max-width: 700px) {

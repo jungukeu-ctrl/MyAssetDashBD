@@ -456,20 +456,30 @@ function updateBarChart(latest, AI) {
 }
 
 function updateBarMonthSelector() {
-  const sel = document.getElementById('bar-month-select');
-  if (!sel || !kiData || !kiData.combined) return;
+  const container = document.getElementById('bar-month-scroll');
+  if (!container || !kiData || !kiData.combined) return;
   const months = kiData.combined
     .map(r => r.date.slice(0, 7))
     .filter((v, i, a) => a.indexOf(v) === i)
     .reverse(); // 최신 순
-  const current = sel.value;
-  sel.innerHTML = '<option value="">최신</option>' +
-    months.map(m => `<option value="${m}"${current === m ? ' selected' : ''}>${m}</option>`).join('');
-  if (!months.includes(current)) sel.value = '';
+  const chips = ['', ...months].map(m => {
+    const label = m || '최신';
+    const isActive = m === (barChartSelectedMonth || '');
+    return `<div class="bar-month-chip${isActive ? ' active' : ''}" onclick="setBarChartMonth('${m}')">${label}</div>`;
+  }).join('');
+  container.innerHTML = chips;
+  // 선택된 칩이 보이도록 스크롤
+  const activeChip = container.querySelector('.bar-month-chip.active');
+  if (activeChip) activeChip.scrollIntoView({ inline: 'nearest', block: 'nearest' });
 }
 
 function setBarChartMonth(month) {
   barChartSelectedMonth = month || null;
+  // 칩 active 상태 갱신
+  document.querySelectorAll('.bar-month-chip').forEach(el => {
+    const chipMonth = el.getAttribute('onclick').match(/'([^']*)'/)?.[1] || '';
+    el.classList.toggle('active', chipMonth === (month || ''));
+  });
   if (!kiData || !kiData.combined || kiData.combined.length === 0) return;
   const AI = { '해외':0,'오빌':1,'자사주':2,'개인연금저축':3,'별동대':4,'연습':5,'초빌':6,'퇴직연금001':7,'퇴직연금002':8,'ISA':9,'RIA':10 };
   const entry = barChartSelectedMonth
