@@ -534,12 +534,14 @@ function updateReturnChart() {
   const data          = getFilteredData();
   const AI            = { '해외':0,'오빌':1,'자사주':2,'개인연금저축':3,'별동대':4,'연습':5,'초빌':6,'퇴직연금001':7,'퇴직연금002':8,'ISA':9,'RIA':10 };
   const IRP_LABEL_RC = { '퇴직연금001':'IRP 1', '퇴직연금002':'IRP 2' };
+  const th            = kiData.tossHistory || {};
   returnChart.data.labels = data.map(r => r.date.slice(0,7));
   returnChart.data.datasets = MAIN_ACCOUNTS.map(acct => {
     return {
       label: IRP_LABEL_RC[acct] || acct,
       data:  data.map(r => {
-        const evalu  = r.eval[AI[acct]] || 0;
+        const ev     = _evalWithToss(r, th);
+        const evalu  = ev[AI[acct]] || 0;
         // RIA: investVal 사용. 해외: 2026-03 이후 RIA 매입금 차감(출고 보정).
         const riaInvest = state['ria']?.investVal || 0;
         const afterRia  = (r.date?.slice(0, 7) || '') >= '2026-03';
