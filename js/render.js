@@ -505,7 +505,7 @@ function _evalWithToss(row, th) {
 }
 
 function _investWithToss(row, th) {
-  if (row._hasToss) return row.invest || [];
+  // invest는 스냅샷(_hasToss)이든 xlsx이든 항상 toss 미포함 → 항상 더함
   const ym = (row.date || row.month || '').slice(0, 7);
   const inv = [...(row.invest || new Array(11).fill(0))];
   inv[0] += th['toss-overseas']?.[ym] || 0;

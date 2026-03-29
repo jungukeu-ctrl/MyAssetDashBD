@@ -54,7 +54,6 @@ const existingCombined = (fbData.kiwoom && fbData.kiwoom.combined) || [];
 const preserveMap = {}; // YYYY-MM → { eval: {...}, invest: {...} }
 existingCombined.forEach(row => {
   if (!row || !row.month) return;
-  if (row.month === '2026-03') return; // 삭제 대상
   preserveMap[row.month] = {
     eval:   PRESERVE_EVAL.reduce((o, i) => { o[i] = (row.eval && row.eval[i]) || 0; return o; }, {}),
     invest: PRESERVE_INVEST.reduce((o, i) => { o[i] = (row.invest && row.invest[i]) || 0; return o; }, {}),
