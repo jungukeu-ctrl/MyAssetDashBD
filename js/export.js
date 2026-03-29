@@ -49,10 +49,10 @@ function exportMonthlyXlsx() {
     return [e.date || e.month, ...AI_NAMES.map((_, i) => inv[i] || 0), mainSum];
   });
 
-  // 3. 월별 수익률 (공식: (평가금 - 투자금) / 투자금 * 100)
+  // 3. 월별 수익률 (공식: (평가금(toss포함) - 투자금(toss포함)) / 투자금(toss포함) * 100)
   const retRows = combined.map(e => {
-    const ev  = e.eval   || new Array(11).fill(0);
-    const inv = e.invest || new Array(11).fill(0);
+    const ev  = _evalWithToss(e, th);
+    const inv = _investWithToss(e, th);
     const pcts = AI_NAMES.map((_, i) => {
       const currentIn = inv[i] || 0;
       const currentEv = ev[i]  || 0;

@@ -504,6 +504,17 @@ function _evalWithToss(row, th) {
   return ev;
 }
 
+function _investWithToss(row, th) {
+  const ym = (row.date || row.month || '').slice(0, 7);
+  if (row._hasToss || ym >= '2025-11') return row.invest || [];
+  const inv = [...(row.invest || new Array(11).fill(0))];
+  inv[0] += th['toss-overseas']?.[ym] || 0;
+  inv[1] += th['toss-obil']?.[ym]     || 0;
+  inv[3] += th['toss-pension']?.[ym]  || 0;
+  inv[5] += th['toss-practice']?.[ym] || 0;
+  return inv;
+}
+
 function updateLineChart() {
   if (!lineChart || !kiData) return;
   const data = getFilteredData();
@@ -540,12 +551,13 @@ function updateReturnChart() {
     return {
       label: IRP_LABEL_RC[acct] || acct,
       data:  data.map(r => {
-        const ev     = _evalWithToss(r, th);
-        const evalu  = ev[AI[acct]] || 0;
+        const ev        = _evalWithToss(r, th);
+        const inv       = _investWithToss(r, th);
+        const evalu     = ev[AI[acct]] || 0;
         // RIA: investVal 사용. 해외: 2026-03 이후 RIA 매입금 차감(출고 보정).
         const riaInvest = state['ria']?.investVal || 0;
         const afterRia  = (r.date?.slice(0, 7) || '') >= '2026-03';
-        const rawInvest = r.invest?.[AI[acct]] || (acct === 'RIA' ? riaInvest : 0);
+        const rawInvest = inv[AI[acct]] || (acct === 'RIA' ? riaInvest : 0);
         const invest    = acct === '해외' ? rawInvest - (afterRia ? riaInvest : 0) : rawInvest;
         if (invest <= 0 || evalu <= 0) return null;
         return parseFloat(((evalu/invest-1)*100).toFixed(2));
