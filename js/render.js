@@ -491,11 +491,11 @@ function getFilteredData() {
   return chartRange === 0 ? kiData.combined : kiData.combined.slice(-chartRange);
 }
 
-// 과거 월(2025-11 이전) eval에 tossHistory 합산 보정
-// _hasToss=true(UI 스냅샷) 또는 2025-11 이후(xlsx 수동 합산)는 그대로 반환
+// eval/invest에 tossHistory 합산 — xlsx은 어느 월이든 toss 미포함이므로 항상 합산
+// _hasToss=true(UI 스냅샷)인 경우만 이미 합산된 값이므로 그대로 반환
 function _evalWithToss(row, th) {
+  if (row._hasToss) return row.eval || [];
   const ym = (row.date || row.month || '').slice(0, 7);
-  if (row._hasToss || ym >= '2025-11') return row.eval || [];
   const ev = [...(row.eval || new Array(11).fill(0))];
   ev[0] += th['toss-overseas']?.[ym] || 0;
   ev[1] += th['toss-obil']?.[ym]     || 0;
@@ -505,8 +505,8 @@ function _evalWithToss(row, th) {
 }
 
 function _investWithToss(row, th) {
+  if (row._hasToss) return row.invest || [];
   const ym = (row.date || row.month || '').slice(0, 7);
-  if (row._hasToss || ym >= '2025-11') return row.invest || [];
   const inv = [...(row.invest || new Array(11).fill(0))];
   inv[0] += th['toss-overseas']?.[ym] || 0;
   inv[1] += th['toss-obil']?.[ym]     || 0;

@@ -179,7 +179,6 @@ const newTossHistory = {};
 allTossKeys.forEach(k => { newTossHistory[k] = {}; });
 
 Object.entries(tossMonthMap)
-  .filter(([m]) => m !== '2026-03')
   .forEach(([month, data]) => {
     allTossKeys.forEach(k => {
       const val = data[k];
