@@ -3,6 +3,9 @@
 - "코드작성" 메시지 전까지 절대 코드 작성/수정 금지
 - 분석, 계획, 설명만 하고 대기
 - 모든 코드 작업 완료 시 반드시 "코드작업완료" 알림
+- **모든 파일은 GitHub `jungukeu-ctrl/MyAssetDashBD` main 브랜치가 기준**
+  - 로컬 디스크 파일을 기준으로 삼지 않음
+  - 파일 확인/작업 전 항상 `git fetch origin main` 또는 GitHub MCP로 최신 파일 확인
 ## 1. 작업 시작 (PLAN)
 - 대화 시작 시 반드시 PLAN.md 읽기
 - PLAN.md = 이 프로젝트의 유일한 진실 공급원
