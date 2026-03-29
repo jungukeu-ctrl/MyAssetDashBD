@@ -17,7 +17,7 @@ const fs   = require('fs');
 const path = require('path');
 
 // ── 상수 ──────────────────────────────────────────────────────────
-const XLSX_FILE = path.join(__dirname, '데이터원본_2602.xlsx');
+const XLSX_FILE = path.join(__dirname, '데이터원본_2603.xlsx');
 
 // 평가금액 컬럼 → eval 인덱스
 const EVAL_COL_IDX = {
@@ -149,12 +149,12 @@ console.log(`  → ${Object.keys(tossMonthMap).length}개 월 (${Object.keys(tos
 const tossLatestDate = Object.values(tossLatestByKey).reduce((max, {date}) => date > max ? date : max, '');
 console.log(`  최신 날짜: ${tossLatestDate}`);
 
-// ── 4. 새 combined 배열 구성 (2026-03 제외) ────────────────────────
+// ── 4. 새 combined 배열 구성 ─────────────────────────────────────────
 console.log('\n[4] combined 배열 구성...');
 const allMonths = [...new Set([
   ...Object.keys(evalMonthMap),
   ...Object.keys(investMonthMap),
-])].filter(m => m !== '2026-03').sort();
+])].sort();
 
 const newCombinedFromExcel = allMonths.map(month => {
   const eRow = evalMonthMap[month];
