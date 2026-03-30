@@ -232,7 +232,7 @@ function mergeGasData_(remote) {
     remoteKi.combined.forEach(function(rrow) {
       var lrow = monthMap[rrow.month];
       if (!lrow) { monthMap[rrow.month] = rrow; kiChanged = true; return; }
-      if ((rrow.date || '') > (lrow.date || '')) { monthMap[rrow.month] = rrow; kiChanged = true; }
+      if ((rrow.date || '') >= (lrow.date || '')) { monthMap[rrow.month] = rrow; kiChanged = true; }
     });
     if (kiChanged) {
       var merged = Object.keys(monthMap).sort().map(function(m) { return monthMap[m]; });
