@@ -329,7 +329,12 @@ function renderKiwoom() {
   const totalPct = totalInvest > 0 ? (totalEval / totalInvest - 1) * 100 : 0;
   const pctClass = totalPct >= 0 ? 'pct-pos' : 'pct-neg';
   let momEval = 0;
-  if (prev) MAIN_ACCOUNTS.forEach(a => { const i = AI[a]; momEval += (latest.eval[i] || 0) - (prev.eval[i] || 0); });
+  if (prev) {
+    const th_      = kiData.tossHistory || {};
+    const latestEv = _evalWithToss(latest, th_);
+    const prevEv   = _evalWithToss(prev,   th_);
+    MAIN_ACCOUNTS.forEach(a => { const i = AI[a]; momEval += (latestEv[i] || 0) - (prevEv[i] || 0); });
+  }
 
   document.getElementById('kiwoom-summary').innerHTML = `
     <div class="ks-item"><div class="ks-label">기준일</div><div class="ks-val" style="font-size:14px">${latest.date}</div></div>
