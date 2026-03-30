@@ -29,15 +29,23 @@ function exportMonthlyXlsx() {
   const combined = kiData.combined;
   const st       = state || {};
 
-  // 1. 월별 평가금액
+  // tossHistory (evalRows에서도 사용하므로 앞으로 이동)
+  const th = kiData?.tossHistory || {};
+
+  // 1. 월별 평가금액 (toss 미포함)
+  // _hasToss=true 행은 스냅샷 적용 시 eval에 toss가 이미 합산되어 있으므로 차감
   const evalRows = combined.map(e => {
-    const ev      = e.eval || new Array(11).fill(0);
+    const ym      = (e.date || e.month || '').slice(0, 7);
+    const ev      = [...(e.eval || new Array(11).fill(0))];
+    if (e._hasToss) {
+      ev[0] -= th['toss-overseas']?.[ym] || 0;
+      ev[1] -= th['toss-obil']?.[ym]     || 0;
+      ev[3] -= th['toss-pension']?.[ym]  || 0;
+      ev[5] -= th['toss-practice']?.[ym] || 0;
+    }
     const mainSum = MAIN_IDX.reduce((s, i) => s + (ev[i] || 0), 0);
     return [e.date || e.month, ...AI_NAMES.map((_, i) => ev[i] || 0), mainSum];
   });
-
-  // 2. 월별 투자금 (tossHistory 합산)
-  const th = kiData?.tossHistory || {};
   const investRows = combined.map(e => {
     const inv = [...(e.invest || new Array(11).fill(0))]; // 원본 보존을 위해 복사
     const ym  = (e.date || e.month || '').slice(0, 7);
