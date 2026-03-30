@@ -321,8 +321,9 @@
       <div class="chart-title">계좌별 투자금 vs 평가금액
         <span class="chart-subtitle" id="bar-date">—</span>
       </div>
-      <div class="bar-month-scroll-wrap">
-        <div id="bar-month-scroll" class="bar-month-scroll"></div>
+      <div class="bar-month-slider-wrap">
+        <input type="range" id="bar-month-select" class="bar-month-slider" min="0" max="0" value="0" oninput="setBarChartMonthByIndex(+this.value)">
+        <div class="bar-month-slider-label" id="bar-month-slider-label">최신</div>
       </div>
       <div class="chart-container" style="height:220px"><canvas id="bar-chart"></canvas></div>
     </div>

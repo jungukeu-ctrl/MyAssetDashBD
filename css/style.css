@@ -242,39 +242,51 @@ body::before {
 .tab-btn.active { background: rgba(110,142,251,0.15); border-color: rgba(110,142,251,0.35); color: var(--blue); }
 .tab-btn:hover:not(.active) { border-color: var(--border2); color: var(--text2); }
 
-/* ─── Bar Chart Month Scroll ─── */
-.bar-month-scroll-wrap {
-  overflow-x: auto;
-  margin-bottom: 12px;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-.bar-month-scroll-wrap::-webkit-scrollbar { display: none; }
-.bar-month-scroll {
+/* ─── Bar Chart Month Slider ─── */
+.bar-month-slider-wrap {
   display: flex;
-  gap: 6px;
-  width: max-content;
-  padding: 2px 2px 4px;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 0 2px;
 }
-.bar-month-chip {
-  padding: 4px 10px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--bg3);
-  color: var(--text3);
+.bar-month-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  outline: none;
+  cursor: pointer;
+}
+.bar-month-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--gold2);
+  cursor: pointer;
+  border: 2px solid var(--bg1);
+  box-shadow: 0 0 4px rgba(201,168,76,0.5);
+}
+.bar-month-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--gold2);
+  cursor: pointer;
+  border: 2px solid var(--bg1);
+  box-shadow: 0 0 4px rgba(201,168,76,0.5);
+}
+.bar-month-slider-label {
   font-size: 11px;
   font-family: 'DM Mono', monospace;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.15s;
-  user-select: none;
-}
-.bar-month-chip:hover { border-color: var(--border2); color: var(--text2); }
-.bar-month-chip.active {
-  background: rgba(201,168,76,0.15);
-  border-color: rgba(201,168,76,0.45);
   color: var(--gold2);
-  font-weight: 500;
+  white-space: nowrap;
+  min-width: 52px;
+  text-align: right;
 }
 
 /* ─── Misc ─── */
