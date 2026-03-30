@@ -187,6 +187,7 @@ asset-data/
 | TOSS-SEED | 토스 잔고 이력 시드 데이터(2021-11~2026-02) 코드 직접 삽입 — _TOSS_HISTORY_SEED 상수 + _applyTossHistorySeed() 로 _initCore() 최초 로드 시 자동 적용. 이미 존재하는 월은 덮어쓰지 않음 | `init.js` | 2026-03-26 |
 | UPDATE-CARD | kiwoom-snap 섹션(MY페이지 스냅샷) 삭제 — index.html div, render.js renderKiwoomSnap() 함수, modal.js 호출 제거. kiwoom-cards 투자금에 toss-overseas/obil/pension/practice 현재 잔고 합산. 은행/토스모으기 섹션에 개인연금저축모으기 카드(val-toss-pension-bank) 추가 | `index.html`, `render.js`, `modal.js` | 2026-03-26 |
 | TOSS-EVAL | Method B — 과거 평가금 toss 보정. _evalWithToss() 헬퍼 추가(2025-11 이전 월에 tossHistory 합산). updateLineChart/updateReturnChart 적용. exportMonthlyXlsx에 월별평가금액(toss포함) 시트 추가. 데이터원본_2602.xlsx 25년11월~26년2월 toss 포함 값으로 수정 후 migrate.js 재실행 및 Firebase 업데이트 완료 | `render.js`, `export.js` | 2026-03-29 |
+| SLIDER | 계좌별 차트 시점 선택 드롭다운 → range 슬라이더 변경 | `index.html`, `css/style.css`, `js/render.js` | 2026-03-29 |
 
 ---
 
