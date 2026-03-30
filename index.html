@@ -322,8 +322,9 @@
         <span class="chart-subtitle" id="bar-date">—</span>
       </div>
       <div class="bar-month-slider-wrap">
-        <input type="range" id="bar-month-select" class="bar-month-slider" min="0" max="0" value="0" oninput="setBarChartMonthByIndex(+this.value)">
-        <div class="bar-month-slider-label" id="bar-month-slider-label">최신</div>
+        <span class="bar-month-slider-label" id="bar-month-label">최신</span>
+        <input type="range" id="bar-month-select" class="bar-month-slider"
+          min="0" max="0" value="0" oninput="setBarChartMonthByIndex(this.value)">
       </div>
       <div class="chart-container" style="height:220px"><canvas id="bar-chart"></canvas></div>
     </div>

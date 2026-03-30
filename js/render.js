@@ -3,6 +3,7 @@
 // ═══════════════════════════════════════════
 let donutChart = null, barChart = null, lineChart = null, returnChart = null;
 let barChartSelectedMonth = null; // null = latest
+let barMonthsList = []; // 슬라이더용 월 목록 (오래된 순)
 
 // RIA 투자금 조정 헬퍼 (선 그래프·요약 totalInvest·막대그래프 공용)
 // RIA는 2026-03에 해외계좌에서 주식 출고됨 → invest[0]에 RIA 매입금 포함된 채로 집계됨.
@@ -455,30 +456,51 @@ function updateBarChart(latest, AI) {
   document.getElementById('bar-date').textContent = latest.date + ' 기준';
 }
 
-let barMonthsList = []; // ['', '2025-12', '2025-11', ...] 최신순, 0번=최신
-
 function updateBarMonthSelector() {
   const slider = document.getElementById('bar-month-select');
+  const label  = document.getElementById('bar-month-label');
   if (!slider || !kiData || !kiData.combined) return;
-  const months = kiData.combined
+
+  // 오래된 순(슬라이더 왼쪽 = 과거, 오른쪽 = 최신)
+  barMonthsList = kiData.combined
     .map(r => r.date.slice(0, 7))
-    .filter((v, i, a) => a.indexOf(v) === i)
-    .reverse(); // 최신 순
-  barMonthsList = ['', ...months]; // 0=최신, 1=가장최근월, ...
-  slider.min = 0;
-  slider.max = barMonthsList.length - 1;
-  // 현재 선택된 월의 인덱스로 슬라이더 위치 세팅
-  const idx = barChartSelectedMonth ? barMonthsList.indexOf(barChartSelectedMonth) : 0;
-  slider.value = idx >= 0 ? idx : 0;
-  const label = document.getElementById('bar-month-slider-label');
-  if (label) label.textContent = barMonthsList[slider.value] || '최신';
+    .filter((v, i, a) => a.indexOf(v) === i);
+
+  slider.min   = 0;
+  slider.max   = barMonthsList.length - 1;
+
+  // 선택된 월이 목록에 있으면 해당 index로, 없으면 최신(max)
+  const idx = barChartSelectedMonth
+    ? barMonthsList.indexOf(barChartSelectedMonth)
+    : -1;
+  slider.value = idx >= 0 ? idx : barMonthsList.length - 1;
+
+  if (label) {
+    const selMonth = barMonthsList[parseInt(slider.value)];
+    label.textContent = selMonth || '최신';
+  }
 }
 
 function setBarChartMonthByIndex(idx) {
-  const month = barMonthsList[idx] || null;
-  barChartSelectedMonth = month;
-  const label = document.getElementById('bar-month-slider-label');
+  const month = barMonthsList[parseInt(idx)];
+  barChartSelectedMonth = month || null;
+  const label = document.getElementById('bar-month-label');
   if (label) label.textContent = month || '최신';
+  if (!kiData || !kiData.combined || kiData.combined.length === 0) return;
+  const AI = { '해외':0,'오빌':1,'자사주':2,'개인연금저축':3,'별동대':4,'연습':5,'초빌':6,'퇴직연금001':7,'퇴직연금002':8,'ISA':9,'RIA':10 };
+  const entry = barChartSelectedMonth
+    ? (kiData.combined.find(r => r.date.slice(0,7) === barChartSelectedMonth) || kiData.combined[kiData.combined.length - 1])
+    : kiData.combined[kiData.combined.length - 1];
+  updateBarChart(entry, AI);
+}
+
+function setBarChartMonth(month) {
+  barChartSelectedMonth = month || null;
+  // 칩 active 상태 갱신
+  document.querySelectorAll('.bar-month-chip').forEach(el => {
+    const chipMonth = el.getAttribute('onclick').match(/'([^']*)'/)?.[1] || '';
+    el.classList.toggle('active', chipMonth === (month || ''));
+  });
   if (!kiData || !kiData.combined || kiData.combined.length === 0) return;
   const AI = { '해외':0,'오빌':1,'자사주':2,'개인연금저축':3,'별동대':4,'연습':5,'초빌':6,'퇴직연금001':7,'퇴직연금002':8,'ISA':9,'RIA':10 };
   const entry = barChartSelectedMonth
