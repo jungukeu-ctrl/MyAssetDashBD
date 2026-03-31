@@ -654,7 +654,9 @@ function parseTransferData() {
     const irp1Sum   = {};  // invest[7] — IRP1
     const irp2Sum   = {};  // invest[8] — IRP2
 
-    const KNOWN_FILTERED = ['배당금', '현금배당', '이용료', '이자', '환급', '세금'];
+// 변경 후
+   const KNOWN_FILTERED = ['배당금', '현금배당', '이용료', '이자', '환급', '세금',
+  'KODEX', 'TIGER', 'KBSTAR', 'ARIRANG', 'HANARO', 'ACE', 'MASTER', 'PLUS', 'SOL', '분배금'];
     const IRP_DEPOSIT_KEYS = ['현금성자산', 'mPop 입금', '이체입금'];
     const unmatched = [];
 
