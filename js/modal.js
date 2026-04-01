@@ -53,6 +53,26 @@ function applyAiResult() {
   if (!aiPendingResult) return;
   const { date, accounts } = aiPendingResult;
   const ym = date.slice(0, 7);
+
+  // ── 이전 월 tossHistory 백필 (state 갱신 전 실행 — state = 이전 월 값) ──
+  // combined에 있으나 tossHistory에 없는 이전 월을 현재 state 값으로 채움
+  // → 새 월 입력 시 이전 월이 isLast 소실로 toss 0이 되는 버그 방지
+  // 기존 tossHistory 값은 절대 덮어쓰지 않음 (데이터 보전)
+  if (kiData && kiData.combined) {
+    if (!kiData.tossHistory) kiData.tossHistory = {};
+    accounts.forEach(a => {
+      if (!a.key || !TOSS_KEYS.includes(a.key)) return;
+      if (!kiData.tossHistory[a.key]) kiData.tossHistory[a.key] = {};
+      const prevVal = state[a.key]?.val || 0;
+      kiData.combined.forEach(row => {
+        const rowYm = (row.date || row.month || '').slice(0, 7);
+        if (rowYm < ym && !(rowYm in kiData.tossHistory[a.key])) {
+          kiData.tossHistory[a.key][rowYm] = prevVal;
+        }
+      });
+    });
+  }
+
   accounts.forEach(a => {
     if (!a.key || !TOSS_KEYS.includes(a.key)) return;
     state[a.key] = { val: a.balance, date, isFallback: false };
@@ -249,8 +269,8 @@ function applyPensionResult() {
     const prev = kiData.combined[kiData.combined.length - 1];
     entry = {
       date, month: ym,
-      invest: prev ? [...(prev.invest || new Array(9).fill(0))] : new Array(9).fill(0),
-      eval: new Array(10).fill(0),
+      invest: prev ? [...(prev.invest || new Array(11).fill(0))] : new Array(11).fill(0),
+      eval: new Array(11).fill(0),
       _hasToss: true,
     };
     kiData.combined.push(entry);
