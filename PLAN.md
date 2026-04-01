@@ -191,6 +191,10 @@ asset-data/
 | P1-1 | `mergeGasData_()` tossHistory deep merge — 타기기 동기화 시 tossHistory 소실 방지 | `firebase.js` | 2026-04-01 |
 | P1-2 | toss 입력 시 이전 월 tossHistory 자동 백필 — 월 전환 시 투자금 0 감소 버그 해소 | `modal.js`, `export.js` | 2026-04-01 |
 | P1-4 | `applyPensionResult()` eval/invest 배열 크기 9/10 → 11 (RIA 인덱스 포함) | `modal.js` | 2026-04-01 |
+| P2-5 | eval/invest `new Array(9/10)` → `new Array(11)` 전면 통일 — applyKiwoomResult·applyKiwoomTransferResult·applyIsaEvalModal·applyPensionResult(existing 분기) 5곳 수정 | `modal.js` | 2026-04-01 |
+| P2-1 | AI 인덱스 맵 단일화 — `config.js`에 `AI_IDX`/`AI_NAMES` 전역 상수 추가, render.js 3곳 `const AI = AI_IDX;` 참조로 교체, export.js 로컬 `AI_NAMES` 제거 | `config.js`, `render.js`, `export.js` | 2026-04-01 |
+| P2-3 | combined entry 생성 헬퍼 `_getOrCreateCombinedEntry(ym, date)` 추출 — applyKiwoomResult·applyPensionResult 중복 블록 통합 | `modal.js` | 2026-04-01 |
+| P2-6 | `_adjInvest()` 날짜 하드코딩 제거 — `'2026-03'` → `state['ria']?.riaStartYm \|\| '2026-03'` (render.js 2곳) | `render.js` | 2026-04-01 |
 
 ---
 
@@ -200,12 +204,8 @@ asset-data/
 
 | # | 작업 | 파일 | 비고 |
 |---|------|------|------|
-| P2-1 | `AI` 인덱스 맵 단일화 | `config.js` | render.js·export.js·modal.js 5곳 중복 |
 | P2-2 | `renderAll()` 분리 | `render.js` | 카드 렌더 / 집계 / 차트 분리 |
-| P2-3 | combined entry 생성 헬퍼 함수 통합 | `modal.js` | applyAiResult/Kiwoom/Pension 중복 패턴 |
 | P2-4 | localStorage 접근 단일 진입점 | `storage.js` (신규) | modal·export·init 산재 |
-| P2-5 | `applyKiwoomResult()` invest 배열 크기 수정 | `modal.js` | `new Array(9)` → `new Array(11)` |
-| P2-6 | `_adjInvest()` 날짜 하드코딩 제거 | `render.js` | `'2026-03'` → `state['ria']` 개설일 기준화 |
 
 ---
 

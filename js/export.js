@@ -24,7 +24,6 @@ function exportMonthlyXlsx() {
     return;
   }
 
-  const AI_NAMES = ['해외','오빌','자사주','개인연금저축','별동대','연습','초빌','IRP 1','IRP 2','ISA','RIA'];
   const MAIN_IDX = [0, 1, 5, 3, 7, 8, 9, 10]; // 주요 8계좌 인덱스
   const combined = kiData.combined;
   const st       = state || {};
