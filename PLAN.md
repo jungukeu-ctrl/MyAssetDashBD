@@ -188,12 +188,24 @@ asset-data/
 | UPDATE-CARD | kiwoom-snap 섹션(MY페이지 스냅샷) 삭제 — index.html div, render.js renderKiwoomSnap() 함수, modal.js 호출 제거. kiwoom-cards 투자금에 toss-overseas/obil/pension/practice 현재 잔고 합산. 은행/토스모으기 섹션에 개인연금저축모으기 카드(val-toss-pension-bank) 추가 | `index.html`, `render.js`, `modal.js` | 2026-03-26 |
 | TOSS-EVAL | Method B — 과거 평가금 toss 보정. _evalWithToss() 헬퍼 추가(2025-11 이전 월에 tossHistory 합산). updateLineChart/updateReturnChart 적용. exportMonthlyXlsx에 월별평가금액(toss포함) 시트 추가. 데이터원본_2602.xlsx 25년11월~26년2월 toss 포함 값으로 수정 후 migrate.js 재실행 및 Firebase 업데이트 완료 | `render.js`, `export.js` | 2026-03-29 |
 | SLIDER | 계좌별 차트 시점 선택 드롭다운 → range 슬라이더 변경 | `index.html`, `css/style.css`, `js/render.js` | 2026-03-29 |
+| P1-1 | `mergeGasData_()` tossHistory deep merge — 타기기 동기화 시 tossHistory 소실 방지 | `firebase.js` | 2026-04-01 |
+| P1-2 | toss 입력 시 이전 월 tossHistory 자동 백필 — 월 전환 시 투자금 0 감소 버그 해소 | `modal.js`, `export.js` | 2026-04-01 |
+| P1-4 | `applyPensionResult()` eval/invest 배열 크기 9/10 → 11 (RIA 인덱스 포함) | `modal.js` | 2026-04-01 |
 
 ---
 
 ## 5. 남은 작업 목록
 
-> **현재 남은 작업 없음**
+### Phase 2 — 중복 제거 (별도 세션 예정)
+
+| # | 작업 | 파일 | 비고 |
+|---|------|------|------|
+| P2-1 | `AI` 인덱스 맵 단일화 | `config.js` | render.js·export.js·modal.js 5곳 중복 |
+| P2-2 | `renderAll()` 분리 | `render.js` | 카드 렌더 / 집계 / 차트 분리 |
+| P2-3 | combined entry 생성 헬퍼 함수 통합 | `modal.js` | applyAiResult/Kiwoom/Pension 중복 패턴 |
+| P2-4 | localStorage 접근 단일 진입점 | `storage.js` (신규) | modal·export·init 산재 |
+| P2-5 | `applyKiwoomResult()` invest 배열 크기 수정 | `modal.js` | `new Array(9)` → `new Array(11)` |
+| P2-6 | `_adjInvest()` 날짜 하드코딩 제거 | `render.js` | `'2026-03'` → `state['ria']` 개설일 기준화 |
 
 ---
 
@@ -205,6 +217,7 @@ asset-data/
 | `claude/fix-transaction-sync-m8PrB` | ✅ 머지 완료 | IRP1 인식 + ISA 동기화 버그픽스 |
 | `claude/fix-firebase-data-reset-0VePA` | ✅ 머지 완료 | Firebase PUT→PATCH 버그픽스 |
 | `claude/add-kiwoom-ria-support-Rhc1C` | ✅ 머지 완료 (PR #28, 2026-03-24) | kiwoom-ria 스냅샷 지원 및 차트/합계 반영 |
+| `claude/fix-investment-data-discrepancy-aQFgn` | ✅ 머지 완료 (2026-04-01) | P1: tossHistory 월 전환 소실 버그 3건 수정 |
 
 ---
 
