@@ -154,6 +154,21 @@ document.getElementById('toss-input').addEventListener('change', function(e) {
       ].forEach(([sheet, key, valId, dateId]) => {
         const r = parseTossBalance(wb, sheet);
         if (r) {
+          // ── 이전 월 tossHistory 백필 (state 갱신 전 실행 — state = 이전 월 값) ──
+          // combined에 있으나 tossHistory에 없는 이전 월을 현재 state 값으로 채움
+          // 기존 tossHistory 값은 절대 덮어쓰지 않음 (데이터 보전)
+          if (kiData && r.date && kiData.combined) {
+            const ym_ = r.date.slice(0, 7);
+            if (!kiData.tossHistory) kiData.tossHistory = {};
+            if (!kiData.tossHistory[key]) kiData.tossHistory[key] = {};
+            const prevVal = state[key]?.val || 0;
+            kiData.combined.forEach(row => {
+              const rowYm = (row.date || row.month || '').slice(0, 7);
+              if (rowYm < ym_ && !(rowYm in kiData.tossHistory[key])) {
+                kiData.tossHistory[key][rowYm] = prevVal;
+              }
+            });
+          }
           state[key] = { val: r.balance, date: r.date, isFallback: !!r.isFallback };
           document.getElementById(valId).textContent = r.balance.toLocaleString('ko-KR');
           const de = document.getElementById(dateId);

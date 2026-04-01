@@ -224,22 +224,57 @@ function mergeGasData_(remote) {
   var localKi = null;
   try { localKi = JSON.parse(localStorage.getItem('kiwoom-data') || 'null'); } catch(e) {}
   var remoteKi = remote.kiwoom;
+  var kiChanged = false;
+  var finalCombined    = null;
+  var finalTossHistory = null;
+
+  // ── combined 배열 병합 (기존 로직 유지) ──
   if (remoteKi && remoteKi.combined) {
     var base = (localKi && localKi.combined) ? localKi.combined : [];
     var monthMap = {};
     base.forEach(function(row) { monthMap[row.month] = row; });
-    var kiChanged = false;
+    var combinedChanged = false;
     remoteKi.combined.forEach(function(rrow) {
       var lrow = monthMap[rrow.month];
-      if (!lrow) { monthMap[rrow.month] = rrow; kiChanged = true; return; }
-      if ((rrow.date || '') >= (lrow.date || '')) { monthMap[rrow.month] = rrow; kiChanged = true; }
+      if (!lrow) { monthMap[rrow.month] = rrow; combinedChanged = true; return; }
+      if ((rrow.date || '') >= (lrow.date || '')) { monthMap[rrow.month] = rrow; combinedChanged = true; }
     });
-    if (kiChanged) {
-      var merged = Object.keys(monthMap).sort().map(function(m) { return monthMap[m]; });
-      var newKi  = Object.assign({}, localKi || remoteKi, { combined: merged });
-      localStorage.setItem('kiwoom-data', JSON.stringify(newKi));
-      changed = true;
+    if (combinedChanged) {
+      finalCombined = Object.keys(monthMap).sort().map(function(m) { return monthMap[m]; });
+      kiChanged = true;
     }
+  }
+
+  // ── tossHistory 병합 (신규: remote에만 있는 월 추가, local 우선) ──
+  // local에 있는 값은 절대 덮어쓰지 않음 → 데이터 보전
+  if (remoteKi && remoteKi.tossHistory) {
+    var localTh  = (localKi && localKi.tossHistory) ? localKi.tossHistory : {};
+    var remoteTh = remoteKi.tossHistory;
+    var thChanged = false;
+    var mergedTh  = {};
+    Object.keys(localTh).forEach(function(k) {
+      mergedTh[k] = Object.assign({}, localTh[k]);
+    });
+    Object.keys(remoteTh).forEach(function(k) {
+      if (!mergedTh[k]) mergedTh[k] = {};
+      Object.keys(remoteTh[k]).forEach(function(ym) {
+        if (!(ym in mergedTh[k])) {
+          mergedTh[k][ym] = remoteTh[k][ym];
+          thChanged = true;
+        }
+      });
+    });
+    if (thChanged) { finalTossHistory = mergedTh; kiChanged = true; }
+  }
+
+  // ── 변경사항 있으면 localStorage 업데이트 ──
+  if (kiChanged) {
+    var kiBase = localKi || remoteKi || {};
+    var newKi  = Object.assign({}, kiBase);
+    if (finalCombined)    newKi.combined    = finalCombined;
+    if (finalTossHistory) newKi.tossHistory = finalTossHistory;
+    localStorage.setItem('kiwoom-data', JSON.stringify(newKi));
+    changed = true;
   }
 
   var localTs  = localStorage.getItem('asset-dashboard-ts') || '0';
