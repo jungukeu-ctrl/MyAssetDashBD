@@ -9,8 +9,9 @@ let barMonthsList = []; // 슬라이더용 월 목록 (오래된 순)
 // RIA는 2026-03에 해외계좌에서 주식 출고됨 → invest[0]에 RIA 매입금 포함된 채로 집계됨.
 // 2026-03 이후 월만 해외(idx=0)에서 RIA 매입금 차감, RIA(idx=10)에 복원 → 총합 불변.
 function _adjInvest(r, idx) {
-  const riaInvest = state['ria']?.investVal || 0;
-  const afterRia  = (r.date?.slice(0, 7) || '') >= '2026-03';
+  const riaInvest  = state['ria']?.investVal || 0;
+  const riaStartYm = state['ria']?.riaStartYm || '2026-03';
+  const afterRia   = (r.date?.slice(0, 7) || '') >= riaStartYm;
   if (idx === 10) return afterRia ? riaInvest : 0;
   if (idx === 0)  return (r.invest?.[0] || 0) - (afterRia ? riaInvest : 0);
   return r.invest?.[idx] || 0;
@@ -317,7 +318,7 @@ function renderKiwoom() {
   if (!kiData || !kiData.combined || kiData.combined.length === 0) return;
   const latest = kiData.combined[kiData.combined.length - 1];
   const prev   = kiData.combined.length > 1 ? kiData.combined[kiData.combined.length - 2] : null;
-  const AI = { '해외':0,'오빌':1,'자사주':2,'개인연금저축':3,'별동대':4,'연습':5,'초빌':6,'퇴직연금001':7,'퇴직연금002':8,'ISA':9,'RIA':10 };
+  const AI = AI_IDX;
   let totalInvest = 0, totalEval = 0;
   MAIN_ACCOUNTS.forEach(a => {
     const i = AI[a];
@@ -492,7 +493,7 @@ function setBarChartMonthByIndex(idx) {
   const label = document.getElementById('bar-month-label');
   if (label) label.textContent = month || '최신';
   if (!kiData || !kiData.combined || kiData.combined.length === 0) return;
-  const AI = { '해외':0,'오빌':1,'자사주':2,'개인연금저축':3,'별동대':4,'연습':5,'초빌':6,'퇴직연금001':7,'퇴직연금002':8,'ISA':9,'RIA':10 };
+  const AI = AI_IDX;
   const entry = barChartSelectedMonth
     ? (kiData.combined.find(r => r.date.slice(0,7) === barChartSelectedMonth) || kiData.combined[kiData.combined.length - 1])
     : kiData.combined[kiData.combined.length - 1];
@@ -507,7 +508,7 @@ function setBarChartMonth(month) {
     el.classList.toggle('active', chipMonth === (month || ''));
   });
   if (!kiData || !kiData.combined || kiData.combined.length === 0) return;
-  const AI = { '해외':0,'오빌':1,'자사주':2,'개인연금저축':3,'별동대':4,'연습':5,'초빌':6,'퇴직연금001':7,'퇴직연금002':8,'ISA':9,'RIA':10 };
+  const AI = AI_IDX;
   const entry = barChartSelectedMonth
     ? (kiData.combined.find(r => r.date.slice(0,7) === barChartSelectedMonth) || kiData.combined[kiData.combined.length - 1])
     : kiData.combined[kiData.combined.length - 1];
@@ -590,9 +591,10 @@ function updateReturnChart() {
         const ev        = _evalWithToss(r, th);
         const inv       = _investWithToss(r, th);
         const evalu     = ev[AI[acct]] || 0;
-        // RIA: investVal 사용. 해외: 2026-03 이후 RIA 매입금 차감(출고 보정).
-        const riaInvest = state['ria']?.investVal || 0;
-        const afterRia  = (r.date?.slice(0, 7) || '') >= '2026-03';
+        // RIA: investVal 사용. 해외: RIA 개설 이후 RIA 매입금 차감(출고 보정).
+        const riaInvest  = state['ria']?.investVal || 0;
+        const riaStartYm = state['ria']?.riaStartYm || '2026-03';
+        const afterRia   = (r.date?.slice(0, 7) || '') >= riaStartYm;
         const rawInvest = inv[AI[acct]] || (acct === 'RIA' ? riaInvest : 0);
         const invest    = acct === '해외' ? rawInvest - (afterRia ? riaInvest : 0) : rawInvest;
         if (invest <= 0 || evalu <= 0) return null;
