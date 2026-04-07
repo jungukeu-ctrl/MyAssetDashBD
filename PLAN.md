@@ -212,7 +212,7 @@ asset-data/
 | Phase3 | ps-state.js & ps-init.js | `js/pension/` | ✅ 완료 |
 | Phase4 | ps-chart.js (차트 렌더링) | `js/pension/` | ✅ 완료 |
 | Phase5 | ps-settings.js (설정 패널 UI) | `js/pension/` | ✅ 완료 |
-| Phase6 | pension-simulation.html & pension-sim.css | 루트, `css/` | 대기 |
+| Phase6 | pension-simulation.html & pension-sim.css | 루트, `css/` | ✅ 완료 |
 | Phase7 | ps-table.js (월별 테이블) | `js/pension/` | 별도 세션 |
 
 ### Phase 2 — 중복 제거 (별도 세션 예정)
