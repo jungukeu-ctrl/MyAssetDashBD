@@ -76,6 +76,28 @@ const PS_DEFAULT_PARAMS = {
   }
 };
 
+// ─── eval[] 인덱스 매핑 (pension 모듈 전용 단일 진실 공급원) ─────────────────────
+//
+// config.js AI_IDX 는 한국어 키를 사용하므로 직접 접근 금지.
+// pension 모듈 내부는 반드시 이 상수를 통해 eval[]/invest[] 인덱스를 참조한다.
+//
+//   AI_IDX['개인연금저축'] = 3  →  PS_EVAL_IDX.연금저축 = 3
+//   AI_IDX['퇴직연금001']  = 7  →  PS_EVAL_IDX.IRP1     = 7
+//   AI_IDX['퇴직연금002']  = 8  →  PS_EVAL_IDX.IRP2     = 8
+//   AI_IDX['해외']         = 0  →  PS_EVAL_IDX.해외주식 = 0
+//   AI_IDX['RIA']          = 10 →  PS_EVAL_IDX.RIA      = 10
+//   AI_IDX['ISA']          = 9  →  PS_EVAL_IDX.ISA      = 9
+//   (VOO 는 RIA 와 동일 계좌 → PS_EVAL_IDX.RIA 사용)
+//
+const PS_EVAL_IDX = {
+  연금저축: 3,
+  IRP1:     7,
+  IRP2:     8,
+  해외주식: 0,
+  RIA:     10,
+  ISA:      9
+};
+
 // ─── VOO 분배 한도 ────────────────────────────────────────────────────────────
 const PS_VOO_DIST = {
   pensionFixed: 250000,   // 연금저축 고정 분배 (원)
