@@ -38,10 +38,11 @@ const PensionChart = (() => {
   function _slice(result, years) {
     const total = result.months.length;
     const n = years > 0 ? Math.min(years * 12, total) : total;
-    const start = total - n;
+    // 2026-01 시작점 고정 — 앞에서 n개월 취득 (끝에서 자르지 않음)
+    const start = 0;
 
     function sliceArr(arr) {
-      return arr ? arr.slice(start) : [];
+      return arr ? arr.slice(start, n) : [];
     }
     function sliceByAcct(byAccount) {
       const out = {};
@@ -50,7 +51,7 @@ const PensionChart = (() => {
     }
 
     return {
-      months:   result.months.slice(start),
+      months:   result.months.slice(start, n),
       plan:     { total: sliceArr(result.plan.total),     byAccount: sliceByAcct(result.plan.byAccount) },
       forecast: { total: sliceArr(result.forecast.total), byAccount: sliceByAcct(result.forecast.byAccount) },
       actual:   { total: sliceArr(result.actual.total),   byAccount: sliceByAcct(result.actual.byAccount) },

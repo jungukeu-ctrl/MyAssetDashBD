@@ -96,13 +96,16 @@ const PensionEngine = (() => {
     const months = _monthRange(PS_START_YM, PS_END_YM);
 
     // ── 계좌 잔액 초기화 ──
+    // VOO: Firebase eval[]에서 해외주식 계좌 전체만 읽을 수 있어 분리 불가.
+    //       params.voo.quantity × priceKRW 로 초기값 계산.
+    const vooInit = (params.voo?.quantity || 0) * (params.voo?.priceKRW || 0);
     let bal = {
       연금저축: init.연금저축 || 0,
       IRP1:     init.IRP1     || 0,
       IRP2:     init.IRP2     || 0,
-      해외주식: init.해외주식 || 0,
-      VOO:      init.VOO      || 0,   // RIA 계좌 = VOO 보유
-      RIA:      init.RIA      || 0,   // RIA 총잔액 (VOO 포함)
+      해외주식: init.해외주식 || 0,   // VOO 포함 해외주식 계좌 전체
+      VOO:      vooInit,              // 해외주식 계좌 내 VOO 서브셋
+      RIA:      init.RIA      || 0,
       ISA:      init.ISA      || 0
     };
 
@@ -129,7 +132,7 @@ const PensionEngine = (() => {
     const isaLimitLog = [];
 
     // ── 월별 계획(plan) 잔액 별도 추적 ──
-    let planBal = { ...bal };
+    let planBal = { ...bal };  // vooInit 포함 복사
     let planYearlyPension = 0;
     let planYearlyIRP1    = 0;
     let planPaidToISA     = 0;
@@ -221,7 +224,7 @@ const PensionEngine = (() => {
               IRP1:     a.IRP1     || 0,
               IRP2:     a.IRP2     || 0,
               해외주식: a.해외주식 || 0,
-              VOO:      a.VOO      || 0,
+              VOO:      planBal.VOO,   // Firebase에서 VOO 분리 불가 → plan 추적값 사용
               RIA:      a.RIA      || 0,
               ISA:      a.ISA      || 0
             };
@@ -329,7 +332,10 @@ const PensionEngine = (() => {
     bal.연금저축 *= (1 + mr.연금저축);
     bal.IRP1     *= (1 + mr.IRP1);
     bal.IRP2     *= (1 + mr.IRP2);
-    bal.해외주식 *= (1 + mr.해외주식);
+    // 해외주식: VOO 서브셋은 mr.VOO, non-VOO 부분은 mr.해외주식 각각 적용
+    const nonVoo  = Math.max(0, bal.해외주식 - bal.VOO);
+    bal.VOO       = bal.VOO * (1 + mr.VOO);
+    bal.해외주식  = nonVoo  * (1 + mr.해외주식) + bal.VOO;
     bal.RIA      *= (1 + mr.RIA);
     bal.ISA      *= (1 + mr.ISA);
 
@@ -356,11 +362,12 @@ const PensionEngine = (() => {
     const vooStartYM = params.voo?.startYM;
     if (!vooExhausted && vooStartYM && _ymLte(vooStartYM, ym)) {
       const isVooMonth = _isVooSellMonth(ym, vooStartYM, params.voo.intervalWeeks);
-      if (isVooMonth && bal.RIA > 0) {
-        const sellAmt = Math.min(params.voo.priceKRW, bal.RIA);
-        bal.RIA -= sellAmt;
+      if (isVooMonth && bal.VOO > 0) {
+        const sellAmt = Math.min(params.voo.priceKRW, bal.VOO);
+        bal.해외주식 -= sellAmt;   // VOO는 해외주식 계좌 서브셋
+        bal.VOO      -= sellAmt;
 
-        if (bal.RIA <= 0) vooExhausted = true;
+        if (bal.VOO <= 0) vooExhausted = true;
 
         // 분배
         const isLowSell = sellAmt < 500000;
@@ -400,7 +407,7 @@ const PensionEngine = (() => {
       }
     }
 
-    // 5. VOO 소진 후: 연금저축 기본 납입 (100만/월)
+    // 5. VOO 시작 전 또는 소진 후: 연금저축 기본 납입 (100만/월)
     if (vooExhausted || !vooStartYM || _ymLt(ym, vooStartYM || '9999-12')) {
       if (!vooStartYM || _ymLt(ym, vooStartYM)) {
         // VOO 시작 전: 연금저축 기본 납입

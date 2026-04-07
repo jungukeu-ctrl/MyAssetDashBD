@@ -113,7 +113,8 @@ const PensionSettings = (() => {
         <div class="ps-card-title">VOO 매도 설정</div>
         ${_row('매도 시작',       _textInput('ps-voo-start',    p.voo.startYM,       'YYYY-MM'))}
         ${_row('매도 주기',       _numInput('ps-voo-interval',  p.voo.intervalWeeks, 1, 1, 52), '주마다 1주')}
-        ${_row('1주당 가격',      _numInput('ps-voo-price',     p.voo.priceKRW,      1000),     '원')}
+        ${_row('보유 수량',       _numInput('ps-voo-quantity',  p.voo.quantity,      0.0001, 0), '주')}
+        ${_row('1주당 가격',      _numInput('ps-voo-price',     p.voo.priceKRW,      1000),     '원 (현재가×환율)')}
         ${_row('연금저축 기본납입', _numInput('ps-pension-base', p.pension.baseMonthly, 10000),  '원/월')}
       </div>
 
@@ -211,6 +212,7 @@ const PensionSettings = (() => {
     // ── VOO 매도 ──
     _bindText('ps-voo-start',    v => ({ voo: { startYM: v } }));
     _bindNum('ps-voo-interval',  v => ({ voo: { intervalWeeks: v } }));
+    _bindNum('ps-voo-quantity',  v => ({ voo: { quantity: v } }));
     _bindNum('ps-voo-price',     v => ({ voo: { priceKRW: v } }));
     _bindNum('ps-pension-base',  v => ({ pension: { baseMonthly: v } }));
 
@@ -270,6 +272,7 @@ const PensionSettings = (() => {
 
     _setVal('ps-voo-start',      p.voo.startYM);
     _setVal('ps-voo-interval',   p.voo.intervalWeeks);
+    _setVal('ps-voo-quantity',   p.voo.quantity);
     _setVal('ps-voo-price',      p.voo.priceKRW);
     _setVal('ps-pension-base',   p.pension.baseMonthly);
 
