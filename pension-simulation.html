@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>연금 시뮬레이션 — MyAssetDash</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/pension-sim.css">
+</head>
+<body>
+
+<div class="ps-page">
+
+  <!-- ── 헤더 ──────────────────────────────────────────────────────────── -->
+  <header class="ps-header">
+    <div class="ps-header-left">
+      <a href="index.html" class="ps-back-btn">← 대시보드</a>
+      <h1 class="ps-title">연금 시뮬레이션</h1>
+    </div>
+    <div class="ps-header-right">
+      <span class="ps-subtitle">2026 – 2040</span>
+    </div>
+  </header>
+
+  <!-- ── 로딩 스피너 ──────────────────────────────────────────────────── -->
+  <div id="pension-loading" class="ps-loading">
+    <div class="ps-spinner"></div>
+    <span class="ps-loading-text">데이터 로딩 중…</span>
+  </div>
+
+  <!-- ── 에러 메시지 ──────────────────────────────────────────────────── -->
+  <div id="pension-error" class="ps-error" style="display:none">
+    <span id="pension-error-msg">오류가 발생했습니다.</span>
+  </div>
+
+  <!-- ── 메인 콘텐츠 (로딩 완료 후 표시) ─────────────────────────────── -->
+  <div id="pension-main" style="display:none">
+
+    <div class="ps-layout">
+
+      <!-- 설정 패널 (사이드바) -->
+      <aside class="ps-sidebar">
+        <section id="pension-settings"></section>
+      </aside>
+
+      <!-- 차트 영역 -->
+      <main class="ps-content">
+
+        <!-- 기간 슬라이더 -->
+        <div class="ps-period-bar">
+          <span class="ps-period-label-text">기간</span>
+          <input type="range" id="pension-period-slider"
+                 class="ps-slider" min="0" max="7" value="2">
+          <span id="pension-period-label" class="ps-period-value">3년</span>
+        </div>
+
+        <!-- 차트1: 전체 연금자산 선그래프 -->
+        <div class="ps-chart-card">
+          <div class="ps-chart-header">
+            <span class="ps-chart-title">전체 연금자산</span>
+            <div class="ps-legend-row">
+              <span class="ps-legend-item">
+                <span class="ps-legend-line" style="background:#eceef5"></span>실적
+              </span>
+              <span class="ps-legend-item">
+                <span class="ps-legend-line ps-legend-dash" style="background:#c9a84c"></span>예측
+              </span>
+              <span class="ps-legend-item">
+                <span class="ps-legend-line ps-legend-dash" style="background:rgba(173,178,204,0.4)"></span>계획
+              </span>
+            </div>
+          </div>
+          <div class="ps-chart-wrap">
+            <canvas id="pension-line-chart"></canvas>
+          </div>
+        </div>
+
+        <!-- 차트2: 계좌별 누적 스택 -->
+        <div class="ps-chart-card">
+          <div class="ps-chart-header">
+            <span class="ps-chart-title">계좌별 누적</span>
+            <div class="ps-tab-row">
+              <button id="pension-stack-actual"
+                      class="ps-tab-btn ps-tab-active"
+                      onclick="PensionChart.renderStackedArea(PensionState.result, _psGetYears(), 'actual')">
+                실적+예측
+              </button>
+              <button id="pension-stack-plan"
+                      class="ps-tab-btn"
+                      onclick="PensionChart.renderStackedArea(PensionState.result, _psGetYears(), 'plan')">
+                최초 계획
+              </button>
+            </div>
+          </div>
+          <div class="ps-chart-wrap">
+            <canvas id="pension-stack-chart"></canvas>
+          </div>
+        </div>
+
+        <!-- 차트3: 계획 대비 차이 바 차트 -->
+        <div class="ps-chart-card">
+          <div class="ps-chart-header">
+            <span class="ps-chart-title">계획 대비 차이</span>
+            <span class="ps-chart-hint">예측 − 계획</span>
+          </div>
+          <div class="ps-chart-wrap ps-chart-wrap-sm">
+            <canvas id="pension-diff-chart"></canvas>
+          </div>
+        </div>
+
+      </main><!-- /.ps-content -->
+    </div><!-- /.ps-layout -->
+
+    <!-- Phase7: 월별 테이블 (빈 컨테이너) -->
+    <section id="pension-table"></section>
+
+  </div><!-- /#pension-main -->
+
+</div><!-- /.ps-page -->
+
+<!-- ── 슬라이더 연도 헬퍼 ────────────────────────────────────────────── -->
+<script>
+function _psGetYears() {
+  var s = document.getElementById('pension-period-slider');
+  if (!s) return 3;
+  return [1,2,3,5,8,10,15,20][parseInt(s.value)] || 3;
+}
+</script>
+
+<!-- ── 스크립트 로드 순서 ─────────────────────────────────────────────── -->
+<!-- 1. Chart.js 4.4.1 -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<!-- 2. chartjs-plugin-annotation (이벤트 수직선) -->
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+
+<!-- 3. 기존 공통 모듈 (읽기 전용) -->
+<script src="js/config.js"></script>
+<script src="js/firebase.js"></script>
+
+<!-- 4~10. pension 전용 모듈 -->
+<script src="js/pension/ps-config.js"></script>
+<script src="js/pension/ps-engine.js"></script>
+<script src="js/pension/ps-firebase.js"></script>
+<script src="js/pension/ps-state.js"></script>
+<script src="js/pension/ps-chart.js"></script>
+<script src="js/pension/ps-settings.js"></script>
+<script src="js/pension/ps-init.js"></script>
+
+<!-- ── 로딩 완료 후 #pension-main 표시 ──────────────────────────────── -->
+<script>
+(function () {
+  var _t = setInterval(function () {
+    var loading = document.getElementById('pension-loading');
+    var main    = document.getElementById('pension-main');
+    if (!loading || !main) return;
+    if (loading.style.display === 'none') {
+      main.style.display = '';
+      clearInterval(_t);
+    }
+  }, 80);
+})();
+</script>
+
+</body>
+</html>
