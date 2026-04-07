@@ -33,7 +33,8 @@ const PS_DEFAULT_PARAMS = {
   voo: {
     startYM:       '2027-01',
     intervalWeeks: 3,           // N주마다 1주 매도
-    priceKRW:      950000       // VOO 1주당 가격 (원)
+    quantity:      34.8012,     // 보유 수량 (주) — 현재 스냅샷 기준, 변경 가능
+    priceKRW:      836000       // VOO 1주당 가격 (원) = 현재 주가($605.67) × 당일환율(1,380)
   },
   pension: {
     baseMonthly: 1000000        // 연금저축 기본 납입 (VOO 분배 외, VOO 소진 후 사용)

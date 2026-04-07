@@ -82,7 +82,7 @@ const PensionFirebase = (() => {
         IRP1:     ev[ix.IRP1]    ?? 0,
         IRP2:     ev[ix.IRP2]    ?? 0,
         해외주식: ev[ix.해외주식] ?? 0,
-        VOO:      ev[ix.RIA]     ?? 0,   // VOO = RIA 계좌 (동일 eval 인덱스)
+        // VOO: Firebase에서 해외주식 계좌 내 VOO 분리 불가 — 엔진이 plan 추적값 사용
         RIA:      ev[ix.RIA]     ?? 0,
         ISA:      ev[ix.ISA]     ?? 0
       };
@@ -96,7 +96,7 @@ const PensionFirebase = (() => {
       IRP1:     ev[ix.IRP1]    ?? 0,
       IRP2:     ev[ix.IRP2]    ?? 0,
       해외주식: ev[ix.해외주식] ?? 0,
-      VOO:      ev[ix.RIA]     ?? 0,
+      VOO:      0,              // Firebase에서 해외주식 계좌 내 VOO 분리 불가 → 엔진이 params에서 계산
       RIA:      ev[ix.RIA]     ?? 0,
       ISA:      ev[ix.ISA]     ?? 0
     };
