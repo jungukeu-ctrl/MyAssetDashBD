@@ -197,6 +197,7 @@ asset-data/
 | P2-6 | `_adjInvest()` 날짜 하드코딩 제거 — `'2026-03'` → `state['ria']?.riaStartYm \|\| '2026-03'` (render.js 2곳) | `render.js` | 2026-04-01 |
 | PS-Phase0 | pension-simulation 영향도 분석 & `.claude/INTERFACE.md` 생성 — 전역변수/Firebase스키마/계좌인덱스/CSS충돌위험 정리 | `.claude/INTERFACE.md` | 2026-04-07 |
 | PS-Phase1 | ps-config.js(DEFAULT_PARAMS, 상수) & ps-engine.js(PensionEngine.run, VOO분배, ISA한도, calcISATransfer) 생성. 검증: months=180 ✅ VOO분배 ✅ ISA이체 ✅ | `js/pension/ps-config.js`, `js/pension/ps-engine.js` | 2026-04-07 |
+| PS-BUG-IDX | eval[] 인덱스 키명 표준화 — PS_EVAL_IDX 단일 진실 공급원 도입. AI_IDX 한국어키('개인연금저축' 등) 직접 접근 제거. ps-firebase.js _getIdx() 삭제, INTERFACE.md 정정. 6계좌 0 추출 버그 해소 | `js/pension/ps-config.js`, `js/pension/ps-firebase.js`, `.claude/INTERFACE.md` | 2026-04-07 |
 
 ---
 
