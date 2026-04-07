@@ -196,6 +196,7 @@ asset-data/
 | P2-3 | combined entry 생성 헬퍼 `_getOrCreateCombinedEntry(ym, date)` 추출 — applyKiwoomResult·applyPensionResult 중복 블록 통합 | `modal.js` | 2026-04-01 |
 | P2-6 | `_adjInvest()` 날짜 하드코딩 제거 — `'2026-03'` → `state['ria']?.riaStartYm \|\| '2026-03'` (render.js 2곳) | `render.js` | 2026-04-01 |
 | PS-Phase0 | pension-simulation 영향도 분석 & `.claude/INTERFACE.md` 생성 — 전역변수/Firebase스키마/계좌인덱스/CSS충돌위험 정리 | `.claude/INTERFACE.md` | 2026-04-07 |
+| PS-Phase1 | ps-config.js(DEFAULT_PARAMS, 상수) & ps-engine.js(PensionEngine.run, VOO분배, ISA한도, calcISATransfer) 생성. 검증: months=180 ✅ VOO분배 ✅ ISA이체 ✅ | `js/pension/ps-config.js`, `js/pension/ps-engine.js` | 2026-04-07 |
 
 ---
 
@@ -206,7 +207,7 @@ asset-data/
 | Phase | 작업 | 파일 | 상태 |
 |-------|------|------|------|
 | Phase0 | 영향도 분석 & INTERFACE.md 생성 | `.claude/INTERFACE.md` | ✅ 완료 |
-| Phase1 | ps-config.js & ps-engine.js 생성 | `js/pension/` | 대기 |
+| Phase1 | ps-config.js & ps-engine.js 생성 | `js/pension/` | ✅ 완료 |
 | Phase2 | ps-firebase.js (Firebase 연동) | `js/pension/` | 대기 |
 | Phase3 | ps-state.js & ps-init.js | `js/pension/` | 대기 |
 | Phase4 | ps-chart.js (차트 렌더링) | `js/pension/` | 대기 |
