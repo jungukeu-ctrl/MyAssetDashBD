@@ -1,0 +1,489 @@
+/**
+ * pension-sim.css — 연금 시뮬레이션 전용 스타일
+ * 기존 css/style.css 의 CSS 변수 재사용.
+ * 모든 클래스는 ps- 접두어. ID는 pension- 접두어.
+ */
+
+/* ── 페이지 레이아웃 ──────────────────────────────────────────────────── */
+
+.ps-page {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 16px 60px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  min-height: 100vh;
+}
+
+/* ── 헤더 ─────────────────────────────────────────────────────────────── */
+
+.ps-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 0 16px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 24px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ps-header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.ps-back-btn {
+  color: var(--text2);
+  text-decoration: none;
+  font-size: 13px;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  transition: border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.ps-back-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.ps-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.ps-subtitle {
+  font-size: 13px;
+  color: var(--text3);
+}
+
+/* ── 로딩 / 에러 ──────────────────────────────────────────────────────── */
+
+.ps-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 60px 0;
+  color: var(--text2);
+  font-size: 14px;
+}
+
+.ps-spinner {
+  width: 22px;
+  height: 22px;
+  border: 3px solid var(--border2);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: ps-spin 0.7s linear infinite;
+}
+
+@keyframes ps-spin {
+  to { transform: rotate(360deg); }
+}
+
+.ps-loading-text {
+  color: var(--text2);
+}
+
+.ps-error {
+  padding: 20px 24px;
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  border-radius: 8px;
+  color: var(--red);
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+/* ── 2단 레이아웃 ─────────────────────────────────────────────────────── */
+
+.ps-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .ps-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── 사이드바 (설정 패널) ─────────────────────────────────────────────── */
+
+.ps-sidebar {
+  position: sticky;
+  top: 16px;
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+
+.ps-sidebar::-webkit-scrollbar { width: 4px; }
+.ps-sidebar::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* ── 설정 패널 wrap ───────────────────────────────────────────────────── */
+
+.ps-settings-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── 카드 ─────────────────────────────────────────────────────────────── */
+
+.ps-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.ps-card-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 12px;
+}
+
+/* ── 설정 행 ──────────────────────────────────────────────────────────── */
+
+.ps-setting-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.ps-setting-row:last-child { margin-bottom: 0; }
+
+.ps-setting-label {
+  font-size: 12px;
+  color: var(--text2);
+  white-space: nowrap;
+}
+
+.ps-setting-input {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ps-setting-note {
+  font-size: 11px;
+  color: var(--text3);
+  white-space: nowrap;
+}
+
+/* ── 입력 필드 ────────────────────────────────────────────────────────── */
+
+.ps-input {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text);
+  font-size: 12px;
+  padding: 4px 7px;
+  width: 90px;
+  text-align: right;
+  transition: border-color 0.15s;
+  -moz-appearance: textfield;
+}
+
+.ps-input::-webkit-inner-spin-button,
+.ps-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+.ps-input:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+
+.ps-input-readonly {
+  color: var(--text3);
+  cursor: default;
+  opacity: 0.7;
+}
+
+/* ── ISA 이체 행 ──────────────────────────────────────────────────────── */
+
+.ps-isa-transfer-row {
+  border-left: 2px solid var(--border);
+  padding-left: 8px;
+  margin-bottom: 8px;
+}
+
+.ps-isa-amount-row {
+  margin-top: -4px;
+  margin-bottom: 0;
+}
+
+.ps-isa-amount {
+  font-size: 12px;
+  color: var(--teal);
+  font-weight: 500;
+}
+
+.ps-text3 { color: var(--text3) !important; }
+
+/* ── 고급 설정 토글 ───────────────────────────────────────────────────── */
+
+.ps-advanced-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.ps-advanced-toggle {
+  width: 100%;
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  cursor: pointer;
+  color: var(--text2);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  transition: color 0.15s;
+}
+
+.ps-advanced-toggle:hover { color: var(--gold); }
+
+.ps-toggle-arrow {
+  font-size: 10px;
+  color: var(--text3);
+  transition: transform 0.2s;
+}
+
+.ps-advanced-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+  padding: 0 16px;
+}
+
+.ps-advanced-body.ps-advanced-open {
+  max-height: 600px;
+  padding: 0 16px 14px;
+}
+
+.ps-note-info {
+  font-size: 11px;
+  color: var(--text3);
+  margin: 0 0 10px;
+  font-style: italic;
+}
+
+.ps-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 10px 0;
+}
+
+/* ── 차트 영역 ────────────────────────────────────────────────────────── */
+
+.ps-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+/* ── 기간 슬라이더 ────────────────────────────────────────────────────── */
+
+.ps-period-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 16px;
+}
+
+.ps-period-label-text {
+  font-size: 12px;
+  color: var(--text3);
+  white-space: nowrap;
+}
+
+.ps-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: var(--border2);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.ps-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  background: var(--gold);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.ps-slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+.ps-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: var(--gold);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.ps-period-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gold);
+  min-width: 28px;
+  text-align: right;
+}
+
+/* ── 차트 카드 ────────────────────────────────────────────────────────── */
+
+.ps-chart-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.ps-chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ps-chart-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.ps-chart-hint {
+  font-size: 11px;
+  color: var(--text3);
+}
+
+.ps-chart-wrap {
+  position: relative;
+  height: 280px;
+}
+
+.ps-chart-wrap-sm {
+  height: 180px;
+}
+
+/* ── 범례 ─────────────────────────────────────────────────────────────── */
+
+.ps-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ps-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text2);
+}
+
+.ps-legend-line {
+  display: inline-block;
+  width: 20px;
+  height: 2px;
+  border-radius: 1px;
+}
+
+.ps-legend-dash {
+  background: repeating-linear-gradient(
+    90deg,
+    currentColor 0, currentColor 4px,
+    transparent 4px, transparent 7px
+  ) !important;
+  background-color: transparent !important;
+}
+
+/* ── 탭 버튼 (스택 차트 토글) ────────────────────────────────────────── */
+
+.ps-tab-row {
+  display: flex;
+  gap: 4px;
+}
+
+.ps-tab-btn {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text2);
+  font-size: 11px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.ps-tab-btn:hover {
+  border-color: var(--border2);
+  color: var(--text);
+}
+
+.ps-tab-active {
+  background: var(--gold-dim);
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+/* ── 반응형 (480px) ───────────────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+  .ps-header { flex-direction: column; align-items: flex-start; }
+  .ps-title  { font-size: 17px; }
+
+  .ps-sidebar {
+    position: static;
+    max-height: none;
+  }
+
+  .ps-chart-wrap     { height: 220px; }
+  .ps-chart-wrap-sm  { height: 140px; }
+
+  .ps-setting-row {
+    grid-template-columns: 1fr;
+  }
+
+  .ps-input {
+    width: 100%;
+    text-align: left;
+  }
+
+  .ps-period-bar {
+    flex-wrap: wrap;
+  }
+}
