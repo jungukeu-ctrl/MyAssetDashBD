@@ -136,19 +136,30 @@ asset-data/
 
 ## 3. 계좌 인덱스 매핑 (AI_IDX)
 
-| idx | 계좌명 (AI_NAMES) | Firebase 키 | 비고 |
-|-----|-----------------|------------|------|
-| 0 | 해외 | `kiwoom-overseas` | |
-| 1 | 오빌 | `kiwoom-obil` | |
-| 2 | 자사주 | — | |
-| 3 | 개인연금저축 ✅ | `pension-saving` | ps-engine 연금저축 |
-| 4 | 별동대 | — | |
-| 5 | 연습 | — | |
-| 6 | 초빌 | — | |
-| 7 | IRP 1 ✅ | `pension-irp1` | ps-engine IRP1 |
-| 8 | IRP 2 ✅ | `pension-irp2` | ps-engine IRP2 |
-| 9 | ISA ✅ | `isa` | ps-engine ISA |
-| 10 | RIA ✅ | `kiwoom-ria` | ps-engine RIA/VOO |
+> ⚠️ **AI_IDX 키는 한국어 문자열** — pension 모듈에서 직접 접근 금지.
+> pension 모듈은 반드시 **`PS_EVAL_IDX`** (ps-config.js) 를 통해 인덱스 참조.
+
+```javascript
+// config.js 실제 정의
+const AI_IDX = {
+  '해외':0, '오빌':1, '자사주':2, '개인연금저축':3, '별동대':4,
+  '연습':5, '초빌':6, '퇴직연금001':7, '퇴직연금002':8, 'ISA':9, 'RIA':10
+};
+```
+
+| idx | AI_IDX 실제 키 | AI_NAMES | Firebase 키 | PS_EVAL_IDX 키 |
+|-----|--------------|----------|------------|---------------|
+| 0 | `'해외'` | 해외 | `kiwoom-overseas` | `해외주식` |
+| 1 | `'오빌'` | 오빌 | `kiwoom-obil` | — |
+| 2 | `'자사주'` | 자사주 | — | — |
+| 3 | `'개인연금저축'` | 개인연금저축 ✅ | `pension-saving` | `연금저축` |
+| 4 | `'별동대'` | 별동대 | — | — |
+| 5 | `'연습'` | 연습 | — | — |
+| 6 | `'초빌'` | 초빌 | — | — |
+| 7 | `'퇴직연금001'` | IRP 1 ✅ | `pension-irp1` | `IRP1` |
+| 8 | `'퇴직연금002'` | IRP 2 ✅ | `pension-irp2` | `IRP2` |
+| 9 | `'ISA'` | ISA ✅ | `isa` | `ISA` |
+| 10 | `'RIA'` | RIA ✅ | `kiwoom-ria` | `RIA` (VOO 동일) |
 
 ---
 

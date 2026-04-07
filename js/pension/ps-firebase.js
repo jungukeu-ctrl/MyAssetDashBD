@@ -53,35 +53,38 @@ const PensionFirebase = (() => {
   }
 
   // ─── 내부: combined 배열 → actualData 변환 ───────────────────────────────
+  //
+  // eval[] 인덱스는 PS_EVAL_IDX (ps-config.js) 를 단일 진실 공급원으로 사용.
+  // config.js AI_IDX 는 한국어 키('개인연금저축','퇴직연금001' 등)를 사용하므로
+  // pension 모듈에서 직접 접근하지 않는다.
+  //
 
   /**
-   * @param {Array}  combined  kiData.combined 배열
-   * @param {object} idx       AI_IDX 계좌 인덱스 맵
+   * @param {Array} combined  kiData.combined 배열
    * @returns {{ initialBalances, monthlyActual }}
    */
-  function _buildActualData(combined, idx) {
-    if (!combined || !combined.length) {
-      return {
-        initialBalances: { 연금저축: 0, IRP1: 0, IRP2: 0, 해외주식: 0, VOO: 0, RIA: 0, ISA: 0 },
-        monthlyActual: {}
-      };
-    }
+  function _buildActualData(combined) {
+    const empty = {
+      initialBalances: { 연금저축: 0, IRP1: 0, IRP2: 0, 해외주식: 0, VOO: 0, RIA: 0, ISA: 0 },
+      monthlyActual: {}
+    };
+    if (!combined || !combined.length) return empty;
 
+    const ix = PS_EVAL_IDX;  // { 연금저축:3, IRP1:7, IRP2:8, 해외주식:0, RIA:10, ISA:9 }
     const monthlyActual = {};
 
     for (const row of combined) {
       const ym = row.month;
       if (!ym) continue;
-
       const ev = row.eval || [];
       monthlyActual[ym] = {
-        연금저축: ev[idx.pension]  ?? 0,
-        IRP1:     ev[idx.irp1]     ?? 0,
-        IRP2:     ev[idx.irp2]     ?? 0,
-        해외주식: ev[idx.overseas] ?? 0,
-        VOO:      ev[idx.ria]      ?? 0,   // RIA 계좌 = VOO 보유
-        RIA:      ev[idx.ria]      ?? 0,
-        ISA:      ev[idx.isa]      ?? 0
+        연금저축: ev[ix.연금저축] ?? 0,
+        IRP1:     ev[ix.IRP1]    ?? 0,
+        IRP2:     ev[ix.IRP2]    ?? 0,
+        해외주식: ev[ix.해외주식] ?? 0,
+        VOO:      ev[ix.RIA]     ?? 0,   // VOO = RIA 계좌 (동일 eval 인덱스)
+        RIA:      ev[ix.RIA]     ?? 0,
+        ISA:      ev[ix.ISA]     ?? 0
       };
     }
 
@@ -89,25 +92,16 @@ const PensionFirebase = (() => {
     const latest = combined[combined.length - 1];
     const ev = latest.eval || [];
     const initialBalances = {
-      연금저축: ev[idx.pension]  ?? 0,
-      IRP1:     ev[idx.irp1]     ?? 0,
-      IRP2:     ev[idx.irp2]     ?? 0,
-      해외주식: ev[idx.overseas] ?? 0,
-      VOO:      ev[idx.ria]      ?? 0,
-      RIA:      ev[idx.ria]      ?? 0,
-      ISA:      ev[idx.isa]      ?? 0
+      연금저축: ev[ix.연금저축] ?? 0,
+      IRP1:     ev[ix.IRP1]    ?? 0,
+      IRP2:     ev[ix.IRP2]    ?? 0,
+      해외주식: ev[ix.해외주식] ?? 0,
+      VOO:      ev[ix.RIA]     ?? 0,
+      RIA:      ev[ix.RIA]     ?? 0,
+      ISA:      ev[ix.ISA]     ?? 0
     };
 
     return { initialBalances, monthlyActual };
-  }
-
-  // ─── 내부: AI_IDX 안전 접근 ───────────────────────────────────────────────
-
-  function _getIdx() {
-    // config.js 가 로드됐으면 AI_IDX 전역 사용, 아니면 하드코딩 fallback
-    if (typeof AI_IDX !== 'undefined') return AI_IDX;
-    // INTERFACE.md 확인 기준 fallback (config.js 미로드 시)
-    return { overseas: 0, pension: 3, isa: 9, irp1: 7, irp2: 8, ria: 10 };
   }
 
   // ─── 공개: load() ────────────────────────────────────────────────────────
@@ -117,8 +111,6 @@ const PensionFirebase = (() => {
    * @returns {Promise<{initialBalances, monthlyActual}>}
    */
   async function load() {
-    const idx = _getIdx();
-
     // 1. localStorage 즉시 파싱
     const localKiData = _readLocal();
     const localCombined = localKiData?.combined || [];
@@ -132,8 +124,8 @@ const PensionFirebase = (() => {
       ? remoteCombined
       : localCombined;
 
-    // 4. 변환 및 반환
-    return _buildActualData(combined, idx);
+    // 4. 변환 및 반환 (PS_EVAL_IDX 사용)
+    return _buildActualData(combined);
   }
 
   // ─── 공개: loadLocal() ───────────────────────────────────────────────────
@@ -144,9 +136,8 @@ const PensionFirebase = (() => {
    * @returns {{initialBalances, monthlyActual}}
    */
   function loadLocal() {
-    const idx = _getIdx();
     const kiData = _readLocal();
-    return _buildActualData(kiData?.combined || [], idx);
+    return _buildActualData(kiData?.combined || []);
   }
 
   return { load, loadLocal };
