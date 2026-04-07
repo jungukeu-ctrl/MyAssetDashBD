@@ -209,7 +209,7 @@ asset-data/
 | Phase0 | 영향도 분석 & INTERFACE.md 생성 | `.claude/INTERFACE.md` | ✅ 완료 |
 | Phase1 | ps-config.js & ps-engine.js 생성 | `js/pension/` | ✅ 완료 |
 | Phase2 | ps-firebase.js (Firebase 연동) | `js/pension/` | ✅ 완료 |
-| Phase3 | ps-state.js & ps-init.js | `js/pension/` | 대기 |
+| Phase3 | ps-state.js & ps-init.js | `js/pension/` | ✅ 완료 |
 | Phase4 | ps-chart.js (차트 렌더링) | `js/pension/` | 대기 |
 | Phase5 | ps-settings.js (설정 패널 UI) | `js/pension/` | 대기 |
 | Phase6 | pension-simulation.html & pension-sim.css | 루트, `css/` | 대기 |
