@@ -1,0 +1,89 @@
+/**
+ * ps-config.js — pension-simulation 전용 상수 & 파라미터 기본값
+ * pension 모듈 전용. 기존 js/*.js 파일과 독립.
+ */
+
+'use strict';
+
+// ─── 시뮬레이션 기간 ─────────────────────────────────────────────────────────
+const PS_START_YM = '2026-01';
+const PS_END_YM   = '2040-12';
+
+// ─── 월수익률 변환 ────────────────────────────────────────────────────────────
+/**
+ * 연수익률 → 월수익률 변환
+ * @param {number} annualRate  연수익률 (예: 0.10 = 10%)
+ * @returns {number}           월수익률
+ */
+function psAnnualToMonthly(annualRate) {
+  return Math.pow(1 + annualRate, 1 / 12) - 1;
+}
+
+// ─── 기본 파라미터 ────────────────────────────────────────────────────────────
+const PS_DEFAULT_PARAMS = {
+  rates: {
+    연금저축: 0.10,
+    IRP1:     0.10,
+    IRP2:     0.09,
+    해외주식: 0.10,
+    RIA:      0.10,
+    ISA:      0.10,
+    VOO:      0.09
+  },
+  voo: {
+    startYM:       '2027-01',
+    intervalWeeks: 3,           // N주마다 1주 매도
+    priceKRW:      950000       // VOO 1주당 가격 (원)
+  },
+  pension: {
+    baseMonthly: 1000000        // 연금저축 기본 납입 (VOO 분배 외, VOO 소진 후 사용)
+  },
+  isa: {
+    joinYM:      '2026-03',
+    annualLimit: 20000000,
+    transfers: [
+      { ym: '2027-05' },
+      { ym: '2028-01' },
+      { ym: '2029-01' }
+    ]
+  },
+  retire: {
+    ym:           '2028-12',
+    severancePay: 140000000     // 퇴직금 (원)
+  },
+  nationalPension: {
+    startYM:  '2039-03',
+    monthly:  1800000           // 국민연금 월 수령액 (원)
+  },
+  tax: {
+    deductRate:             0.132,    // 세액공제율 (연금저축+IRP 합산)
+    rate6069:               0.044,    // 연금소득세율 (60~69세)
+    rate70:                 0.033,    // 연금소득세율 (70세~)
+    separateTaxThreshold:   15000000  // 분리과세 기준선 (원/년)
+  },
+  healthInsurance: {
+    rate:                   0.0709,   // 건보료율
+    annualRaise:            0.015,    // 연간 상승률
+    cap:                    0.12,     // 상한 (소득 대비)
+    ltcRate:                0.1295,   // 장기요양보험료율 (건보료 대비)
+    dependentIncomeLimit:   20000000, // 피부양자 소득 기준 (원/년)
+    pensionExemptLimit:     10000000  // 사적연금 건보료 면제 하한 (원/년)
+  },
+  property: {
+    publicPrice:   710000000,   // 아파트 공시가격 (원)
+    annualRaise:   0.07,        // 연간 상승률
+    ownershipRatio: 0.5         // 소유 지분 비율
+  }
+};
+
+// ─── VOO 분배 한도 ────────────────────────────────────────────────────────────
+const PS_VOO_DIST = {
+  pensionFixed: 250000,   // 연금저축 고정 분배 (원)
+  irp1Fixed:    250000    // IRP1 고정 분배 (원)
+};
+
+// ─── 연금 납입 연간 한도 ──────────────────────────────────────────────────────
+const PS_ANNUAL_LIMITS = {
+  pension: 15000000,   // 연금저축 연 1,500만 한도
+  irp1:    3000000     // IRP1 연 300만 한도
+};
