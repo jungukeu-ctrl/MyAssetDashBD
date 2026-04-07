@@ -195,10 +195,24 @@ asset-data/
 | P2-1 | AI 인덱스 맵 단일화 — `config.js`에 `AI_IDX`/`AI_NAMES` 전역 상수 추가, render.js 3곳 `const AI = AI_IDX;` 참조로 교체, export.js 로컬 `AI_NAMES` 제거 | `config.js`, `render.js`, `export.js` | 2026-04-01 |
 | P2-3 | combined entry 생성 헬퍼 `_getOrCreateCombinedEntry(ym, date)` 추출 — applyKiwoomResult·applyPensionResult 중복 블록 통합 | `modal.js` | 2026-04-01 |
 | P2-6 | `_adjInvest()` 날짜 하드코딩 제거 — `'2026-03'` → `state['ria']?.riaStartYm \|\| '2026-03'` (render.js 2곳) | `render.js` | 2026-04-01 |
+| PS-Phase0 | pension-simulation 영향도 분석 & `.claude/INTERFACE.md` 생성 — 전역변수/Firebase스키마/계좌인덱스/CSS충돌위험 정리 | `.claude/INTERFACE.md` | 2026-04-07 |
 
 ---
 
 ## 5. 남은 작업 목록
+
+### pension-simulation 모듈 (진행 중)
+
+| Phase | 작업 | 파일 | 상태 |
+|-------|------|------|------|
+| Phase0 | 영향도 분석 & INTERFACE.md 생성 | `.claude/INTERFACE.md` | ✅ 완료 |
+| Phase1 | ps-config.js & ps-engine.js 생성 | `js/pension/` | 대기 |
+| Phase2 | ps-firebase.js (Firebase 연동) | `js/pension/` | 대기 |
+| Phase3 | ps-state.js & ps-init.js | `js/pension/` | 대기 |
+| Phase4 | ps-chart.js (차트 렌더링) | `js/pension/` | 대기 |
+| Phase5 | ps-settings.js (설정 패널 UI) | `js/pension/` | 대기 |
+| Phase6 | pension-simulation.html & pension-sim.css | 루트, `css/` | 대기 |
+| Phase7 | ps-table.js (월별 테이블) | `js/pension/` | 별도 세션 |
 
 ### Phase 2 — 중복 제거 (별도 세션 예정)
 
