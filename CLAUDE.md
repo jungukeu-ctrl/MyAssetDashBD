@@ -37,3 +37,15 @@
 ## 5. 브랜치 규칙
 - main에는 직접 push하지 않음
 - 개발 브랜치는 매 세션 시작 시 PLAN.md에서 확인
+
+
+## pension-simulation 모듈
+
+> 상세 지침: `.claude/PENSION_SIM.md`
+> 영향도 분석: `.claude/INTERFACE.md` (Phase0 산출물)
+
+### 핵심 규칙 요약
+- 작업 범위: `js/pension/`, `pension-simulation.html`, `css/pension-sim.css` 만
+- 기존 `js/*.js`, `index.html` 수정 금지
+- 매 작업 시작 전 `.claude/INTERFACE.md` 확인 필수
+- 상세 파라미터/로직/Phase 프롬프트는 `.claude/PENSION_SIM.md` 열람
