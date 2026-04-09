@@ -198,6 +198,7 @@ asset-data/
 | PS-Phase0 | pension-simulation 영향도 분석 & `.claude/INTERFACE.md` 생성 — 전역변수/Firebase스키마/계좌인덱스/CSS충돌위험 정리 | `.claude/INTERFACE.md` | 2026-04-07 |
 | PS-Phase1 | ps-config.js(DEFAULT_PARAMS, 상수) & ps-engine.js(PensionEngine.run, VOO분배, ISA한도, calcISATransfer) 생성. 검증: months=180 ✅ VOO분배 ✅ ISA이체 ✅ | `js/pension/ps-config.js`, `js/pension/ps-engine.js` | 2026-04-07 |
 | PS-BUG-IDX | eval[] 인덱스 키명 표준화 — PS_EVAL_IDX 단일 진실 공급원 도입. AI_IDX 한국어키('개인연금저축' 등) 직접 접근 제거. ps-firebase.js _getIdx() 삭제, INTERFACE.md 정정. 6계좌 0 추출 버그 해소 | `js/pension/ps-config.js`, `js/pension/ps-firebase.js`, `.claude/INTERFACE.md` | 2026-04-07 |
+| PS-BUG-PLAN0 | pension plan 초기값 discrepancy 수정 — planBal을 Firebase 최신 항목(Jan 2026)으로 초기화하면 _stepMonth('2026-01') 후 plan[0]이 actual[0]보다 ~260만 높아지는 버그. planStartBalances(2025-12 역산 고정값)를 PS_DEFAULT_PARAMS에 추가, ps-engine.js planBal 초기화 변경. 차이 260만→0만 ✅ | `js/pension/ps-config.js`, `js/pension/ps-engine.js` | 2026-04-09 |
 
 ---
 
