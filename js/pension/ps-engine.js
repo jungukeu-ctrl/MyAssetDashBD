@@ -132,7 +132,19 @@ const PensionEngine = (() => {
     const isaLimitLog = [];
 
     // ── 월별 계획(plan) 잔액 별도 추적 ──
-    let planBal = { ...bal };  // vooInit 포함 복사
+    // planStartBalances: PS_START_YM 직전 월(2025-12) 역산 고정값.
+    // Firebase actualData(initialBalances)로 초기화하면 _stepMonth('2026-01')이
+    // 실측 Jan값에 1달 성장을 추가 적용하여 plan[0]이 actual[0]보다 ~260만 높아짐.
+    const ps = params.planStartBalances || {};
+    let planBal = {
+      연금저축: ps.연금저축 || 0,
+      IRP1:     ps.IRP1     || 0,
+      IRP2:     ps.IRP2     || 0,
+      해외주식: ps.해외주식 || 0,
+      VOO:      vooInit,
+      RIA:      ps.RIA      || 0,
+      ISA:      ps.ISA      || 0
+    };
     let planYearlyPension = 0;
     let planYearlyIRP1    = 0;
     let planPaidToISA     = 0;

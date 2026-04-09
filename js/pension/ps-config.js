@@ -74,6 +74,19 @@ const PS_DEFAULT_PARAMS = {
     publicPrice:   710000000,   // 아파트 공시가격 (원)
     annualRaise:   0.07,        // 연간 상승률
     ownershipRatio: 0.5         // 소유 지분 비율
+  },
+
+  // ── 계획선 기준 잔액 (PS_START_YM 직전 월인 2025-12 역산값) ──────────────
+  // plan 선이 Firebase 최신 데이터(initialBalances)에서 출발하면
+  // _stepMonth('2026-01') 적용 후 plan[0] = actual[0] + 1달 성장분 차이가 발생.
+  // PS_START_YM='2026-01' 실측값에서 1달 역산하여 plan 기준점으로 고정.
+  planStartBalances: {
+    연금저축: 29395595,   // (Jan실측 30,630,000 - 100만 기본납입) / (1.10^(1/12))
+    IRP1:     6379132,    // Jan실측 6,430,000 / (1.10^(1/12))
+    IRP2:     36010461,   // Jan실측 36,270,000 / (1.09^(1/12))
+    해외주식: 131850912,  // Jan실측 132,880,000 역산 (VOO 포함)
+    RIA:      0,
+    ISA:      0
   }
 };
 
