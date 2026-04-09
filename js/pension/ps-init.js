@@ -38,7 +38,7 @@
   function _getCurrentYears() {
     const slider = document.getElementById('pension-period-slider');
     if (!slider) return 3;
-    const steps = [1, 2, 3, 5, 8, 10, 15, 20];
+    const steps = [1, 2, 3, 5, 8, 10, 15, 20, 30, 48];
     return steps[parseInt(slider.value)] ?? 3;
   }
 

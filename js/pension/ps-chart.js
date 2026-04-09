@@ -147,7 +147,7 @@ const PensionChart = (() => {
 
   // ─── 1. 기간 슬라이더 ────────────────────────────────────────────────────
 
-  const PERIOD_STEPS = [1, 2, 3, 5, 8, 10, 15, 20];
+  const PERIOD_STEPS = [1, 2, 3, 5, 8, 10, 15, 20, 30, 48];
 
   /**
    * @param {function} onChange  onChange(years) — years: number
