@@ -28,23 +28,9 @@ function exportMonthlyXlsx() {
   const combined = kiData.combined;
   const st       = state || {};
 
-  // tossHistory (evalRows에서도 사용하므로 앞으로 이동)
   const th = kiData?.tossHistory || {};
 
-  // 1. 월별 평가금액 (toss 미포함)
-  // _hasToss=true 행은 스냅샷 적용 시 eval에 toss가 이미 합산되어 있으므로 차감
-  const evalRows = combined.map(e => {
-    const ym      = (e.date || e.month || '').slice(0, 7);
-    const ev      = [...(e.eval || new Array(11).fill(0))];
-    if (e._hasToss) {
-      ev[0] -= th['toss-overseas']?.[ym] || 0;
-      ev[1] -= th['toss-obil']?.[ym]     || 0;
-      ev[3] -= th['toss-pension']?.[ym]  || 0;
-      ev[5] -= th['toss-practice']?.[ym] || 0;
-    }
-    const mainSum = MAIN_IDX.reduce((s, i) => s + (ev[i] || 0), 0);
-    return [e.date || e.month, ...AI_NAMES.map((_, i) => ev[i] || 0), mainSum];
-  });
+  // 1. 월별 투자금 (toss 포함)
   const investRows = combined.map(e => {
     const inv = [...(e.invest || new Array(11).fill(0))]; // 원본 보존을 위해 복사
     const ym  = (e.date || e.month || '').slice(0, 7);
@@ -56,10 +42,25 @@ function exportMonthlyXlsx() {
     return [e.date || e.month, ...AI_NAMES.map((_, i) => inv[i] || 0), mainSum];
   });
 
+  // 2. 월별 평가금 (toss 포함) — 2025-11 이전 과거 월에 tossHistory 합산 보정
+  const evalTossRows = combined.map(e => {
+    const ev      = _evalWithToss(e, th);
+    const mainSum = MAIN_IDX.reduce((s, i) => s + (ev[i] || 0), 0);
+    return [e.date || e.month, ...AI_NAMES.map((_, i) => ev[i] || 0), mainSum];
+  });
+
   // 3. 월별 수익률 (공식: (평가금(toss포함) - 투자금(toss포함)) / 투자금(toss포함) * 100)
+  // RIA: inv[10]은 raw combined에 0으로 저장되므로 state.ria.investVal로 보정
+  // 해외: 2026-03 이후 RIA 출고분 차감 (투자금 왜곡 방지)
   const retRows = combined.map(e => {
-    const ev  = _evalWithToss(e, th);
-    const inv = _investWithToss(e, th);
+    const ev         = _evalWithToss(e, th);
+    const inv        = _investWithToss(e, th);
+    const riaInvest  = state['ria']?.investVal || 0;
+    const riaStartYm = state['ria']?.riaStartYm || '2026-03';
+    const ym         = (e.date || e.month || '').slice(0, 7);
+    const afterRia   = ym >= riaStartYm;
+    inv[10] = afterRia ? riaInvest : 0;
+    inv[0]  = inv[0] - (afterRia ? riaInvest : 0);
     const pcts = AI_NAMES.map((_, i) => {
       const currentIn = inv[i] || 0;
       const currentEv = ev[i]  || 0;
@@ -89,21 +90,12 @@ function exportMonthlyXlsx() {
     ['RIA(평가)',            latest.eval[10]           || 0,   '원', latest.date || ''],
   ];
 
-  // 월별 평가금액(toss포함) — 2025-11 이전 과거 월에 tossHistory 합산 보정
-  const evalTossRows = combined.map(e => {
-    const ev      = _evalWithToss(e, th);
-    const mainSum = MAIN_IDX.reduce((s, i) => s + (ev[i] || 0), 0);
-    return [e.date || e.month, ...AI_NAMES.map((_, i) => ev[i] || 0), mainSum];
-  });
-
+  // 시트 순서: 투자금, 평가금, Toss모으기이력, 스냅샷현황, 월수익율(%)
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['날짜', ...AI_NAMES, '합계(주요8계좌)'], ...evalRows]),     '월별평가금액');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['날짜', ...AI_NAMES, '합계(주요8계좌)'], ...evalTossRows]), '월별평가금액(toss포함)');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['날짜', ...AI_NAMES, '합계(주요8계좌)'], ...investRows]),   '월별투자금');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['날짜', ...AI_NAMES, '전체수익률(%)'],    ...retRows]),    '월별수익률(%)');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(snapRows), '스냅샷현황');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['날짜', ...AI_NAMES, '합계(주요8계좌)'], ...investRows]),   '투자금');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['날짜', ...AI_NAMES, '합계(주요8계좌)'], ...evalTossRows]), '평가금');
 
-  // 토스모으기이력 시트
+  // Toss모으기이력 시트
   const tossLabels = { 'toss-overseas':'해외', 'toss-pension':'개인연금저축', 'toss-obil':'오빌', 'toss-practice':'연습' };
   const tossKeys   = Object.keys(tossLabels);
   const thAll      = kiData?.tossHistory || {};
@@ -111,7 +103,10 @@ function exportMonthlyXlsx() {
   const tossRows   = allYms.map(ym =>
     [ym, ...tossKeys.map(k => thAll[k]?.[ym] || 0)]
   );
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['월', ...Object.values(tossLabels)], ...tossRows]), '토스모으기이력');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['월', ...Object.values(tossLabels)], ...tossRows]), 'Toss모으기이력');
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(snapRows), '스냅샷현황');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['날짜', ...AI_NAMES, '전체수익률(%)'], ...retRows]), '월수익율(%)');
 
   XLSX.writeFile(wb, `asset_monthly_${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
