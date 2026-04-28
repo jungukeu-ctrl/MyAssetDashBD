@@ -272,6 +272,11 @@
   <div id="sangchu-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:200;align-items:center;justify-content:center">
     <div class="ai-modal-box" style="border-color:rgba(78,205,196,0.3);width:400px">
       <div class="ai-modal-title" style="color:#4ecdc4">🥬 제일일렉트릭 매매 입력</div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px">날짜</label>
+        <input type="date" id="sc-trade-date"
+          style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:9px 12px;border-radius:8px;font-size:13px;outline:none;font-family:'DM Mono',monospace;box-sizing:border-box">
+      </div>
       <div style="margin-bottom:14px">
         <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:6px">구분</label>
         <div style="display:flex;gap:8px">
@@ -285,25 +290,66 @@
               onchange="document.getElementById('sc-trade-type').value='sell';updateSangchuPreview()">
             <span style="font-size:13px;color:var(--blue)">매도</span>
           </label>
+          <label style="flex:1;display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;cursor:pointer">
+            <input type="radio" name="sc-trade-type-r" id="sc-type-gwanmang" value="gwanmang"
+              onchange="document.getElementById('sc-trade-type').value='gwanmang';updateSangchuPreview()">
+            <span style="font-size:13px;color:var(--text3)">관망</span>
+          </label>
         </div>
         <input type="hidden" id="sc-trade-type" value="buy">
       </div>
-      <div style="margin-bottom:12px">
-        <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px">단가 (원)</label>
-        <input type="number" id="sc-trade-price" placeholder="예: 12000" oninput="updateSangchuPreview()"
-          style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:9px 12px;border-radius:8px;font-size:13px;outline:none;font-family:'DM Mono',monospace;box-sizing:border-box">
+      <!-- 매수/매도 전용 -->
+      <div id="sc-trade-section">
+        <div style="margin-bottom:12px">
+          <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px">단가 (원)</label>
+          <input type="number" id="sc-trade-price" placeholder="예: 12000" oninput="updateSangchuPreview()"
+            style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:9px 12px;border-radius:8px;font-size:13px;outline:none;font-family:'DM Mono',monospace;box-sizing:border-box">
+        </div>
+        <div style="margin-bottom:14px">
+          <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px">비중 (%) <span style="color:var(--text3);font-size:10px">1주≒0.6%</span></label>
+          <input type="number" step="0.1" id="sc-trade-pct" placeholder="예: 1.0" oninput="updateSangchuPreview()"
+            style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:9px 12px;border-radius:8px;font-size:13px;outline:none;font-family:'DM Mono',monospace;box-sizing:border-box">
+        </div>
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;font-size:12px">
+          <div style="color:var(--text3);margin-bottom:8px;font-size:11px;letter-spacing:1px">예상 결과</div>
+          <div style="display:flex;flex-direction:column;gap:5px;color:var(--text2)">
+            <div>• 평단/손익: <span id="sc-preview-avg" style="color:var(--text);font-family:'DM Mono',monospace">—</span></div>
+            <div>• 비중: <span id="sc-preview-pct" style="color:var(--text);font-family:'DM Mono',monospace">—</span></div>
+            <div>• 일 잔여한도: <span id="sc-preview-limit" style="color:var(--text);font-family:'DM Mono',monospace">—</span></div>
+          </div>
+        </div>
       </div>
-      <div style="margin-bottom:14px">
-        <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px">비중 (%) <span style="color:var(--text3);font-size:10px">1주≒0.6%</span></label>
-        <input type="number" step="0.1" id="sc-trade-pct" placeholder="예: 1.0" oninput="updateSangchuPreview()"
-          style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:9px 12px;border-radius:8px;font-size:13px;outline:none;font-family:'DM Mono',monospace;box-sizing:border-box">
-      </div>
-      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;font-size:12px">
-        <div style="color:var(--text3);margin-bottom:8px;font-size:11px;letter-spacing:1px">예상 결과</div>
-        <div style="display:flex;flex-direction:column;gap:5px;color:var(--text2)">
-          <div>• 평단/손익: <span id="sc-preview-avg" style="color:var(--text);font-family:'DM Mono',monospace">—</span></div>
-          <div>• 비중: <span id="sc-preview-pct" style="color:var(--text);font-family:'DM Mono',monospace">—</span></div>
-          <div>• 일 잔여한도: <span id="sc-preview-limit" style="color:var(--text);font-family:'DM Mono',monospace">—</span></div>
+      <!-- 관망 전용 -->
+      <div id="sc-gwanmang-section" style="display:none">
+        <div style="margin-bottom:12px">
+          <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px">시합장</label>
+          <select id="sc-trade-signal"
+            style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:9px 12px;border-radius:8px;font-size:13px;outline:none;font-family:'DM Mono',monospace;box-sizing:border-box">
+            <option value="">— 선택 안함 —</option>
+            <option value="U1">U1</option>
+            <option value="U2">U2</option>
+            <option value="U3">U3</option>
+            <option value="D1">D1</option>
+            <option value="D2">D2</option>
+            <option value="D3">D3</option>
+          </select>
+        </div>
+        <div style="margin-bottom:14px">
+          <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:6px">선택 (A/B/C)</label>
+          <div style="display:flex;gap:8px">
+            <label style="flex:1;display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;cursor:pointer">
+              <input type="radio" name="sc-choice-r" id="sc-choice-a" value="A" checked>
+              <span style="font-size:13px;color:var(--text2)">A 관찰</span>
+            </label>
+            <label style="flex:1;display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;cursor:pointer">
+              <input type="radio" name="sc-choice-r" id="sc-choice-b" value="B">
+              <span style="font-size:13px;color:var(--teal)">B 매수</span>
+            </label>
+            <label style="flex:1;display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;cursor:pointer">
+              <input type="radio" name="sc-choice-r" id="sc-choice-c" value="C">
+              <span style="font-size:13px;color:var(--orange)">C 매도</span>
+            </label>
+          </div>
         </div>
       </div>
       <div id="sc-trade-error" style="font-size:12px;min-height:18px;margin-bottom:8px"></div>
