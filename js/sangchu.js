@@ -262,7 +262,6 @@ async function confirmSangchuTrade() {
   }
   newState.lastUpdated = today;
 
-  // 같은 날 여러 거래 시 key 충돌 방지
   var trades   = _sangchuData.trades || {};
   var tradeKey = today;
   if (trades[tradeKey]) tradeKey = today + '_' + Date.now();
@@ -305,7 +304,6 @@ function renderSangchuJournal() {
   )).sort().reverse();
 
   var rows = allDates.map(function(d) {
-    // 같은 날 여러 거래 수집
     var dayTrades = Object.keys(trades)
       .filter(function(k) { return k.slice(0, 10) === d; })
       .map(function(k) { return trades[k]; });
