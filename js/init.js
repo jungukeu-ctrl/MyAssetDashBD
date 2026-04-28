@@ -156,6 +156,7 @@ function _initCore() {
   addDefaultTodos();
   renderTodos();
   if (kiData) renderKiwoom();
+  initSangchu();
 }
 
 // ★ 페이지 로드 시 실행 — Firebase 인증 확인 후 앱 초기화

@@ -201,6 +201,7 @@ asset-data/
 | PS-BUG-PLAN0 | pension plan 초기값 discrepancy 수정 — planBal을 Firebase 최신 항목(Jan 2026)으로 초기화하면 _stepMonth('2026-01') 후 plan[0]이 actual[0]보다 ~260만 높아지는 버그. planStartBalances(2025-12 역산 고정값)를 PS_DEFAULT_PARAMS에 추가, ps-engine.js planBal 초기화 변경. 차이 260만→0만 ✅ | `js/pension/ps-config.js`, `js/pension/ps-engine.js` | 2026-04-09 |
 | PS-PERIOD | 시뮬레이션 기간 2040→2074년 확장 — PS_END_YM 변경(180→588개월), PERIOD_STEPS에 30·48년 추가(ps-chart.js, ps-init.js 동기화) | `js/pension/ps-config.js`, `js/pension/ps-chart.js`, `js/pension/ps-init.js` | 2026-04-09 |
 | EXCEL-SHEET | 엑셀 내보내기 시트 정리 — 월별평가금액(toss 미포함) 시트 삭제, 시트명 변경(월별투자금→투자금, 월별평가금액(toss포함)→평가금, 토스모으기이력→Toss모으기이력, 월별수익률(%)→월수익율(%)), 시트 순서 재정렬(투자금/평가금/Toss모으기이력/스냅샷현황/월수익율(%)). 월수익율(%) 버그 수정: inv[10] RIA 투자금 복원, inv[0] 해외 RIA 출고분 차감(riaStartYm 기준) | `export.js` | 2026-04-13 |
+| SANGCHU-V1 | 상추매매 슬롯 통합 — Firebase `/asset-data/sangchu` 독립 노드, 상추 카드(보유비중/평단/일잔여한도/누적수익), 매매 입력 모달(예상결과 실시간 계산), 일지 accordion. 초기 시드: 제일일렉트릭 1주 매수(2026-04-24, 11960원) → 매도(2026-04-27, 12310원, +350원 실현) | `js/firebase.js`, `js/sangchu.js`(신규), `index.html`, `css/style.css`, `js/init.js` | 2026-04-28 |
 
 ---
 
