@@ -336,6 +336,41 @@ async function fetchFromFirebase_() {
   return res.json();
 }
 
+// ═══════════════════════════════════════════
+//  ★ 상추 매매 — Firebase (독립 노드)
+//  경로: asset-data/sangchu (기존 asset-data와 분리)
+// ═══════════════════════════════════════════
+function _fbSangchuUrl() {
+  return (typeof FIREBASE_URL !== 'undefined') && FIREBASE_URL &&
+         FIREBASE_URL !== 'YOUR_FIREBASE_URL'
+    ? FIREBASE_URL.replace(/\/$/, '') + '/asset-data/sangchu.json'
+    : null;
+}
+
+async function fetchSangchuData_() {
+  var url = _fbSangchuUrl();
+  if (!url) return null;
+  var token;
+  try { token = await _getValidToken_(); } catch { return null; }
+  const res = await fetch(url + '?auth=' + encodeURIComponent(token));
+  if (!res.ok) return null;
+  return res.json();
+}
+
+async function saveSangchuData_(data) {
+  var url = _fbSangchuUrl();
+  if (!url) return;
+  var token;
+  try { token = await _getValidToken_(); } catch { return; }
+  fetch(url + '?auth=' + encodeURIComponent(token), {
+    method:  'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(data),
+  }).catch(function(err) {
+    console.warn('상추 저장 실패:', err.message);
+  });
+}
+
 // ── 수동 동기화 버튼 ──────────────────────────────────────────────
 function manualSync() {
   var url = _fbUrl();
