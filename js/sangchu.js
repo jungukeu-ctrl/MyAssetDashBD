@@ -13,7 +13,7 @@ const SANGCHU_INIT = {
     avgPrice:        11960,
     holdQty:         0,
     holdPct:         0,
-    realProfit:      350,
+    realProfit:      326,
     cumulativeOffset:0,
     todayBuyAmt:     0,
     todaySellAmt:    12310,
@@ -26,7 +26,7 @@ const SANGCHU_INIT = {
     },
     '2026-04-27': {
       type: 'sell', price: 12310, qty: 1, amount: 12310,
-      pct: 0.6, avgAfter: 11960, realProfit: 350, remainLimit: 4.0,
+      pct: 0.6, avgAfter: 11960, realProfit: 326, remainLimit: 4.0,
       memo: '상추원칙: +1% 수익 1주 매도',
     },
   },
