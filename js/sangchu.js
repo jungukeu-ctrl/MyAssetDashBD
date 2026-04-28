@@ -3,7 +3,6 @@
 //  대상: 제일일렉트릭 / 슬롯 200만원
 // ═══════════════════════════════════════════
 
-// ─── 초기 시드 (Firebase에 데이터 없을 때 사용) ────────────────
 const SANGCHU_INIT = {
   state: {
     stock:           '제일일렉트릭',
@@ -13,7 +12,7 @@ const SANGCHU_INIT = {
     avgPrice:        11960,
     holdQty:         0,
     holdPct:         0,
-    realProfit:      350,
+    realProfit:      326,
     cumulativeOffset:0,
     todayBuyAmt:     0,
     todaySellAmt:    12310,
@@ -26,7 +25,7 @@ const SANGCHU_INIT = {
     },
     '2026-04-27': {
       type: 'sell', price: 12310, qty: 1, amount: 12310,
-      pct: 0.6, avgAfter: 11960, realProfit: 350, remainLimit: 4.0,
+      pct: 0.6, avgAfter: 11960, realProfit: 326, remainLimit: 4.0,
       memo: '상추원칙: +1% 수익 1주 매도',
     },
   },
@@ -58,6 +57,23 @@ function _remainLimitPct(st) {
   return _remainLimitAmt(st) / st.slotSize * 100;
 }
 
+// ─── 자동 관망 기록 (당일 trades/journal 없을 때) ──────────────
+async function _checkAutoJournal() {
+  if (!_sangchuData) return;
+  var today   = _todayKST();
+  var trades  = _sangchuData.trades  || {};
+  var journal = _sangchuData.journal || {};
+  var hasTrade   = Object.keys(trades).some(function(k) { return k.slice(0, 10) === today; });
+  var hasJournal = today in journal;
+  if (!hasTrade && !hasJournal) {
+    var autoEntry = { signal: '', choice: 'A', memo: '자동기록(무입력)' };
+    _sangchuData.journal = Object.assign({}, journal);
+    _sangchuData.journal[today] = autoEntry;
+    await saveSangchuData_({ journal: _sangchuData.journal });
+    renderSangchuCard();
+  }
+}
+
 // ─── 초기화 (init.js _initCore() 에서 호출) ───────────────────
 async function initSangchu() {
   try {
@@ -72,6 +88,7 @@ async function initSangchu() {
     _sangchuData = JSON.parse(JSON.stringify(SANGCHU_INIT));
   }
   renderSangchuCard();
+  _checkAutoJournal();
 }
 
 // ─── 카드 렌더링 ──────────────────────────────────────────────
@@ -127,13 +144,19 @@ function renderSangchuCard() {
 function openSangchuModal() {
   if (!_sangchuData) return;
 
-  document.getElementById('sc-type-buy').checked  = true;
-  document.getElementById('sc-type-sell').checked = false;
-  document.getElementById('sc-trade-type').value  = 'buy';
-  document.getElementById('sc-trade-price').value = '';
-  document.getElementById('sc-trade-pct').value   = '';
-  document.getElementById('sc-trade-memo').value  = '';
+  document.getElementById('sc-type-buy').checked      = true;
+  document.getElementById('sc-type-sell').checked     = false;
+  document.getElementById('sc-type-gwanmang').checked = false;
+  document.getElementById('sc-trade-type').value      = 'buy';
+  document.getElementById('sc-trade-date').value      = _todayKST();
+  document.getElementById('sc-trade-price').value     = '';
+  document.getElementById('sc-trade-pct').value       = '';
+  document.getElementById('sc-trade-memo').value      = '';
+  document.getElementById('sc-trade-signal').value    = '';
+  document.getElementById('sc-choice-a').checked      = true;
   document.getElementById('sc-trade-error').textContent = '';
+  document.getElementById('sc-trade-section').style.display    = '';
+  document.getElementById('sc-gwanmang-section').style.display = 'none';
   _clearSangchuPreview();
 
   document.getElementById('sangchu-modal').style.display = 'flex';
@@ -154,16 +177,27 @@ function updateSangchuPreview() {
   if (!_sangchuData) return;
   var st    = _sangchuData.state;
   var type  = document.getElementById('sc-trade-type').value;
-  var price = parseInt(document.getElementById('sc-trade-price').value)   || 0;
-  var pct   = parseFloat(document.getElementById('sc-trade-pct').value)   || 0;
   var errEl = document.getElementById('sc-trade-error');
   errEl.textContent = '';
 
+  var tradeSection    = document.getElementById('sc-trade-section');
+  var gwanmangSection = document.getElementById('sc-gwanmang-section');
+
+  if (type === 'gwanmang') {
+    if (tradeSection)    tradeSection.style.display    = 'none';
+    if (gwanmangSection) gwanmangSection.style.display = '';
+    return;
+  }
+  if (tradeSection)    tradeSection.style.display    = '';
+  if (gwanmangSection) gwanmangSection.style.display = 'none';
+
+  var price = parseInt(document.getElementById('sc-trade-price').value)   || 0;
+  var pct   = parseFloat(document.getElementById('sc-trade-pct').value)   || 0;
   if (!price || !pct) { _clearSangchuPreview(); return; }
 
-  var tradeAmt = st.slotSize * pct / 100;
-  var qty      = Math.max(1, Math.round(tradeAmt / price));
-  var actualAmt= qty * price;
+  var tradeAmt  = st.slotSize * pct / 100;
+  var qty       = Math.max(1, Math.round(tradeAmt / price));
+  var actualAmt = qty * price;
 
   var today     = _todayKST();
   var todayBuy  = (st.lastUpdated === today) ? (st.todayBuyAmt  || 0) : 0;
@@ -171,9 +205,9 @@ function updateSangchuPreview() {
   var maxAmt    = st.slotSize * st.maxDailyPct / 100;
 
   if (type === 'buy') {
-    var newQty     = st.holdQty + qty;
-    var newAvg     = Math.round((st.holdQty * st.avgPrice + qty * price) / newQty);
-    var newHoldPct = (newQty * price / st.slotSize * 100).toFixed(1);
+    var newQty       = st.holdQty + qty;
+    var newAvg       = Math.round((st.holdQty * st.avgPrice + qty * price) / newQty);
+    var newHoldPct   = (newQty * price / st.slotSize * 100).toFixed(1);
     var newRemainAmt = Math.max(0, maxAmt - todayBuy - actualAmt + todaySell);
     var newRemainPct = (newRemainAmt / st.slotSize * 100).toFixed(1);
 
@@ -185,16 +219,16 @@ function updateSangchuPreview() {
       _remainLimitPct(st).toFixed(1) + '% → ' + newRemainPct + '%';
 
     if (actualAmt > maxAmt - todayBuy + todaySell) {
-      errEl.textContent  = '⚠ 일 한도 초과 (경고만, 저장 가능)';
-      errEl.style.color  = 'var(--orange)';
+      errEl.textContent = '⚠ 일 한도 초과 (경고만, 저장 가능)';
+      errEl.style.color = 'var(--orange)';
     }
   } else {
     if (qty > st.holdQty) {
       errEl.textContent = '오류: 매도 수량(' + qty + '주)이 보유 수량(' + st.holdQty + '주)을 초과합니다.';
       errEl.style.color = 'var(--red)';
     }
-    var profit     = (price - st.avgPrice) * qty;
-    var newHoldQty = st.holdQty - qty;
+    var profit      = (price - st.avgPrice) * qty;
+    var newHoldQty  = st.holdQty - qty;
     var newHoldPct2 = (newHoldQty * st.avgPrice / st.slotSize * 100).toFixed(1);
 
     document.getElementById('sc-preview-avg').textContent =
@@ -208,13 +242,29 @@ function updateSangchuPreview() {
 // ─── 매매 확인 & 저장 ─────────────────────────────────────────
 async function confirmSangchuTrade() {
   if (!_sangchuData) return;
-  var st    = _sangchuData.state;
-  var type  = document.getElementById('sc-trade-type').value;
-  var price = parseInt(document.getElementById('sc-trade-price').value)  || 0;
-  var pct   = parseFloat(document.getElementById('sc-trade-pct').value)  || 0;
-  var memo  = document.getElementById('sc-trade-memo').value.trim();
-  var errEl = document.getElementById('sc-trade-error');
+  var st      = _sangchuData.state;
+  var type    = document.getElementById('sc-trade-type').value;
+  var dateVal = document.getElementById('sc-trade-date').value || _todayKST();
+  var memo    = document.getElementById('sc-trade-memo').value.trim();
+  var errEl   = document.getElementById('sc-trade-error');
 
+  // ── 관망 저장 ──
+  if (type === 'gwanmang') {
+    var signal    = document.getElementById('sc-trade-signal').value;
+    var choiceEl2 = document.querySelector('input[name="sc-choice-r"]:checked');
+    var choice    = choiceEl2 ? choiceEl2.value : 'A';
+    var jEntry    = { signal: signal, choice: choice, memo: memo };
+    _sangchuData.journal = Object.assign({}, _sangchuData.journal || {}, { [dateVal]: jEntry });
+    await saveSangchuData_({ journal: _sangchuData.journal });
+    renderSangchuCard();
+    if (document.getElementById('sc-journal-body').style.display !== 'none') renderSangchuJournal();
+    closeSangchuModal();
+    return;
+  }
+
+  // ── 매수/매도 ──
+  var price = parseInt(document.getElementById('sc-trade-price').value) || 0;
+  var pct   = parseFloat(document.getElementById('sc-trade-pct').value) || 0;
   if (!price || !pct) {
     errEl.textContent = '단가와 비중을 입력하세요.';
     errEl.style.color = 'var(--red)';
@@ -235,12 +285,12 @@ async function confirmSangchuTrade() {
   var todayBuy  = (st.lastUpdated === today) ? (st.todayBuyAmt  || 0) : 0;
   var todaySell = (st.lastUpdated === today) ? (st.todaySellAmt || 0) : 0;
 
-  var newState  = Object.assign({}, st);
+  var newState    = Object.assign({}, st);
   var tradeRecord = { type: type, price: price, qty: qty, amount: actualAmt, pct: pct, memo: memo };
 
   if (type === 'buy') {
-    var newQty      = st.holdQty + qty;
-    var newAvg      = Math.round((st.holdQty * st.avgPrice + qty * price) / newQty);
+    var newQty  = st.holdQty + qty;
+    var newAvg  = Math.round((st.holdQty * st.avgPrice + qty * price) / newQty);
     newState.holdQty      = newQty;
     newState.avgPrice     = newAvg;
     newState.holdPct      = parseFloat((newQty * price / st.slotSize * 100).toFixed(2));
@@ -249,8 +299,8 @@ async function confirmSangchuTrade() {
     tradeRecord.avgAfter    = newAvg;
     tradeRecord.remainLimit = parseFloat((_remainLimitPct(newState)).toFixed(2));
   } else {
-    var profit2   = (price - st.avgPrice) * qty;
-    var newQty2   = st.holdQty - qty;
+    var profit2  = (price - st.avgPrice) * qty;
+    var newQty2  = st.holdQty - qty;
     newState.holdQty      = newQty2;
     newState.holdPct      = parseFloat((newQty2 * st.avgPrice / st.slotSize * 100).toFixed(2));
     newState.realProfit   = (st.realProfit || 0) + profit2;
@@ -262,20 +312,16 @@ async function confirmSangchuTrade() {
   }
   newState.lastUpdated = today;
 
-  // 같은 날 여러 거래 시 key 충돌 방지
   var trades   = _sangchuData.trades || {};
-  var tradeKey = today;
-  if (trades[tradeKey]) tradeKey = today + '_' + Date.now();
+  var tradeKey = dateVal;
+  if (trades[tradeKey]) tradeKey = dateVal + '_' + Date.now();
 
   _sangchuData.state  = newState;
   _sangchuData.trades = Object.assign({}, trades, { [tradeKey]: tradeRecord });
 
   await saveSangchuData_({ state: newState, trades: _sangchuData.trades });
-
   renderSangchuCard();
-  if (document.getElementById('sc-journal-body').style.display !== 'none') {
-    renderSangchuJournal();
-  }
+  if (document.getElementById('sc-journal-body').style.display !== 'none') renderSangchuJournal();
   closeSangchuModal();
 }
 
@@ -305,7 +351,6 @@ function renderSangchuJournal() {
   )).sort().reverse();
 
   var rows = allDates.map(function(d) {
-    // 같은 날 여러 거래 수집
     var dayTrades = Object.keys(trades)
       .filter(function(k) { return k.slice(0, 10) === d; })
       .map(function(k) { return trades[k]; });
@@ -323,9 +368,9 @@ function renderSangchuJournal() {
     }
 
     return dayTrades.map(function(t, idx) {
-      var typeLabel  = t.type === 'buy' ? '매수' : '매도';
-      var typeClass  = t.type === 'buy' ? 'sc-profit' : 'sc-loss';
-      var profitStr  = (t.realProfit != null)
+      var typeLabel   = t.type === 'buy' ? '매수' : '매도';
+      var typeClass   = t.type === 'buy' ? 'sc-profit' : 'sc-loss';
+      var profitStr   = (t.realProfit != null)
         ? (t.realProfit >= 0 ? '+' : '') + t.realProfit.toLocaleString() + '원'
         : '—';
       var profitClass = t.realProfit > 0 ? 'sc-profit' : t.realProfit < 0 ? 'sc-loss' : '';
