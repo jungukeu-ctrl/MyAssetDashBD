@@ -49,9 +49,7 @@ function exportMonthlyXlsx() {
     return [e.date || e.month, ...AI_NAMES.map((_, i) => ev[i] || 0), mainSum];
   });
 
-  // 3. 월별 수익률 (공식: (평가금(toss포함) - 투자금(toss포함)) / 투자금(toss포함) * 100)
-  // RIA: inv[10]은 raw combined에 0으로 저장되므로 state.ria.investVal로 보정
-  // 해외: 2026-03 이후 RIA 출고분 차감 (투자금 왜곡 방지)
+  // 3. 월별 수익률
   const retRows = combined.map(e => {
     const ev         = _evalWithToss(e, th);
     const inv        = _investWithToss(e, th);
@@ -90,12 +88,10 @@ function exportMonthlyXlsx() {
     ['RIA(평가)',            latest.eval[10]           || 0,   '원', latest.date || ''],
   ];
 
-  // 시트 순서: 투자금, 평가금, Toss모으기이력, 스냅샷현황, 월수익율(%)
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['날짜', ...AI_NAMES, '합계(주요8계좌)'], ...investRows]),   '투자금');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['날짜', ...AI_NAMES, '합계(주요8계좌)'], ...evalTossRows]), '평가금');
 
-  // Toss모으기이력 시트
   const tossLabels = { 'toss-overseas':'해외', 'toss-pension':'개인연금저축', 'toss-obil':'오빌', 'toss-practice':'연습' };
   const tossKeys   = Object.keys(tossLabels);
   const thAll      = kiData?.tossHistory || {};
@@ -148,9 +144,6 @@ document.getElementById('toss-input').addEventListener('change', function(e) {
       ].forEach(([sheet, key, valId, dateId]) => {
         const r = parseTossBalance(wb, sheet);
         if (r) {
-          // ── 이전 월 tossHistory 백필 (state 갱신 전 실행 — state = 이전 월 값) ──
-          // combined에 있으나 tossHistory에 없는 이전 월을 현재 state 값으로 채움
-          // 기존 tossHistory 값은 절대 덮어쓰지 않음 (데이터 보전)
           if (kiData && r.date && kiData.combined) {
             const ym_ = r.date.slice(0, 7);
             if (!kiData.tossHistory) kiData.tossHistory = {};
@@ -170,14 +163,12 @@ document.getElementById('toss-input').addEventListener('change', function(e) {
             de.textContent = r.isFallback ? '최종 데이터: ' + r.date + ' (이번 달 미조회)' : '기준: ' + r.date;
             de.style.color = r.isFallback ? 'var(--orange)' : '';
           }
-          // tossHistory 해당 월 자동 업데이트
           if (kiData && r.date) {
             const ym = r.date.slice(0, 7);
             if (!kiData.tossHistory) kiData.tossHistory = {};
             if (!kiData.tossHistory[key]) kiData.tossHistory[key] = {};
             kiData.tossHistory[key][ym] = r.balance;
           }
-          // toss-pension 갱신 시 eval[3] 재계산 (pension-saving + 새 toss값)
           if (key === 'toss-pension' && kiData?.combined?.length) {
             const latest = kiData.combined[kiData.combined.length - 1];
             if (!latest.eval) latest.eval = [];
@@ -239,4 +230,122 @@ function parseTossBalance(wb, sheetName) {
     ? entries.find(e => e.dateObj && e.dateObj.getFullYear() * 100 + (e.dateObj.getMonth() + 1) === thisYM)
     : entries[0];
   return { balance: pick.balance, date: pick.dateStr, isFallback: !hasThisMonth };
+}
+
+// ═══════════════════════════════════════════
+//  ★ Claude 공유 — 자산현황 + 매매이력 JSON 복사
+// ═══════════════════════════════════════════
+function buildClaudeShareJSON() {
+  var today = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
+
+  // 키움 계좌 현황
+  var kiwoomAccounts = {};
+  KIWOOM_SNAP_KEYS.forEach(function(k) {
+    var info = KIWOOM_SNAP_INFO[k];
+    var d = state[k] || {};
+    if (d.eval || d.snapDate) {
+      kiwoomAccounts[info.name] = { eval: d.eval || 0, date: d.snapDate || '—' };
+    }
+  });
+
+  // 토스 계좌 현황
+  var tossNames = {
+    'toss-obil':    '오빌모으기',
+    'toss-overseas':'해외자금모으기',
+    'toss-pension': '개인연금저축모으기',
+    'toss-practice':'연습모으기'
+  };
+  var tossAccounts = {};
+  TOSS_KEYS.forEach(function(k) {
+    var d = state[k] || {};
+    if (d.val || d.balance) {
+      tossAccounts[tossNames[k] || k] = { balance: d.val || d.balance || 0, date: d.date || '—' };
+    }
+  });
+
+  // 최신 월별 데이터
+  var latestMonthly = null;
+  if (typeof kiData !== 'undefined' && kiData && kiData.combined && kiData.combined.length) {
+    var latest = kiData.combined[kiData.combined.length - 1];
+    latestMonthly = { date: latest.date || latest.month, eval: latest.eval, invest: latest.invest };
+  }
+
+  // 제일일렉트릭 상추 현황
+  var sangchu = null;
+  if (typeof _sangchuData !== 'undefined' && _sangchuData) {
+    var st = _sangchuData.state;
+    var remainPct = typeof _remainLimitPct === 'function' ? _remainLimitPct(st) : 0;
+
+    var jKeys = Object.keys(_sangchuData.journal || {}).sort().slice(-10);
+    var recentJournal = {};
+    jKeys.forEach(function(d) { recentJournal[d] = _sangchuData.journal[d]; });
+
+    var tKeys = Object.keys(_sangchuData.trades || {}).sort().slice(-20);
+    var recentTrades = {};
+    tKeys.forEach(function(d) { recentTrades[d] = _sangchuData.trades[d]; });
+
+    sangchu = {
+      stock:            st.stock,
+      slot_size:        st.slotSize,
+      hold_qty:         st.holdQty,
+      hold_pct:         st.holdPct,
+      avg_price:        st.holdQty > 0 ? st.avgPrice : null,
+      real_profit:      st.realProfit,
+      remain_limit_pct: parseFloat(remainPct.toFixed(1)),
+      last_updated:     st.lastUpdated,
+      recent_journal:   recentJournal,
+      recent_trades:    recentTrades,
+    };
+  }
+
+  return {
+    type:            'claude_share',
+    generated_at:    today,
+    kiwoom_accounts: kiwoomAccounts,
+    toss_accounts:   tossAccounts,
+    latest_monthly:  latestMonthly,
+    sangchu:         sangchu,
+  };
+}
+
+function shareToClipboard() {
+  var payload = buildClaudeShareJSON();
+  var text = JSON.stringify(payload, null, 2);
+  var btn = (typeof event !== 'undefined' && event) ? event.currentTarget : null;
+
+  function onDone() {
+    showClaudeShareToast('📋 복사 완료! Claude에 붙여넣으세요.');
+    if (btn) {
+      var orig = btn.innerHTML;
+      btn.textContent = '✓ 복사됨';
+      setTimeout(function() { btn.innerHTML = orig; }, 2000);
+    }
+  }
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(onDone).catch(function() {
+      _fallbackCopy(text); onDone();
+    });
+  } else {
+    _fallbackCopy(text); onDone();
+  }
+}
+
+function _fallbackCopy(text) {
+  var el = document.createElement('textarea');
+  el.value = text;
+  el.style.cssText = 'position:fixed;top:-9999px;left:-9999px';
+  document.body.appendChild(el);
+  el.select();
+  try { document.execCommand('copy'); } catch(e) {}
+  document.body.removeChild(el);
+}
+
+function showClaudeShareToast(msg) {
+  var t = document.getElementById('claude-share-toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._hideTimer);
+  t._hideTimer = setTimeout(function() { t.style.opacity = '0'; }, 3000);
 }
