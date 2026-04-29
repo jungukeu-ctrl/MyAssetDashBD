@@ -76,6 +76,15 @@
           RIA(키움)
         </button>
       </div>
+
+      <!-- Claude 공유 -->
+      <div>
+        <button class="upload-btn" style="background:rgba(138,103,240,0.15);border-color:rgba(138,103,240,0.5);color:#8a67f0;font-weight:600" onclick="shareToClipboard()" title="현재 자산현황 + 제일일렉트릭 매매이력을 JSON으로 복사 → Claude에 붙여넣기">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          Claude 공유
+        </button>
+      </div>
+      
       <!-- 동기화 -->
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;align-self:center">
         <div id="gas-sync-status" style="font-size:11px;color:var(--teal);min-height:14px;white-space:nowrap;"></div>
@@ -696,6 +705,8 @@
       <input type="file" accept=".json" style="display:none" onchange="importData(event)">
     </label>
   </div>
+    <!-- Claude 공유 토스트 -->
+  <div id="claude-share-toast" style="position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:#8a67f0;color:#fff;padding:12px 28px;border-radius:24px;font-size:13px;font-family:'Noto Sans KR',sans-serif;z-index:9999;opacity:0;transition:opacity 0.4s;pointer-events:none;white-space:nowrap"></div>
   <div class="footer">어디서든 접속: <a href="https://jungukeu-ctrl.github.io/MyAssetDashBD/" target="_blank" style="color:var(--gold2)">jungukeu-ctrl.github.io/MyAssetDashBD</a> · 기기 간 데이터 이전은 JSON 내보내기/가져오기 사용</div>
 </div>
 
