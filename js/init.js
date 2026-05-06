@@ -48,7 +48,7 @@ function closeGoalEdit() {
 }
 
 function saveGoal() {
-  goal.name      = document.getElementById('inp-goal-name').value       || '총 목표자산';
+  goal.name      = document.getElementById('inp-goal-name').value       || '전체 목표자산';
   goal.target    = parseFloat(document.getElementById('inp-goal-target').value)     || 0;
   goal.finName   = document.getElementById('inp-goal-fin-name').value   || '금융 목표자산';
   goal.finTarget = parseFloat(document.getElementById('inp-goal-fin-target').value) || 0;
@@ -127,7 +127,6 @@ function _applyTossHistorySeed(ki) {
   const keys = ['toss-overseas', 'toss-pension', 'toss-obil', 'toss-practice'];
   keys.forEach(k => {
     if (!ki.tossHistory[k]) ki.tossHistory[k] = {};
-    // Fill in months from seed that are not already present
     Object.entries(_TOSS_HISTORY_SEED[k]).forEach(([ym, val]) => {
       if (!(ym in ki.tossHistory[k])) ki.tossHistory[k][ym] = val;
     });
@@ -144,7 +143,6 @@ function _initCore() {
   const savedKiwoom = localStorage.getItem('kiwoom-data');
   if (savedKiwoom)  kiData = JSON.parse(savedKiwoom);
 
-  // Auto-seed tossHistory from hardcoded data if missing
   if (kiData) {
     _applyTossHistorySeed(kiData);
     localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
@@ -157,6 +155,7 @@ function _initCore() {
   renderTodos();
   if (kiData) renderKiwoom();
   initSangchu();
+  initDecisions();
 }
 
 // ★ 페이지 로드 시 실행 — Firebase 인증 확인 후 앱 초기화
