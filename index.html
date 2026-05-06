@@ -376,6 +376,55 @@
     </div>
   </div>
 
+  <!-- 오늘 결정 기록 모달 -->
+  <div id="decision-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:200;align-items:center;justify-content:center">
+    <div class="ai-modal-box" style="border-color:rgba(138,103,240,0.3);width:400px">
+      <div class="ai-modal-title" style="color:#8a67f0">📋 오늘 판단 기록</div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px">날짜</label>
+        <div id="decision-date-label" style="font-family:'DM Mono',monospace;font-size:13px;color:var(--text);padding:9px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px">—</div>
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:6px">시합장</label>
+        <select id="decision-signal" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:9px 12px;border-radius:8px;font-size:13px;outline:none;font-family:'DM Mono',monospace;box-sizing:border-box">
+          <option value="">— 선택 안함 —</option>
+          <option value="U1">U1</option>
+          <option value="U2">U2</option>
+          <option value="U3">U3</option>
+          <option value="D1">D1</option>
+          <option value="D2">D2</option>
+          <option value="D3">D3</option>
+        </select>
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:6px">선택</label>
+        <div style="display:flex;gap:8px">
+          <label style="flex:1;display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;cursor:pointer">
+            <input type="radio" name="decision-choice-r" id="decision-choice-a" value="A" checked>
+            <span style="font-size:13px;color:var(--text2)">A 관찰</span>
+          </label>
+          <label style="flex:1;display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;cursor:pointer">
+            <input type="radio" name="decision-choice-r" id="decision-choice-b" value="B">
+            <span style="font-size:13px;color:var(--teal)">B 매수</span>
+          </label>
+          <label style="flex:1;display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;cursor:pointer">
+            <input type="radio" name="decision-choice-r" id="decision-choice-c" value="C">
+            <span style="font-size:13px;color:var(--orange)">C 매도</span>
+          </label>
+        </div>
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px">요약 (채팅 결과 붙여넣기)</label>
+        <textarea id="decision-summary" placeholder="예: 제일일렉트릭 관찰. 10선 눌림 대기." style="width:100%;height:80px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);padding:9px 12px;font-size:13px;outline:none;resize:none;box-sizing:border-box;line-height:1.6;font-family:'Noto Sans KR',sans-serif"></textarea>
+      </div>
+      <div id="decision-error" style="font-size:12px;min-height:18px;margin-bottom:8px;color:var(--red)"></div>
+      <div style="display:flex;gap:8px">
+        <button onclick="closeDecisionModal()" style="flex:1;background:var(--bg3);color:var(--text2);border:1px solid var(--border2);padding:10px;border-radius:8px;font-size:13px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">취소</button>
+        <button onclick="saveDecisionRecord()" style="flex:1;background:#8a67f0;color:#fff;border:none;padding:10px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif">저장</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Hero: Total Assets -->
   <div class="hero">
     <div class="hero-grid">
@@ -456,6 +505,7 @@
       <span style="margin-left:16px">시합장: <strong id="sc-signal">—</strong></span>
       <span style="margin-left:16px">10선: <strong id="sc-ma10">—</strong></span>
       <span style="margin-left:16px">35선: <strong id="sc-ma35">—</strong></span>
+      <button onclick="openDecisionModal()" style="margin-left:auto;background:rgba(138,103,240,0.15);border:1px solid rgba(138,103,240,0.4);color:#8a67f0;padding:4px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-family:'Noto Sans KR',sans-serif;white-space:nowrap">오늘 결정 기록</button>
     </div>
     <div class="sc-journal-toggle-row">
       <button class="sc-journal-btn" id="sc-journal-toggle" onclick="toggleSangchuJournal()">일지 보기 ▼</button>
@@ -718,6 +768,7 @@
 <script src="js/export.js?v=20260329"></script>
 <script src="js/todo.js?v=20260319"></script>
 <script src="js/sangchu.js?v=20260428"></script>
+<script src="js/decisions.js?v=20260506"></script>
 <script src="js/init.js?v=20260319"></script>
 </body>
 </html>
