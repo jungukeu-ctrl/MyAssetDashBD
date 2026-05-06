@@ -500,7 +500,7 @@
         <div class="sc-val" id="sc-real-profit">—</div>
       </div>
     </div>
-    <div class="sc-status">
+    <div class="sc-status" style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">
       <span>오늘: <strong id="sc-choice">—</strong></span>
       <span style="margin-left:16px">시합장: <strong id="sc-signal">—</strong></span>
       <span style="margin-left:16px">10선: <strong id="sc-ma10">—</strong></span>
@@ -760,7 +760,7 @@
   <div class="footer">어디서든 접속: <a href="https://jungukeu-ctrl.github.io/MyAssetDashBD/" target="_blank" style="color:var(--gold2)">jungukeu-ctrl.github.io/MyAssetDashBD</a> · 기기 간 데이터 이전은 JSON 내보내기/가져오기 사용</div>
 </div>
 
-<!-- ★ JS 로드 순서: config → firebase → render → modal → export → todo → sangchu → init -->
+<!-- ★ JS 로드 순서: config → firebase → render → modal → export → todo → sangchu → decisions → init -->
 <script src="js/config.js?v=20260329"></script>
 <script src="js/firebase.js?v=20260329"></script>
 <script src="js/render.js?v=20260329"></script>

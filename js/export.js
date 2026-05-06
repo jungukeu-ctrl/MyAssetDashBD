@@ -24,15 +24,13 @@ function exportMonthlyXlsx() {
     return;
   }
 
-  const MAIN_IDX = [0, 1, 5, 3, 7, 8, 9, 10]; // 주요 8계좌 인덱스
+  const MAIN_IDX = [0, 1, 5, 3, 7, 8, 9, 10];
   const combined = kiData.combined;
   const st       = state || {};
-
   const th = kiData?.tossHistory || {};
 
-  // 1. 월별 투자금 (toss 포함)
   const investRows = combined.map(e => {
-    const inv = [...(e.invest || new Array(11).fill(0))]; // 원본 보존을 위해 복사
+    const inv = [...(e.invest || new Array(11).fill(0))];
     const ym  = (e.date || e.month || '').slice(0, 7);
     inv[0] = (inv[0] || 0) + (th['toss-overseas']?.[ym] || 0);
     inv[1] = (inv[1] || 0) + (th['toss-obil']?.[ym]     || 0);
@@ -42,14 +40,12 @@ function exportMonthlyXlsx() {
     return [e.date || e.month, ...AI_NAMES.map((_, i) => inv[i] || 0), mainSum];
   });
 
-  // 2. 월별 평가금 (toss 포함) — 2025-11 이전 과거 월에 tossHistory 합산 보정
   const evalTossRows = combined.map(e => {
     const ev      = _evalWithToss(e, th);
     const mainSum = MAIN_IDX.reduce((s, i) => s + (ev[i] || 0), 0);
     return [e.date || e.month, ...AI_NAMES.map((_, i) => ev[i] || 0), mainSum];
   });
 
-  // 3. 월별 수익률
   const retRows = combined.map(e => {
     const ev         = _evalWithToss(e, th);
     const inv        = _investWithToss(e, th);
@@ -70,7 +66,6 @@ function exportMonthlyXlsx() {
     return [e.date || e.month, ...pcts, mainPct];
   });
 
-  // 4. 스냅샷 현황
   const latest   = combined[combined.length - 1] || { invest:[], eval:[] };
   const snapRows = [
     ['항목', '값', '단위', '기준일'],
@@ -100,7 +95,6 @@ function exportMonthlyXlsx() {
     [ym, ...tossKeys.map(k => thAll[k]?.[ym] || 0)]
   );
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['월', ...Object.values(tossLabels)], ...tossRows]), 'Toss모으기이력');
-
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(snapRows), '스냅샷현황');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['날짜', ...AI_NAMES, '전체수익률(%)'], ...retRows]), '월수익율(%)');
 
@@ -119,9 +113,9 @@ function importData(event) {
       if (data.todos)  localStorage.setItem('asset-todos',        JSON.stringify(data.todos));
       if (data.goal)   localStorage.setItem('asset-goal',         JSON.stringify(data.goal));
       if (data.kiwoom) localStorage.setItem('kiwoom-data',        JSON.stringify(data.kiwoom));
-      alert('✅ 데이터를 성공적으로 불러왔습니다. 페이지를 새로고침합니다.');
+      alert('데이터를 성공적으로 불러왔습니다. 페이지를 새로고침합니다.');
       location.reload();
-    } catch(err) { alert('❌ 파일을 읽는 중 오류가 발생했습니다: ' + err.message); }
+    } catch(err) { alert('파일을 읽는 중 오류가 발생했습니다: ' + err.message); }
   };
   reader.readAsText(file);
   event.target.value = '';
@@ -211,8 +205,8 @@ function parseTossBalance(wb, sheetName) {
     let dateObj = null;
     if (dateCol >= 0 && row[dateCol] != null) {
       const raw = row[dateCol];
-      if (raw instanceof Date)                    dateObj = raw;
-      else if (typeof raw === 'number')           dateObj = new Date(Math.round((raw - 25569) * 86400 * 1000));
+      if (raw instanceof Date)                        dateObj = raw;
+      else if (typeof raw === 'number')               dateObj = new Date(Math.round((raw - 25569) * 86400 * 1000));
       else if (typeof raw === 'string' && raw.trim()) dateObj = new Date(raw.trim());
     }
     entries.push({ balance: Math.round(bal), dateObj, dateStr: dateObj ? dateObj.toISOString().slice(0,10) : null });
@@ -223,10 +217,10 @@ function parseTossBalance(wb, sheetName) {
     if (!a.dateObj) return 1; if (!b.dateObj) return -1;
     return b.dateObj - a.dateObj;
   });
-  const now        = new Date();
-  const thisYM     = now.getFullYear() * 100 + (now.getMonth() + 1);
+  const now          = new Date();
+  const thisYM       = now.getFullYear() * 100 + (now.getMonth() + 1);
   const hasThisMonth = entries.some(e => e.dateObj && e.dateObj.getFullYear() * 100 + (e.dateObj.getMonth() + 1) === thisYM);
-  const pick       = hasThisMonth
+  const pick         = hasThisMonth
     ? entries.find(e => e.dateObj && e.dateObj.getFullYear() * 100 + (e.dateObj.getMonth() + 1) === thisYM)
     : entries[0];
   return { balance: pick.balance, date: pick.dateStr, isFallback: !hasThisMonth };
@@ -236,9 +230,8 @@ function parseTossBalance(wb, sheetName) {
 //  ★ Claude 공유 — 자산현황 + 매매이력 JSON 복사
 // ═══════════════════════════════════════════
 function buildClaudeShareJSON() {
-  var today = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
+  var exportedAt = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, -1) + '+09:00';
 
-  // 키움 계좌 현황
   var kiwoomAccounts = {};
   KIWOOM_SNAP_KEYS.forEach(function(k) {
     var info = KIWOOM_SNAP_INFO[k];
@@ -248,7 +241,6 @@ function buildClaudeShareJSON() {
     }
   });
 
-  // 토스 계좌 현황
   var tossNames = {
     'toss-obil':    '오빌모으기',
     'toss-overseas':'해외자금모으기',
@@ -263,14 +255,12 @@ function buildClaudeShareJSON() {
     }
   });
 
-  // 최신 월별 데이터
   var latestMonthly = null;
   if (typeof kiData !== 'undefined' && kiData && kiData.combined && kiData.combined.length) {
     var latest = kiData.combined[kiData.combined.length - 1];
     latestMonthly = { date: latest.date || latest.month, eval: latest.eval, invest: latest.invest };
   }
 
-  // 제일일렉트릭 상추 현황
   var sangchu = null;
   if (typeof _sangchuData !== 'undefined' && _sangchuData) {
     var st = _sangchuData.state;
@@ -286,25 +276,37 @@ function buildClaudeShareJSON() {
 
     sangchu = {
       stock:            st.stock,
-      slot_size:        st.slotSize,
-      hold_qty:         st.holdQty,
-      hold_pct:         st.holdPct,
-      avg_price:        st.holdQty > 0 ? st.avgPrice : null,
-      real_profit:      st.realProfit,
-      remain_limit_pct: parseFloat(remainPct.toFixed(1)),
-      last_updated:     st.lastUpdated,
-      recent_journal:   recentJournal,
-      recent_trades:    recentTrades,
+      slotSize:         st.slotSize,
+      avgPrice:         st.avgPrice,
+      holdQty:          st.holdQty,
+      holdPct:          st.holdPct,
+      realProfit:       st.realProfit,
+      cumulativeOffset: st.cumulativeOffset || 0,
+      todayBuyAmt:      st.todayBuyAmt      || 0,
+      todaySellAmt:     st.todaySellAmt     || 0,
+      lastUpdated:      st.lastUpdated,
+      remainLimitPct:   parseFloat(remainPct.toFixed(1)),
+      recentJournal:    recentJournal,
+      recentTrades:     recentTrades,
     };
+  }
+
+  var recentDecisions = [];
+  if (typeof _decisionsData !== 'undefined' && _decisionsData) {
+    var dKeys = Object.keys(_decisionsData).sort().slice(-3);
+    recentDecisions = dKeys.map(function(k) {
+      return Object.assign({ date: k }, _decisionsData[k]);
+    });
   }
 
   return {
     type:            'claude_share',
-    generated_at:    today,
+    exportedAt:      exportedAt,
     kiwoom_accounts: kiwoomAccounts,
     toss_accounts:   tossAccounts,
     latest_monthly:  latestMonthly,
     sangchu:         sangchu,
+    recentDecisions: recentDecisions,
   };
 }
 
@@ -314,10 +316,10 @@ function shareToClipboard() {
   var btn = (typeof event !== 'undefined' && event) ? event.currentTarget : null;
 
   function onDone() {
-    showClaudeShareToast('📋 복사 완료! Claude에 붙여넣으세요.');
+    showClaudeShareToast('Claude에 붙여넣으세요.');
     if (btn) {
       var orig = btn.innerHTML;
-      btn.textContent = '✓ 복사됨';
+      btn.textContent = '복사됨';
       setTimeout(function() { btn.innerHTML = orig; }, 2000);
     }
   }
