@@ -108,6 +108,17 @@ function applyAiResult() {
       if (!kiData.tossHistory) kiData.tossHistory = {};
       if (!kiData.tossHistory[a.key]) kiData.tossHistory[a.key] = {};
       kiData.tossHistory[a.key][ym] = a.balance;
+      // eval 동기화: 같은 달 kiwoom 스냅샷(_hasToss)이 있으면 eval도 재계산
+      const pairedKi = Object.keys(KI_TOSS_PAIR).find(k => KI_TOSS_PAIR[k] === a.key);
+      if (pairedKi !== undefined) {
+        const pidx  = KI_SNAP_IDX[pairedKi];
+        const pentry = kiData.combined.find(e => (e.date || e.month || '').slice(0,7) === ym);
+        const ks    = state[pairedKi];
+        if (pentry && pentry._hasToss && pidx !== undefined
+            && ks && (ks.date || '').slice(0,7) === ym) {
+          pentry.eval[pidx] = (ks.val || 0) + a.balance;
+        }
+      }
     }
   });
   if (kiData) localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
@@ -196,6 +207,11 @@ function applyKiwoomResult() {
     const tossKey = KI_TOSS_PAIR[a.key];
     const tossVal = tossKey ? (state[tossKey]?.val || 0) : 0;
     entry.eval[idx] = a.balance + tossVal;
+    if (tossKey) {
+      if (!kiData.tossHistory) kiData.tossHistory = {};
+      if (!kiData.tossHistory[tossKey]) kiData.tossHistory[tossKey] = {};
+      kiData.tossHistory[tossKey][ym] = tossVal;
+    }
   });
   localStorage.setItem('kiwoom-data', JSON.stringify(kiData));
   scheduleGasSync_();
