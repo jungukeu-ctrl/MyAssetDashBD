@@ -57,23 +57,6 @@ function _remainLimitPct(st) {
   return _remainLimitAmt(st) / st.slotSize * 100;
 }
 
-// ─── 자동 관망 기록 (당일 trades/journal 없을 때) ──────────────
-async function _checkAutoJournal() {
-  if (!_sangchuData) return;
-  var today   = _todayKST();
-  var trades  = _sangchuData.trades  || {};
-  var journal = _sangchuData.journal || {};
-  var hasTrade   = Object.keys(trades).some(function(k) { return k.slice(0, 10) === today; });
-  var hasJournal = today in journal;
-  if (!hasTrade && !hasJournal) {
-    var autoEntry = { signal: '', choice: 'A', memo: '자동기록(무입력)' };
-    _sangchuData.journal = Object.assign({}, journal);
-    _sangchuData.journal[today] = autoEntry;
-    await saveSangchuData_({ journal: _sangchuData.journal });
-    renderSangchuCard();
-  }
-}
-
 // ─── 초기화 (init.js _initCore() 에서 호출) ───────────────────
 async function initSangchu() {
   try {
@@ -88,7 +71,6 @@ async function initSangchu() {
     _sangchuData = JSON.parse(JSON.stringify(SANGCHU_INIT));
   }
   renderSangchuCard();
-  _checkAutoJournal();
 }
 
 // ─── 카드 렌더링 ──────────────────────────────────────────────
