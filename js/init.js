@@ -155,6 +155,7 @@ function _initCore() {
   renderTodos();
   if (kiData) renderKiwoom();
   initSangchu();
+  initObilTracer();
   initDecisions();
 }
 

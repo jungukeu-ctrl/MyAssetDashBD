@@ -347,3 +347,14 @@ body::before {
   color: var(--text2); font-family: 'DM Mono', monospace;
 }
 .sc-journal-table tr:last-child td { border-bottom: none; }
+
+/* ─── 오빌Tracer 카드 ─── */
+.ot-card {
+  background: linear-gradient(135deg, #1e1a0d 0%, #191508 100%);
+  border: 1px solid rgba(255,179,71,0.25);
+}
+.ot-btn {
+  background: rgba(255,179,71,0.12); border: 1px solid rgba(255,179,71,0.3);
+  color: var(--orange);
+}
+.ot-btn:hover { background: rgba(255,179,71,0.22); }
