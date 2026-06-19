@@ -46,6 +46,12 @@ asset-data/
   todos: [...]
   goal: { name, target, finName, finTarget }
   pension-tracker/   ← Pension-tracer 앱 전용 섹션 (MyAssetDashBD 읽기 전용)
+  sangchu/           ← 상추매매 독립 노드 (state/trades/journal)
+  obilTracer/        ← 오빌 손실상쇄 추적 독립 노드
+    trackingStartDate: "2026-03-20"
+    rf/              ← 알에프텍 보유 + 누적 실현손익
+    substitute/      ← 대체오빌 종목 + 합산 누적 실현손익 + history
+    log/             ← 세션별 스냅샷 (append only)
 ```
 
 ---
@@ -202,6 +208,7 @@ asset-data/
 | PS-PERIOD | 시뮬레이션 기간 2040→2074년 확장 — PS_END_YM 변경(180→588개월), PERIOD_STEPS에 30·48년 추가(ps-chart.js, ps-init.js 동기화) | `js/pension/ps-config.js`, `js/pension/ps-chart.js`, `js/pension/ps-init.js` | 2026-04-09 |
 | EXCEL-SHEET | 엑셀 내보내기 시트 정리 — 월별평가금액(toss 미포함) 시트 삭제, 시트명 변경(월별투자금→투자금, 월별평가금액(toss포함)→평가금, 토스모으기이력→Toss모으기이력, 월별수익률(%)→월수익율(%)), 시트 순서 재정렬(투자금/평가금/Toss모으기이력/스냅샷현황/월수익율(%)). 월수익율(%) 버그 수정: inv[10] RIA 투자금 복원, inv[0] 해외 RIA 출고분 차감(riaStartYm 기준) | `export.js` | 2026-04-13 |
 | SANGCHU-V1 | 상추매매 슬롯 통합 — Firebase `/asset-data/sangchu` 독립 노드, 상추 카드(보유비중/평단/일잔여한도/누적수익), 매매 입력 모달(예상결과 실시간 계산), 일지 accordion. 초기 시드: 제일일렉트릭 1주 매수(2026-04-24, 11960원) → 매도(2026-04-27, 12310원, +350원 실현) | `js/firebase.js`, `js/sangchu.js`(신규), `index.html`, `css/style.css`, `js/init.js` | 2026-04-28 |
+| OBIL-TRACER-V1 | 오빌 손실상쇄 추적 — Firebase `/asset-data/obilTracer` 독립 노드, 오빌Tracer 카드(알에프텍누적/상쇄종목누적/상쇄율), JSON 붙여넣기 모달(비전AI 지시문 복사+파싱+미리보기+종목교체), 상추 카드 숨김 처리, firebase.js 중복 sangchu 함수 제거 | `js/firebase.js`, `js/obilTracer.js`(신규), `index.html`, `css/style.css`, `js/init.js` | 2026-06-19 |
 | BUG-TOSS-EVAL-SYNC | eval-tossHistory 불일치 스파이크 수정 — applyKiwoomResult()에서 스냅샷 시 toss값을 tossHistory에 함께 기록, applyAiResult()에서 tossHistory 변경 시 같은 달 _hasToss 스냅샷 eval 재계산. 토스 JSON 재입력으로 언제든 일관성 복구 가능 | `modal.js` | 2026-05-12 |
 
 ---
