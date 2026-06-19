@@ -158,27 +158,26 @@ function parseObilTracerJson() {
   var RF_STOCK  = d.rf.stock;
   var SUB_STOCK = d.substitute.currentStock;
 
-  var rfRows  = json.rows.filter(function(r) { return r.stock === RF_STOCK; });
-  var subRows = json.rows.filter(function(r) { return r.stock === SUB_STOCK; });
-  var ignored = json.rows.filter(function(r) { return r.stock !== RF_STOCK && r.stock !== SUB_STOCK; });
+  // lastUpdated 이후(>) 행만 적용, 이전 행은 자동 제외
+  var cutoff  = d.rf.lastUpdated || '';
+  var rfRows  = json.rows.filter(function(r) { return r.stock === RF_STOCK  && r.date > cutoff; });
+  var subRows = json.rows.filter(function(r) { return r.stock === SUB_STOCK && r.date > cutoff; });
+  var skipped = json.rows.filter(function(r) { return r.date <= cutoff; });
+  var ignored = json.rows.filter(function(r) { return r.date > cutoff && r.stock !== RF_STOCK && r.stock !== SUB_STOCK; });
 
   var rfDelta  = rfRows.reduce(function(s, r)  { return s + r.pnl; }, 0);
   var subDelta = subRows.reduce(function(s, r) { return s + r.pnl; }, 0);
 
-  // 중복 기간 경고
-  if (json.periodFrom && d.rf.lastUpdated && json.periodFrom <= d.rf.lastUpdated) {
-    errEl.textContent = '⚠ 이미 반영된 기간과 겹칩니다 (periodFrom: ' + json.periodFrom +
-      ' ≤ lastUpdated: ' + d.rf.lastUpdated + ') — 중복 계산 위험';
-  }
-
   if (json.rows.length === 0) {
-    var prev = errEl.textContent;
-    errEl.textContent = (prev ? prev + ' / ' : '') + '추출된 거래 내역이 없습니다 (증분 0으로 적용됩니다)';
+    errEl.textContent = '추출된 거래 내역이 없습니다 (증분 0으로 적용됩니다)';
   }
 
   // 파싱 결과 미리보기
+  var skippedText = skipped.length
+    ? '<div style="color:var(--text3);margin-top:4px">ℹ 이미 반영된 기간 자동 제외: ' + skipped.length + '건 (' + cutoff + ' 이전)</div>'
+    : '';
   var ignoredText = ignored.length
-    ? '<div style="color:var(--orange);margin-top:4px">⚠ 무시된 행: ' +
+    ? '<div style="color:var(--orange);margin-top:4px">⚠ 무시된 행 (추적 종목 아님): ' +
       ignored.map(function(r) { return r.stock; }).join(', ') + ' ' + ignored.length + '건</div>'
     : '';
 
@@ -188,7 +187,7 @@ function parseObilTracerJson() {
       (rfDelta >= 0 ? '+' : '') + rfDelta.toLocaleString() + '원</span></div>' +
     '<div>' + SUB_STOCK + '(현재) 증분: <span style="color:' + (subDelta < 0 ? 'var(--blue)' : 'var(--red)') + '">' +
       (subDelta >= 0 ? '+' : '') + subDelta.toLocaleString() + '원</span></div>' +
-    ignoredText + '</div>';
+    skippedText + ignoredText + '</div>';
 
   // 적용 후 미리보기
   var newRfPnL  = d.rf.realizedPnLCum + rfDelta;
