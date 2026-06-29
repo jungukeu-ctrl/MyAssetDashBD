@@ -210,6 +210,8 @@ asset-data/
 | SANGCHU-V1 | 상추매매 슬롯 통합 — Firebase `/asset-data/sangchu` 독립 노드, 상추 카드(보유비중/평단/일잔여한도/누적수익), 매매 입력 모달(예상결과 실시간 계산), 일지 accordion. 초기 시드: 제일일렉트릭 1주 매수(2026-04-24, 11960원) → 매도(2026-04-27, 12310원, +350원 실현) | `js/firebase.js`, `js/sangchu.js`(신규), `index.html`, `css/style.css`, `js/init.js` | 2026-04-28 |
 | OBIL-TRACER-V1 | 오빌 손실상쇄 추적 — Firebase `/asset-data/obilTracer` 독립 노드, 오빌Tracer 카드(알에프텍누적/상쇄종목누적/상쇄율), JSON 붙여넣기 모달(비전AI 지시문 복사+파싱+미리보기+종목교체), 상추 카드 숨김 처리, firebase.js 중복 sangchu 함수 제거 | `js/firebase.js`, `js/obilTracer.js`(신규), `index.html`, `css/style.css`, `js/init.js` | 2026-06-19 |
 | BUG-TOSS-EVAL-SYNC | eval-tossHistory 불일치 스파이크 수정 — applyKiwoomResult()에서 스냅샷 시 toss값을 tossHistory에 함께 기록, applyAiResult()에서 tossHistory 변경 시 같은 달 _hasToss 스냅샷 eval 재계산. 토스 JSON 재입력으로 언제든 일관성 복구 가능 | `modal.js` | 2026-05-12 |
+| PS-WITHDRAWAL-DESIGN | 연금 인출 시뮬레이터 설계 기준서 생성 — 법령별 파라미터(소득세법 제129조/제14조/제62조), 건보료 단계(피부양자→지역가입자), O DRIP 파라미터, 피부양자 등록 주의사항, 연간 모니터링 체크리스트, ps-withdrawal.js 연동 키맵 | `.claude/PENSION_WITHDRAWAL.md`(신규) | 2026-06-29 |
+| PS-WITHDRAWAL-V1 | 연금 인출 시뮬레이터 구현 — ps-config.js에 healthInsurance 파라미터 보완 + realty(O DRIP) 블록 신규 추가. ps-withdrawal.js(인출 엔진: O DRIP 월복리 DRIP, 비과세원금/과세분/국민연금/IRP 소득원별 계산, 연금소득세, 건보료 단계별). ps-withdrawal-ui.js(나이 슬라이더→결과 카드 렌더링). pension-simulation.html 섹션 추가. pension-sim.css ps-wd-* 스타일 추가 | `js/pension/ps-config.js`, `js/pension/ps-withdrawal.js`(신규), `js/pension/ps-withdrawal-ui.js`(신규), `js/pension/ps-init.js`, `pension-simulation.html`, `css/pension-sim.css` | 2026-06-29 |
 
 ---
 
@@ -227,6 +229,7 @@ asset-data/
 | Phase5 | ps-settings.js (설정 패널 UI) | `js/pension/` | ✅ 완료 |
 | Phase6 | pension-simulation.html & pension-sim.css | 루트, `css/` | ✅ 완료 |
 | Phase7 | ps-table.js (월별 테이블) | `js/pension/` | 별도 세션 |
+| Phase8 | 연금 인출 시뮬레이터 (ps-withdrawal.js + UI) | `js/pension/` | ✅ 완료 (2026-06-29) |
 
 ### Phase 2 — 중복 제거 (별도 세션 예정)
 
