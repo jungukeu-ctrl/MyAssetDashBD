@@ -63,17 +63,36 @@ const PS_DEFAULT_PARAMS = {
     separateTaxThreshold:   15000000  // 분리과세 기준선 (원/년)
   },
   healthInsurance: {
-    rate:                   0.0709,   // 건보료율
-    annualRaise:            0.015,    // 연간 상승률
-    cap:                    0.12,     // 상한 (소득 대비)
-    ltcRate:                0.1295,   // 장기요양보험료율 (건보료 대비)
-    dependentIncomeLimit:   20000000, // 피부양자 소득 기준 (원/년)
-    pensionExemptLimit:     10000000  // 사적연금 건보료 면제 하한 (원/년)
+    rate:                   0.0709,    // 건보료율 (매년 1월 고시)
+    annualRaise:            0.015,     // 연간 상승률 가정 (10년 평균)
+    cap:                    0.12,      // 상한 캡
+    ltcRate:                0.1295,    // 장기요양보험료율 (건보료 대비, 매년 고시)
+    dependentIncomeLimit:   20000000,  // 피부양자 소득 기준 (원/년, 2022.09 개편)
+    dependentPropertyLimit: 540000000, // 피부양자 재산 과표 기준 (원, 2022.09 개편)
+    pensionExemptLimit:     12000000,  // 사적연금 건보 면제 하한 (원/년, 2024.01: 1,000만→1,200만)
+    financialIncomeLimit:   10000000,  // 금융소득 건보 산입 하한 (원/년, 1,000만 초과 시 전액)
+    propertyDeduction:      100000000, // 재산 기본공제 (원, 1억)
+    propertyScoreUnit:      208.4,     // 재산 점수당 금액 (원/점, 매년 고시)
+    fairMarketRatio:        0.60       // 공정시장가액비율 (60%, 정책 변동 가능)
   },
   property: {
-    publicPrice:   710000000,   // 아파트 공시가격 (원)
-    annualRaise:   0.07,        // 연간 상승률
+    publicPrice:   710000000,   // 아파트 공시가격 (원, 매년 국토부 공시 확인)
+    annualRaise:   0.07,        // 연간 상승률 가정
     ownershipRatio: 0.5         // 소유 지분 비율
+  },
+
+  // ── O(리얼티인컴) DRIP 파라미터 (PENSION_WITHDRAWAL.md §5) ────────────────
+  // 배당 성장률·주가 성장률: 역사적 평균 기반, 5년마다 재검토
+  // financialIncomeLimit: 금융소득 2,000만 상한 — 초과 시 DRIP 속도 조절 필요
+  realty: {
+    shares:               546.5646,  // 현재 보유 수량 (주), DRIP 후 매월 자동 증가
+    currentPrice:         63.00,     // 현재가 ($), 연 1회 업데이트
+    monthlyDivPerShare:   0.2685,    // 월 배당/주 ($), 분기 공시 후 연 1회 업데이트
+    divGrowthRate:        0.03,      // 배당 성장률 (연, 역사적 평균)
+    priceGrowthRate:      0.03,      // 주가 성장률 (연, 역사적 평균)
+    fxRate:               1380,      // 기준 환율 (원/달러, 고정 가정)
+    withholdingRate:      0.15,      // 미국 원천징수율 (W-8BEN 제출 기준 15%, 미제출 시 30%)
+    financialIncomeLimit: 20000000   // 금융소득 연간 상한 (원, 소득세법 제62조)
   },
 
   // ── 계획선 기준 잔액 (PS_START_YM 직전 월인 2025-12 역산값) ──────────────

@@ -487,3 +487,324 @@
     flex-wrap: wrap;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   연금 인출 시뮬레이터 — ps-wd-* 전용 스타일
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 섹션 헤더 ────────────────────────────────────────────────────────────── */
+
+.ps-wd-section {
+  margin-top: 40px;
+  padding-top: 32px;
+  border-top: 1px solid var(--border);
+}
+
+.ps-wd-section-header {
+  margin-bottom: 24px;
+}
+
+.ps-wd-section-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 6px;
+}
+
+.ps-wd-section-desc {
+  font-size: 13px;
+  color: var(--text3);
+  margin: 0;
+}
+
+/* ── 나이 슬라이더 바 ─────────────────────────────────────────────────────── */
+
+.ps-wd-age-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 20px;
+  margin-bottom: 24px;
+}
+
+.ps-wd-age-label {
+  font-size: 13px;
+  color: var(--text3);
+  white-space: nowrap;
+}
+
+.ps-wd-age-bar .ps-slider {
+  flex: 1;
+  min-width: 0;
+}
+
+.ps-wd-age-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--gold);
+  white-space: nowrap;
+  min-width: 52px;
+}
+
+.ps-wd-age-year {
+  font-size: 13px;
+  color: var(--text3);
+  white-space: nowrap;
+}
+
+/* ── 결과 그리드 ──────────────────────────────────────────────────────────── */
+
+.ps-wd-result-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 800px) {
+  .ps-wd-result-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── 카드 공통 ────────────────────────────────────────────────────────────── */
+
+.ps-wd-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px 20px;
+}
+
+.ps-wd-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ps-wd-card-sub {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text3);
+}
+
+/* ── 테이블 공통 ──────────────────────────────────────────────────────────── */
+
+.ps-wd-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.ps-wd-table th {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 8px 8px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.ps-wd-table td {
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text2);
+  vertical-align: top;
+}
+
+.ps-wd-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.ps-wd-table tfoot td {
+  padding-top: 10px;
+  font-weight: 600;
+  color: var(--text);
+  border-top: 1px solid var(--border2);
+  border-bottom: none;
+}
+
+.ps-wd-right {
+  text-align: right;
+}
+
+.ps-wd-amount {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.ps-wd-total-row td {
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* ── 소득원 테이블 전용 ───────────────────────────────────────────────────── */
+
+.ps-wd-income-table {
+  grid-column: 1 / -1;  /* 전체 너비 사용 */
+}
+
+.ps-wd-src-name {
+  display: block;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.ps-wd-src-note {
+  display: block;
+  font-size: 11px;
+  color: var(--text3);
+  margin-top: 2px;
+}
+
+.ps-wd-tax-col {
+  color: var(--red);
+}
+
+.ps-wd-net-col {
+  color: var(--green);
+  font-weight: 500;
+}
+
+/* ── 건보료 행 ────────────────────────────────────────────────────────────── */
+
+.ps-wd-hi-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.ps-wd-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ps-wd-badge-ok {
+  background: rgba(78, 205, 196, 0.15);
+  color: var(--green);
+  border: 1px solid rgba(78, 205, 196, 0.3);
+}
+
+.ps-wd-badge-region {
+  background: rgba(255, 179, 71, 0.15);
+  color: var(--orange);
+  border: 1px solid rgba(255, 179, 71, 0.3);
+}
+
+.ps-wd-hi-amt {
+  color: var(--text2);
+}
+
+.ps-wd-hi-detail {
+  font-size: 11px;
+  color: var(--text3);
+}
+
+/* ── 최종 실수령 ──────────────────────────────────────────────────────────── */
+
+.ps-wd-final {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-top: 14px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+}
+
+.ps-wd-final-label {
+  font-size: 13px;
+  color: var(--text2);
+}
+
+.ps-wd-final-amt {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.ps-wd-final-unit {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text3);
+  margin-left: 2px;
+}
+
+.ps-wd-final-good .ps-wd-final-amt { color: var(--gold); }
+.ps-wd-final-warn .ps-wd-final-amt { color: var(--orange); }
+.ps-wd-final-low  .ps-wd-final-amt { color: var(--red); }
+
+/* ── 경고 카드 ────────────────────────────────────────────────────────────── */
+
+.ps-wd-warnings-card {
+  grid-column: 1 / -1;
+  border-color: rgba(255, 179, 71, 0.3);
+  background: rgba(255, 179, 71, 0.05);
+}
+
+.ps-wd-warnings-card .ps-wd-card-title {
+  color: var(--orange);
+}
+
+.ps-wd-warnings-list {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ps-wd-warnings-list li {
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.5;
+}
+
+/* ── 기타 상태 ────────────────────────────────────────────────────────────── */
+
+.ps-wd-pre-note {
+  grid-column: 1 / -1;
+}
+
+.ps-wd-notice {
+  font-size: 14px;
+  color: var(--text3);
+  margin: 0;
+  text-align: center;
+  padding: 12px 0;
+}
+
+.ps-wd-empty {
+  text-align: center;
+  color: var(--text3);
+  font-size: 13px;
+  padding: 16px;
+}
+
+.ps-wd-error {
+  color: var(--red);
+  font-size: 13px;
+  margin: 0;
+}
+
+.ps-wd-acct-label {
+  color: var(--text2);
+}

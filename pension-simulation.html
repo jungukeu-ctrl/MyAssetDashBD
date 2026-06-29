@@ -114,6 +114,28 @@
     <!-- Phase7: 월별 테이블 (빈 컨테이너) -->
     <section id="pension-table"></section>
 
+    <!-- ── 연금 인출 시뮬레이터 ────────────────────────────────────────── -->
+    <section id="pension-withdrawal" class="ps-wd-section">
+
+      <div class="ps-wd-section-header">
+        <h2 class="ps-wd-section-title">연금 인출 시뮬레이터</h2>
+        <p class="ps-wd-section-desc">미래 나이를 선택하면 해당 시점의 월 예상 수령액과 세금 내역을 계산합니다.</p>
+      </div>
+
+      <!-- 나이 슬라이더 -->
+      <div class="ps-wd-age-bar">
+        <span class="ps-wd-age-label">나이</span>
+        <input type="range" id="wd-age-slider"
+               class="ps-slider" min="55" max="85" value="65">
+        <span id="wd-age-display" class="ps-wd-age-value">65세</span>
+        <span id="wd-year-display" class="ps-wd-age-year">(2039년)</span>
+      </div>
+
+      <!-- 결과 카드 영역 -->
+      <div id="wd-result" class="ps-wd-result-grid"></div>
+
+    </section><!-- /#pension-withdrawal -->
+
   </div><!-- /#pension-main -->
 
 </div><!-- /.ps-page -->
@@ -137,13 +159,15 @@ function _psGetYears() {
 <script src="js/config.js"></script>
 <script src="js/firebase.js"></script>
 
-<!-- 4~10. pension 전용 모듈 -->
+<!-- 4~12. pension 전용 모듈 -->
 <script src="js/pension/ps-config.js"></script>
 <script src="js/pension/ps-engine.js"></script>
 <script src="js/pension/ps-firebase.js"></script>
 <script src="js/pension/ps-state.js"></script>
 <script src="js/pension/ps-chart.js"></script>
 <script src="js/pension/ps-settings.js"></script>
+<script src="js/pension/ps-withdrawal.js"></script>
+<script src="js/pension/ps-withdrawal-ui.js"></script>
 <script src="js/pension/ps-init.js"></script>
 
 <!-- ── 로딩 완료 후 #pension-main 표시 ──────────────────────────────── -->

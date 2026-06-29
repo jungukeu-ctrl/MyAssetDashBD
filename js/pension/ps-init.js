@@ -93,6 +93,11 @@
       // 3. 차트 초기화 (state.result 준비된 후)
       _renderCharts(PensionState.result);
 
+      // 4. 인출 시뮬레이터 초기화
+      if (typeof PensionWithdrawalUI !== 'undefined') {
+        PensionWithdrawalUI.init();
+      }
+
       _hide('pension-loading');
 
       // 4. Firebase 비동기 갱신 (백그라운드)
