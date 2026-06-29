@@ -167,7 +167,8 @@ const PensionWithdrawal = (() => {
     const propDeduction  = hi.propertyDeduction  || 100000000;
     const propScoreUnit  = hi.propertyScoreUnit   || 208.4;
     const propTaxBase    = Math.max(0, fairBase - propDeduction);
-    const propScore      = propTaxBase / 10000;
+    // 재산점수: 100만원당 1점 (건강보험료 부과점수 산정기준 고시 기준)
+    const propScore      = propTaxBase / 1000000;
     const propertyMonthly = Math.round(propScore * propScoreUnit);
 
     const baseMonthly  = incomeMonthly + propertyMonthly;
