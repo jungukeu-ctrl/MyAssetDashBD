@@ -2,7 +2,7 @@
  * ps-firebase.js — pension-simulation Firebase 데이터 로드 어댑터
  *
  * 의존: js/config.js (FIREBASE_URL, AI_IDX)
- * 읽기 전용 — kiData, state 절대 수정 금지.
+ * kiData, state 절대 수정 금지. pension-simulation 전용 납입 실적만 별도 저장.
  *
  * 로드 전략:
  *   1. localStorage 'kiwoom-data' + 'asset-dashboard-v3' 즉시 파싱 (동기)
@@ -13,6 +13,8 @@
 'use strict';
 
 const PensionFirebase = (() => {
+
+  const CONTRIBUTION_STORAGE_KEY = 'pension-simulation-contributions';
 
   // ─── 내부: localStorage 파싱 ─────────────────────────────────────────────
 
@@ -25,13 +27,17 @@ const PensionFirebase = (() => {
     }
   }
 
-  function _readState() {
+  function _readContributions() {
     try {
-      const raw = localStorage.getItem('asset-dashboard-v3');
-      return raw ? JSON.parse(raw) : null;
+      const raw = localStorage.getItem(CONTRIBUTION_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
     } catch (e) {
-      return null;
+      return {};
     }
+  }
+
+  function _writeContributions(contributions) {
+    localStorage.setItem(CONTRIBUTION_STORAGE_KEY, JSON.stringify(contributions || {}));
   }
 
   // ─── 내부: Firebase fetch ─────────────────────────────────────────────────
@@ -63,10 +69,11 @@ const PensionFirebase = (() => {
    * @param {Array} combined  kiData.combined 배열
    * @returns {{ initialBalances, monthlyActual }}
    */
-  function _buildActualData(combined) {
+  function _buildActualData(combined, contributions) {
     const empty = {
       initialBalances: { 연금저축: 0, IRP1: 0, IRP2: 0, 해외주식: 0, VOO: 0, RIA: 0, ISA: 0 },
-      monthlyActual: {}
+      monthlyActual: {},
+      contributions: contributions || {}
     };
     if (!combined || !combined.length) return empty;
 
@@ -101,7 +108,7 @@ const PensionFirebase = (() => {
       ISA:      ev[ix.ISA]     ?? 0
     };
 
-    return { initialBalances, monthlyActual };
+    return { initialBalances, monthlyActual, contributions: contributions || {} };
   }
 
   // ─── 공개: load() ────────────────────────────────────────────────────────
@@ -114,10 +121,12 @@ const PensionFirebase = (() => {
     // 1. localStorage 즉시 파싱
     const localKiData = _readLocal();
     const localCombined = localKiData?.combined || [];
+    const localContributions = _readContributions();
 
     // 2. Firebase fetch 병렬 시도 (실패해도 무시)
     const firebaseData = await _fetchFirebase();
     const remoteCombined = firebaseData?.kiwoom?.combined || [];
+    const remoteContributions = firebaseData?.pensionSimulation?.contributions || {};
 
     // 3. 더 최신/많은 데이터 선택 (combined 배열 길이 기준)
     const combined = remoteCombined.length >= localCombined.length
@@ -125,7 +134,9 @@ const PensionFirebase = (() => {
       : localCombined;
 
     // 4. 변환 및 반환 (PS_EVAL_IDX 사용)
-    return _buildActualData(combined);
+    const contributions = { ...localContributions, ...remoteContributions };
+    if (Object.keys(remoteContributions).length) _writeContributions(contributions);
+    return _buildActualData(combined, contributions);
   }
 
   // ─── 공개: loadLocal() ───────────────────────────────────────────────────
@@ -137,9 +148,34 @@ const PensionFirebase = (() => {
    */
   function loadLocal() {
     const kiData = _readLocal();
-    return _buildActualData(kiData?.combined || []);
+    return _buildActualData(kiData?.combined || [], _readContributions());
   }
 
-  return { load, loadLocal };
+  async function saveContribution(ym, contribution) {
+    const current = _readContributions();
+    const next = {
+      ...current,
+      [ym]: { ...(current[ym] || {}), ...(contribution || {}) }
+    };
+    _writeContributions(next);
+
+    try {
+      const token = localStorage.getItem('fb_id_token');
+      if (token) {
+        const url = `${FIREBASE_URL}/asset-data/pensionSimulation/contributions/${ym}.json?auth=${token}`;
+        await fetch(url, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(next[ym])
+        });
+      }
+    } catch (e) {
+      console.warn('[PensionFirebase] Firebase contribution 저장 실패 — localStorage만 유지:', e);
+    }
+
+    return next;
+  }
+
+  return { load, loadLocal, saveContribution };
 
 })();
