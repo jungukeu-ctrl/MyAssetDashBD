@@ -1,7 +1,7 @@
 ## 🔔 전략 세션 반영 필요
 > Claude Code 세션 중 발생한 정책성 변경을 여기 기록. 전략 세션(Claude.ai)이 매 대화 시작 시 확인 후 Notion 반영 → 체크 처리.
 
-(현재 없음)
+- 2026-07-02: 연금저축+IRP 납입 전략을 월 125만원+25만원×12개월=연 1,800만원 한도 소진 구조로 명시. Notion/전략 세션 확인 후 반영 필요.
 
 # MyAssetDashBD 개발 계획
 
@@ -50,7 +50,9 @@ asset-data/
     ]
   todos: [...]
   goal: { name, target, finName, finTarget }
-  pension-tracker/   ← Pension-tracer 앱 전용 섹션 (MyAssetDashBD 읽기 전용)
+  pension-tracker/   ← Pension-tracer 앱 전용 섹션 (구버전, 아카이브/배포 중단 대상)
+  pensionSimulation/
+    contributions/   ← pension-simulation 월별 납입 실적(연금저축+IRP 한도 검증용)
   sangchu/           ← 상추매매 독립 노드 (state/trades/journal)
   obilTracer/        ← 오빌 손실상쇄 추적 독립 노드
     trackingStartDate: "2026-03-20"
@@ -216,6 +218,7 @@ asset-data/
 | OBIL-TRACER-V1 | 오빌 손실상쇄 추적 — Firebase `/asset-data/obilTracer` 독립 노드, 오빌Tracer 카드(알에프텍누적/상쇄종목누적/상쇄율), JSON 붙여넣기 모달(비전AI 지시문 복사+파싱+미리보기+종목교체), 상추 카드 숨김 처리, firebase.js 중복 sangchu 함수 제거 | `js/firebase.js`, `js/obilTracer.js`(신규), `index.html`, `css/style.css`, `js/init.js` | 2026-06-19 |
 | BUG-TOSS-EVAL-SYNC | eval-tossHistory 불일치 스파이크 수정 — applyKiwoomResult()에서 스냅샷 시 toss값을 tossHistory에 함께 기록, applyAiResult()에서 tossHistory 변경 시 같은 달 _hasToss 스냅샷 eval 재계산. 토스 JSON 재입력으로 언제든 일관성 복구 가능 | `modal.js` | 2026-05-12 |
 | PS-WITHDRAWAL-DESIGN | 연금 인출 시뮬레이터 설계 기준서 생성 — 법령별 파라미터(소득세법 제129조/제14조/제62조), 건보료 단계(피부양자→지역가입자), O DRIP 파라미터, 피부양자 등록 주의사항, 연간 모니터링 체크리스트, ps-withdrawal.js 연동 키맵 | `.claude/PENSION_WITHDRAWAL.md`(신규) | 2026-06-29 |
+| PS-Phase7 | 월별 계획 vs 실적 테이블 통합 — Pension-tracer 정적 테이블 대체. ps-table.js 신규 생성, 납입 실적 입력 폼, 연금저축+IRP 합산 연 1,800만원 검증(1,500만원 경고/1,800만원 초과 저장 차단), Firebase `pensionSimulation/contributions` 저장, Pension-tracer 폐기 방침 문서화 | `js/pension/ps-table.js`(신규), `js/pension/ps-firebase.js`, `js/pension/ps-config.js`, `js/pension/ps-init.js`, `pension-simulation.html`, `css/pension-sim.css`, `PLAN.md`, `CLAUDE.md` | 2026-07-02 |
 | PS-WITHDRAWAL-V1 | 연금 인출 시뮬레이터 구현 — ps-config.js에 healthInsurance 파라미터 보완 + realty(O DRIP) 블록 신규 추가. ps-withdrawal.js(인출 엔진: O DRIP 월복리 DRIP, 비과세원금/과세분/국민연금/IRP 소득원별 계산, 연금소득세, 건보료 단계별). ps-withdrawal-ui.js(나이 슬라이더→결과 카드 렌더링). pension-simulation.html 섹션 추가. pension-sim.css ps-wd-* 스타일 추가 | `js/pension/ps-config.js`, `js/pension/ps-withdrawal.js`(신규), `js/pension/ps-withdrawal-ui.js`(신규), `js/pension/ps-init.js`, `pension-simulation.html`, `css/pension-sim.css` | 2026-06-29 |
 
 ---
@@ -233,7 +236,7 @@ asset-data/
 | Phase4 | ps-chart.js (차트 렌더링) | `js/pension/` | ✅ 완료 |
 | Phase5 | ps-settings.js (설정 패널 UI) | `js/pension/` | ✅ 완료 |
 | Phase6 | pension-simulation.html & pension-sim.css | 루트, `css/` | ✅ 완료 |
-| Phase7 | ps-table.js (월별 테이블) | `js/pension/` | 별도 세션 |
+| Phase7 | ps-table.js (월별 테이블) | `js/pension/` | ✅ 완료 (2026-07-02) |
 | Phase8 | 연금 인출 시뮬레이터 (ps-withdrawal.js + UI) | `js/pension/` | ✅ 완료 (2026-06-29) |
 
 ### Phase 2 — 중복 제거 (별도 세션 예정)
@@ -290,7 +293,7 @@ asset-data/
 
 ## 8. Pension-tracer 연동 관계
 
-- MyAssetDashBD: `state.*` 와 `kiwoom.*` 을 **읽기+쓰기**
-- Pension-tracer: `state.*` 와 `kiwoom.*` 을 **읽기 전용**,
-  `pension-tracker/*` 경로를 **PATCH 방식으로 쓰기**
-- ISA/RIA 잔액은 MyAssetDashBD에서 입력 → Pension-tracer가 읽어감
+- MyAssetDashBD: `state.*`, `kiwoom.*`, `pensionSimulation/contributions` 를 **읽기+쓰기**
+- Pension-tracer: Excel v2_5 스냅샷 기반 `pension_tracker.html`은 구버전으로 폐기 대상. 정적 PLAN_DATA/VOO 월 75만 하드코딩/구 ISA·RIA 이체금액 때문에 `pension-simulation.html`로 통합한다.
+- 기존 `pension-tracker/*` 경로는 과거 앱 호환용으로만 보존하고, 신규 월별 계획 vs 실적 입력은 MyAssetDashBD `pensionSimulation/contributions`를 기준으로 한다.
+- 처리 방침: Pension-tracer 레포는 배포 중단 안내 또는 완전 아카이브를 별도 작업으로 진행한다.

@@ -30,6 +30,9 @@
       if (typeof PensionSettings !== 'undefined') {
         PensionSettings.syncFromState();
       }
+      if (typeof PensionTable !== 'undefined') {
+        PensionTable.render(result);
+      }
     });
   }
 
@@ -93,14 +96,19 @@
       // 3. 차트 초기화 (state.result 준비된 후)
       _renderCharts(PensionState.result);
 
-      // 4. 인출 시뮬레이터 초기화
+      // 4. 월별 계획 vs 실적 테이블 초기화
+      if (typeof PensionTable !== 'undefined') {
+        PensionTable.render(PensionState.result);
+      }
+
+      // 5. 인출 시뮬레이터 초기화
       if (typeof PensionWithdrawalUI !== 'undefined') {
         PensionWithdrawalUI.init();
       }
 
       _hide('pension-loading');
 
-      // 4. Firebase 비동기 갱신 (백그라운드)
+      // 6. Firebase 비동기 갱신 (백그라운드)
       PensionFirebase.load().then((freshData) => {
         // combined 월 수가 local보다 많으면 갱신
         const localMonths  = Object.keys(localData.monthlyActual  || {}).length;
