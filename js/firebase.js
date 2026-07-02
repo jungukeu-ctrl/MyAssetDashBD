@@ -190,6 +190,13 @@ function _fbUrl() {
     : null;
 }
 
+function _fbBackupUrl(dateKey) {
+  return (typeof FIREBASE_URL !== 'undefined') && FIREBASE_URL &&
+         FIREBASE_URL !== 'YOUR_FIREBASE_URL'
+    ? FIREBASE_URL.replace(/\/$/, '') + '/asset-data-backups' + (dateKey ? '/' + dateKey : '') + '.json'
+    : null;
+}
+
 function _syncStatus(msg, color) {
   const el = document.getElementById('gas-sync-status');
   if (!el) return;
@@ -289,6 +296,61 @@ function mergeGasData_(remote) {
   return changed;
 }
 
+function _todayBackupKey_() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+async function _backupAssetDataBeforePatch_(token) {
+  var backupUrl = _fbBackupUrl(_todayBackupKey_());
+  if (!backupUrl) return;
+  try {
+    var remoteData = await fetchFromFirebase_();
+    if (remoteData === null) return;
+    var res = await fetch(backupUrl + '?auth=' + encodeURIComponent(token), {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(remoteData),
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+  } catch (err) {
+    console.warn('Firebase 백업 스냅샷 실패(저장은 계속 진행):', err.message);
+  }
+}
+
+async function _pruneOldAssetDataBackups_(token) {
+  if (Math.random() >= 0.1) return;
+  var backupRootUrl = _fbBackupUrl();
+  if (!backupRootUrl) return;
+  try {
+    var res = await fetch(backupRootUrl + '?auth=' + encodeURIComponent(token));
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    var backups = await res.json();
+    if (!backups || typeof backups !== 'object') return;
+
+    var cutoff = new Date();
+    cutoff.setUTCHours(0, 0, 0, 0);
+    cutoff.setUTCDate(cutoff.getUTCDate() - 30);
+
+    var deletes = {};
+    Object.keys(backups).forEach(function(key) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) return;
+      var keyDate = new Date(key + 'T00:00:00Z');
+      if (!Number.isFinite(keyDate.getTime())) return;
+      if (keyDate < cutoff) deletes[key] = null;
+    });
+    if (!Object.keys(deletes).length) return;
+
+    var patchRes = await fetch(backupRootUrl + '?auth=' + encodeURIComponent(token), {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(deletes),
+    });
+    if (!patchRes.ok) throw new Error('HTTP ' + patchRes.status);
+  } catch (err) {
+    console.warn('Firebase 백업 정리 실패:', err.message);
+  }
+}
+
 // ── 저장 (토큰 포함) ─────────────────────────────────────────────
 async function pushToGAS_() {
   var url = _fbUrl();
@@ -308,6 +370,9 @@ async function pushToGAS_() {
   };
   localStorage.setItem('asset-dashboard-ts', ts);
   _syncStatus('☁ 저장 중...', 'var(--text3)');
+
+  await _backupAssetDataBeforePatch_(token);
+  _pruneOldAssetDataBackups_(token);
 
   fetch(url + '?auth=' + encodeURIComponent(token), {
     method:  'PATCH',
