@@ -78,6 +78,26 @@ const PensionEngine = (() => {
     return Math.min(available, Math.max(0, riaBalance));
   }
 
+  // ─── RIA 세제혜택 조정 공제율 계산 (외부 공개 — ps-table.js 재사용) ─────────
+
+  /**
+   * RIA 외 계좌(연금저축·IRP1·IRP2·ISA·일반계좌) 해외자산 순매수에 따른
+   * RIA 최종 양도소득 공제율 계산
+   * @param {object} monthlyNetPurchases  { 'YYYY-MM': amount(원) } — 미확인 월은 호출측에서 제외하고 전달
+   * @param {object} [riaConfig]          PS_RIA_TAX_BENEFIT 구조 (기본값: PS_RIA_TAX_BENEFIT)
+   * @returns {{ weightedTotal: number, adjustRatio: number, finalDeductionRate: number }}
+   */
+  function calcRiaAdjustedDeduction(monthlyNetPurchases, riaConfig) {
+    const cfg = riaConfig || PS_RIA_TAX_BENEFIT;
+    const weightedTotal = Object.entries(monthlyNetPurchases || {}).reduce(
+      (sum, [ym, amount]) => sum + (Number(amount) || 0) * getRiaWeight(ym),
+      0
+    );
+    const adjustRatio = cfg.saleAmount > 0 ? Math.max(0, 1 - (weightedTotal / cfg.saleAmount)) : 1;
+    const finalDeductionRate = cfg.baseDeductionRate * adjustRatio;
+    return { weightedTotal, adjustRatio, finalDeductionRate };
+  }
+
   // ─── 메인 엔진 ──────────────────────────────────────────────────────────────
 
   /**
@@ -458,6 +478,6 @@ const PensionEngine = (() => {
 
   // ─── 공개 API ────────────────────────────────────────────────────────────────
 
-  return { run, calcISATransfer };
+  return { run, calcISATransfer, calcRiaAdjustedDeduction };
 
 })();
