@@ -54,7 +54,22 @@ const PS_DEFAULT_PARAMS = {
   },
   nationalPension: {
     startYM:  '2039-03',
-    monthly:  1800000           // 국민연금 월 수령액 (원)
+    monthly:  1800000,          // 국민연금 월 수령액 (원)
+    startAge: 65                // 국민연금 개시 나이 (변수, startYM과 별개 트랙 — Phase2에서 동기화)
+  },
+  withdrawal: {
+    startAge:      61,          // 인출 시작 나이 (변수, 최소 55, 실질하한은 ISA만기 보정 적용)
+    monthlyTarget: 3050000      // 목표 월 생활비 (사용자 입력값, 기본값)
+  },
+  irp2: {
+    withdrawalStartAge: 70      // IRP2 실제수령개시 나이 (변수). 연차 시작(2029)과는 별개 개념
+  },
+  spouse: {
+    birthYM:   '1983-01',
+    retireAge: 60                // 정년 = 피부양자 자연해제 시점
+  },
+  isaConversion: {
+    maturityYM: '2029-03'        // ISA 만기 (고정, isa.joinYM + 3년과 동기화)
   },
   tax: {
     deductRate:             0.132,    // 세액공제율 (연금저축+IRP 합산)
