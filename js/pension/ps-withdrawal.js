@@ -104,7 +104,10 @@ const PensionWithdrawal = (() => {
   // ─── 연금소득세 ─────────────────────────────────────────────────────────────
 
   function _taxRate(params, targetYM) {
-    return _ymToAge(targetYM) >= 70 ? params.tax.rate70 : params.tax.rate6069;
+    const age = _ymToAge(targetYM);
+    if (age >= 80) return params.tax.rate80;
+    if (age >= 70) return params.tax.rate7079;
+    return params.tax.rate5569;
   }
 
   // ─── 건강보험료 계산 ─────────────────────────────────────────────────────────
@@ -123,8 +126,8 @@ const PensionWithdrawal = (() => {
     const yearsAhead = parseInt(targetYM.slice(0, 4)) - 2026;
 
     // ① 소득 산입 계산 (피부양자 기준: 국민건강보험법 시행령 제41조)
-    // 사적연금: 1,200만 초과분만 건보 소득에 산입
-    const privatePensionNet = Math.max(0, privatePensionAnnual - (hi.pensionExemptLimit || 12000000));
+    // 사적연금은 분리과세 유지 시 건보 소득에서 전액 제외 (공적연금만 산입)
+    const privatePensionNet = 0;
 
     // 국민연금: 연금소득공제 후 산입
     let npDeducted = 0;
@@ -132,7 +135,7 @@ const PensionWithdrawal = (() => {
       if      (npAnnual <= 3500000)  npDeducted = npAnnual;
       else if (npAnnual <= 7000000)  npDeducted = 3500000 + (npAnnual - 3500000) * 0.40;
       else if (npAnnual <= 14000000) npDeducted = 4900000 + (npAnnual - 7000000) * 0.20;
-      else                           npDeducted = 6300000 + (npAnnual - 14000000) * 0.20;
+      else                           npDeducted = 6300000 + (npAnnual - 14000000) * 0.10;
       npDeducted = Math.min(npDeducted, 9000000);  // 공제 한도 900만
     }
     const npNet = Math.max(0, npAnnual - npDeducted);
@@ -151,8 +154,8 @@ const PensionWithdrawal = (() => {
     const depIncomeLimit   = hi.dependentIncomeLimit   || 20000000;
     const depPropertyLimit = hi.dependentPropertyLimit || 540000000;
 
-    // ③ 피부양자 판정 (국민연금 미개시 + 소득·재산 기준 충족)
-    if (npAnnual === 0 && totalIncome <= depIncomeLimit && fairBase <= depPropertyLimit) {
+    // ③ 피부양자 판정 (소득·재산 기준 충족 시 — 국민연금 수령 여부 자체는 무관)
+    if (totalIncome <= depIncomeLimit && fairBase <= depPropertyLimit) {
       return { type: '피부양자', monthly: 0, breakdown: { totalIncome } };
     }
 
@@ -260,15 +263,13 @@ const PensionWithdrawal = (() => {
 
     // IRP 연금 (70세, 2044-02~)
     if (targetYM >= WD_IRP_START) {
-      const irpRate    = params.tax.rate70;
-      const irpRatePct = Math.round(irpRate * 1000) / 10;
-      const irpTax     = Math.round(WD_IRP_MONTHLY * irpRate);
+      const irpTax = Math.round(WD_IRP_MONTHLY * rate);
       sources.push({
         name: 'IRP 연금',
         monthly: WD_IRP_MONTHLY,
         tax: irpTax,
         net: WD_IRP_MONTHLY - irpTax,
-        note: `연금소득세 ${irpRatePct}% (70세~ 인하 적용)`
+        note: `연금소득세 ${ratePct}% (연령별 세율 자동 적용)`
       });
       privatePensionAnnual += WD_IRP_MONTHLY * 12;
     }
