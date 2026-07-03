@@ -58,8 +58,9 @@ const PS_DEFAULT_PARAMS = {
   },
   tax: {
     deductRate:             0.132,    // 세액공제율 (연금저축+IRP 합산)
-    rate6069:               0.044,    // 연금소득세율 (60~69세)
-    rate70:                 0.033,    // 연금소득세율 (70세~)
+    rate5569:               0.055,    // 연금소득세율 (55~69세)
+    rate7079:               0.044,    // 연금소득세율 (70~79세)
+    rate80:                 0.033,    // 연금소득세율 (80세~)
     separateTaxThreshold:   15000000  // 분리과세 기준선 (원/년)
   },
   healthInsurance: {
