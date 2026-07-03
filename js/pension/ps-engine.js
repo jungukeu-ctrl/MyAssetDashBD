@@ -503,7 +503,10 @@ const PensionEngine = (() => {
     }
 
     // 7. 인출 차감 (§9-2, §9-6, §9-9)
-    const withdrawal = { taxFree: 0, taxed: 0, taxedShortfall: 0, irp1: 0, irp2: 0, nationalPension: 0 };
+    const withdrawal = {
+      taxFree: 0, taxed: 0, taxedShortfall: 0, irp1: 0, irp2: 0, nationalPension: 0,
+      pensionLimitHit: false, irp1LimitHit: false, irp2LimitHit: false
+    };
 
     const withdrawStartYM = _ymMax(
       psAgeToYM(params.withdrawal?.startAge ?? 61),
@@ -530,21 +533,25 @@ const PensionEngine = (() => {
 
       if (bal.연금저축_비과세원금 > 0) {
         // 비과세원금 버킷: 1,500만원 캡 무관(§9-6), 단 연금수령한도(§9-9)는 계좌 공통 적용
-        const draw = Math.min(target, bal.연금저축_비과세원금, room9_9);
+        const want = Math.min(target, bal.연금저축_비과세원금);
+        const draw = Math.min(want, room9_9);
         bal.연금저축_비과세원금 -= draw;
         wd.pensionWithdrawnYear += draw;
         withdrawal.taxFree = draw;
+        withdrawal.pensionLimitHit = draw < want;
       } else {
         // 과세분: 연 1,500만원(월 125만원) 상한(§9-6/9-7) + 연금수령한도(§9-9) 동시 적용
         const annualCap    = params.tax?.separateTaxThreshold || 15000000;
         const monthlyCap   = annualCap / 12;
         const taxedRoomYear = Math.max(0, annualCap - wd.taxedWithdrawnYear);
-        const draw = Math.min(target, monthlyCap, bal.연금저축, taxedRoomYear, room9_9);
+        const want = Math.min(target, monthlyCap, bal.연금저축, taxedRoomYear);
+        const draw = Math.min(want, room9_9);
         bal.연금저축 -= draw;
         wd.taxedWithdrawnYear   += draw;
         wd.pensionWithdrawnYear += draw;
         withdrawal.taxed = draw;
         withdrawal.taxedShortfall = Math.max(0, target - draw);
+        withdrawal.pensionLimitHit = draw < want;
       }
     }
 
@@ -561,11 +568,13 @@ const PensionEngine = (() => {
         wd.irp1WithdrawnYear = 0;
       }
       const irp1Room = Math.max(0, wd.irp1LimitAmt - wd.irp1WithdrawnYear);
-      const irp1Draw = Math.min(need, bal.IRP1, irp1Room);
+      const wantIrp1 = Math.min(need, bal.IRP1);
+      const irp1Draw = Math.min(wantIrp1, irp1Room);
       bal.IRP1 -= irp1Draw;
       wd.irp1WithdrawnYear += irp1Draw;
       need -= irp1Draw;
       withdrawal.irp1 = irp1Draw;
+      withdrawal.irp1LimitHit = irp1Draw < wantIrp1;
 
       if (_ymLte(irp2StartYM, ym) && need > 0) {
         if (yr !== wd.irp2LimitYear) {
@@ -575,10 +584,12 @@ const PensionEngine = (() => {
           wd.irp2WithdrawnYear = 0;
         }
         const irp2Room = Math.max(0, wd.irp2LimitAmt - wd.irp2WithdrawnYear);
-        const irp2Draw = Math.min(need, bal.IRP2, irp2Room);
+        const wantIrp2 = Math.min(need, bal.IRP2);
+        const irp2Draw = Math.min(wantIrp2, irp2Room);
         bal.IRP2 -= irp2Draw;
         wd.irp2WithdrawnYear += irp2Draw;
         withdrawal.irp2 = irp2Draw;
+        withdrawal.irp2LimitHit = irp2Draw < wantIrp2;
       }
     }
 
