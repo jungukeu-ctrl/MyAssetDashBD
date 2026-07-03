@@ -19,6 +19,18 @@ function psAnnualToMonthly(annualRate) {
   return Math.pow(1 + annualRate, 1 / 12) - 1;
 }
 
+// ─── 인적 기본값 (pension 모듈 공용, ps-withdrawal.js BIRTH_YEAR/MONTH와 동일값) ──
+const PS_BIRTH = { year: 1974, month: 2 };
+
+/**
+ * 만 나이 → 생일월 'YYYY-MM' (PS_BIRTH 기준)
+ * @param {number} age
+ * @returns {string}
+ */
+function psAgeToYM(age) {
+  return `${PS_BIRTH.year + age}-${String(PS_BIRTH.month).padStart(2, '0')}`;
+}
+
 // ─── 기본 파라미터 ────────────────────────────────────────────────────────────
 const PS_DEFAULT_PARAMS = {
   rates: {
