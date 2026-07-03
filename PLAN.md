@@ -2,6 +2,7 @@
 > Claude Code 세션 중 발생한 정책성 변경을 여기 기록. 전략 세션(Claude.ai)이 매 대화 시작 시 확인 후 Notion 반영 → 체크 처리.
 
 - [x] (2026-07-02) RIA 세제혜택 가중치 제도 pension-simulation에 반영. RIA 매도금액 49,511,610원(2026-03-31 확정, 외화매도 47,950,533원+환전정산입금 1,561,077원, 키움 거래내역 근거) 고정값 사용, 기초공제율 100%(1분기 내 매도). RIA 외 계좌 해외지수ETF 순매수액에 매수월 가중치(1~5월100%/6~7월80%/8~12월50%) 적용해 최종 양도소득 공제율 산출. 순매수액은 자동추적 불가(연금저축/IRP 내 종목별 매수 구분 불가)로 월별 수동 입력 방식 채택 — 2026년 1~6월분 소급 입력 필요.
+- [x] (2026-07-03) RIA 외 계좌 순매수액 2026년 1~6월분 소급 입력 완료(P0-2-BACKFILL). 확정값: 1월 1,520,831원 / 2월 664,144원 / 3월 1,113,072원 / 4~6월 0원(확정 무매수). 집계 기준: MMF 등 현금성 자산 매수/매도 제외, 해외지수ETF·배당ETF 순매수 + 해외직접투자 VOO/O 매수(키움 환전정산 원화금액) 포함. 소스: 해외주식매수현황26년1분기_260327.xlsx.
 
 # MyAssetDashBD 개발 계획
 
@@ -222,6 +223,7 @@ asset-data/
 | PS-Phase7 | 월별 계획 vs 실적 테이블 통합 — Pension-tracer 정적 테이블 대체. ps-table.js 신규 생성, 납입 실적 입력 폼, 연금저축+IRP 합산 연 1,800만원 검증(1,500만원 경고/1,800만원 초과 저장 차단), Firebase `pensionSimulation/contributions` 저장, Pension-tracer 폐기 방침 문서화 | `js/pension/ps-table.js`(신규), `js/pension/ps-firebase.js`, `js/pension/ps-config.js`, `js/pension/ps-init.js`, `pension-simulation.html`, `css/pension-sim.css`, `PLAN.md`, `CLAUDE.md` | 2026-07-02 |
 | PS-WITHDRAWAL-V1 | 연금 인출 시뮬레이터 구현 — ps-config.js에 healthInsurance 파라미터 보완 + realty(O DRIP) 블록 신규 추가. ps-withdrawal.js(인출 엔진: O DRIP 월복리 DRIP, 비과세원금/과세분/국민연금/IRP 소득원별 계산, 연금소득세, 건보료 단계별). ps-withdrawal-ui.js(나이 슬라이더→결과 카드 렌더링). pension-simulation.html 섹션 추가. pension-sim.css ps-wd-* 스타일 추가 | `js/pension/ps-config.js`, `js/pension/ps-withdrawal.js`(신규), `js/pension/ps-withdrawal-ui.js`(신규), `js/pension/ps-init.js`, `pension-simulation.html`, `css/pension-sim.css` | 2026-06-29 |
 | P0-2-RIA-DEDUCT | RIA 세제혜택 가중치 반영 — PS_RIA_TAX_BENEFIT(매도금액 49,511,610원 고정, 기초공제율100%) + getRiaWeight(1~5월100%/6~7월80%/8~12월50%) 추가. calcRiaAdjustedDeduction() 순수함수(조정비율=1−가중순매수액/매도금액, 최종공제율=기초공제율×max(0,조정비율)) PensionEngine에 공개. ps-table.js에 해외지수ETF 순매수액 월별 수동입력 필드 추가 — contributions[ym].riaExternalPurchase 재사용(빈값=키 생략/미입력, "0"=확정무매수 구분), 실시간 미리보기 카드(가중순매수액/조정비율/최종공제율), PS_START_YM~현재월 이전 미입력 개월 수 경고. 검증: 0원→100%, 2월 3천만(가중100%)/8월 6천만(가중50%) 동일하게 →39.4%, 6천만 초과 매수→0% 하한 | `js/pension/ps-config.js`, `js/pension/ps-engine.js`, `js/pension/ps-table.js` | 2026-07-02 (PR #75 main 병합완료) |
+| P0-2-BACKFILL | RIA 외 계좌 순매수액 2026년 1~6월분 소급 입력 — 전략 세션에서 사용자 엑셀 거래내역 직접 집계로 확정값 도출(1월 1,520,831 / 2월 664,144 / 3월 1,113,072 / 4~6월 0원 확정무매수). Firebase 직접 쓰기용 서비스 계정 키가 레포에 없어 `migrate.js`/`paste-in-console.js`와 동일한 "브라우저 콘솔 붙여넣기" 패턴 채택 — 월별 기존 contributions[ym] GET 후 riaExternalPurchase만 병합해 PUT(다른 필드 보존), localStorage 캐시 동기화 포함. 사용자가 로그인된 브라우저에서 직접 실행 필요 | `ria-external-purchase-backfill-console.js`(신규) | 2026-07-03 |
 
 ---
 
