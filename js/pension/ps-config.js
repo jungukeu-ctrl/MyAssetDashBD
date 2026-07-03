@@ -150,3 +150,28 @@ const PS_CONTRIBUTION_LIMITS = {
   warningAt:      15000000,  // 누적 1,500만 이상 노란 경고
   combinedAnnual: 18000000   // 연금저축+IRP 합산 연간 납입 상한
 };
+
+// ─── RIA 세제혜택 가중치 (2026년 한시 제도) ────────────────────────────────
+// 키움증권 RIA 상품설명서(소비자보호검토필 제26-0460호) 기준.
+// RIA 외 계좌(연금저축·IRP1·IRP2·ISA·일반계좌)에서 해외주식/국내상장 해외ETF/
+// 해외주식형펀드를 순매수하면, 매수 시점별 가중치를 곱한 값만큼 RIA 최종
+// 양도소득 공제율이 깎인다.
+//   조정비율   = 1 − (가중 순매수액 / RIA 매도금액)
+//   최종공제율 = 기초공제율 × max(0, 조정비율)
+const PS_RIA_TAX_BENEFIT = {
+  saleAmount:        49511610,  // RIA 매도금액(분모), 2026-03-31 확정 (키움 거래내역 근거)
+  baseDeductionRate: 1.0        // 기초공제율 (1분기 내 매도 → 100%)
+};
+
+/**
+ * RIA 외 계좌 순매수 시점(월)별 가중치
+ * 1~5월 매수 → 100% / 6~7월 매수 → 80% / 8~12월 매수 → 50%
+ * @param {string} ym  'YYYY-MM'
+ * @returns {number}   가중치 (0~1)
+ */
+function getRiaWeight(ym) {
+  const m = parseInt(String(ym).slice(5, 7), 10);
+  if (m >= 1 && m <= 5) return 1.0;
+  if (m >= 6 && m <= 7) return 0.8;
+  return 0.5; // 8~12월
+}

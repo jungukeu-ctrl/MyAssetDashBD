@@ -25,6 +25,12 @@ const PensionTable = (() => {
     return v ? String(Math.round(v)) : '';
   }
 
+  // riaExternalPurchase 전용: 0(확정 무매수)과 undefined(미입력)를 구분 표시
+  function _fmtRiaInput(v) {
+    if (v === undefined || v === null) return '';
+    return String(Math.round(Number(v) || 0));
+  }
+
   function _parseWon(id) {
     const el = document.getElementById(id);
     if (!el) return 0;
@@ -102,6 +108,61 @@ const PensionTable = (() => {
     };
   }
 
+  // contributions에서 riaExternalPurchase가 확정 입력된 월만 { ym: amount } 맵으로 추출
+  function _riaPurchaseMap(contributions) {
+    const map = {};
+    Object.keys(contributions || {}).forEach(ym => {
+      const v = contributions[ym]?.riaExternalPurchase;
+      if (v !== undefined && v !== null) map[ym] = v;
+    });
+    return map;
+  }
+
+  function _currentYM() {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  }
+
+  // PS_START_YM ~ 현재월 이전(과거월)까지 riaExternalPurchase 미입력 월 목록
+  function _missingRiaMonths(contributions) {
+    const curYM = _currentYM();
+    let y = parseInt(String(PS_START_YM).slice(0, 4), 10);
+    let m = parseInt(String(PS_START_YM).slice(5, 7), 10);
+    const missing = [];
+    while (true) {
+      const ym = `${y}-${String(m).padStart(2, '0')}`;
+      if (ym >= curYM) break;
+      const v = contributions[ym]?.riaExternalPurchase;
+      if (v === undefined || v === null) missing.push(ym);
+      m++;
+      if (m > 12) { m = 1; y++; }
+    }
+    return missing;
+  }
+
+  function _renderRiaCard(contributions) {
+    const purchases = _riaPurchaseMap(contributions);
+    const calc = PensionEngine.calcRiaAdjustedDeduction(purchases);
+    const missing = _missingRiaMonths(contributions);
+    const pctStr = (calc.finalDeductionRate * 100).toFixed(1);
+
+    return `
+      <div class="ps-card ps-limit-card">
+        <div class="ps-card-title">RIA 세제혜택 조정 공제율</div>
+        <div id="pension-ria-rate" style="font-size:1.8em;font-weight:700;margin:4px 0;">${pctStr}%</div>
+        <ul class="ps-limit-list">
+          <li id="pension-ria-detail">가중 순매수액 <strong>${_fmtWon(calc.weightedTotal)}</strong> · 조정비율 <strong>${(calc.adjustRatio * 100).toFixed(1)}%</strong></li>
+          <li>RIA 매도금액(분모): <strong>${_fmtWon(PS_RIA_TAX_BENEFIT.saleAmount)}</strong></li>
+        </ul>
+        <div id="pension-ria-warning" class="ps-limit-msg ${missing.length ? 'ps-limit-warning' : 'ps-limit-ok'}">
+          ${missing.length
+            ? `⚠️ ${missing.length}개월 데이터 미입력 (${_escape(missing.join(', '))}) — 실제 공제율과 다를 수 있음`
+            : '✅ 확인 대상 전월 입력 완료'}
+        </div>
+      </div>
+    `;
+  }
+
   function _latestEditableMonth(result) {
     const months = result?.months || [];
     const actual = result?.actual?.total || [];
@@ -147,6 +208,11 @@ const PensionTable = (() => {
                 <input class="ps-input ps-contrib-input" id="pension-contrib-${k}" type="number" min="0" step="10000" value="${_fmtInput(current[k])}" placeholder="0">
               </label>
             `).join('')}
+            <label class="ps-contrib-field">
+              <span>해외지수ETF 순매수액</span>
+              <input class="ps-input ps-contrib-input" id="pension-contrib-ria" type="number" min="0" step="10000" value="${_fmtRiaInput(current.riaExternalPurchase)}" placeholder="미입력">
+              <small style="display:block;font-size:0.8em;opacity:0.7;margin-top:2px;">연금저축/IRP/ISA 등에서 이번 달 매수한 S&amp;P500·나스닥100류 해외지수 추종 ETF 금액만 입력. TRF3070 등 혼합형 채권형은 제외. 확인 안 됐으면 비워두세요(0원 확정과 구분).</small>
+            </label>
             <label class="ps-contrib-field ps-contrib-memo-field">
               <span>메모</span>
               <input class="ps-input ps-contrib-input ps-contrib-memo" id="pension-contrib-memo" type="text" value="${_escape(current.memo || '')}" placeholder="예: 7월 정기 납입">
@@ -164,6 +230,8 @@ const PensionTable = (() => {
           <div class="ps-card-title">연간 한도 점검</div>
           ${_renderYearSummary(contributions, selectedYM)}
         </div>
+
+        ${_renderRiaCard(contributions)}
       </div>
 
       <div class="ps-card ps-table-card">
@@ -281,6 +349,30 @@ const PensionTable = (() => {
       .filter(Boolean)
       .forEach(el => el.addEventListener('input', refreshStatus));
 
+    const riaEl = document.getElementById('pension-contrib-ria');
+
+    // RIA 조정 공제율 실시간 미리보기 — 아직 저장 안 된 현재 입력값을 반영해 계산
+    const refreshRiaPreview = () => {
+      const ym = ymEl?.value || _latestEditableMonth(result);
+      const purchases = _riaPurchaseMap(_contributions());
+      const raw = String(riaEl?.value || '').replace(/,/g, '').trim();
+      if (raw !== '') {
+        const n = Number(raw);
+        if (Number.isFinite(n) && n >= 0) purchases[ym] = n;
+      } else {
+        delete purchases[ym];
+      }
+      const calc = PensionEngine.calcRiaAdjustedDeduction(purchases);
+      const rateEl = document.getElementById('pension-ria-rate');
+      if (rateEl) rateEl.textContent = `${(calc.finalDeductionRate * 100).toFixed(1)}%`;
+      const detailEl = document.getElementById('pension-ria-detail');
+      if (detailEl) {
+        detailEl.innerHTML = `가중 순매수액 <strong>${_fmtWon(calc.weightedTotal)}</strong> · 조정비율 <strong>${(calc.adjustRatio * 100).toFixed(1)}%</strong>`;
+      }
+    };
+
+    [ymEl, riaEl].filter(Boolean).forEach(el => el.addEventListener('input', refreshRiaPreview));
+
     if (loadBtn) {
       loadBtn.addEventListener('click', () => {
         render(PensionState.result);
@@ -296,9 +388,11 @@ const PensionTable = (() => {
           const el = document.getElementById(`pension-contrib-${k}`);
           if (el) el.value = _fmtInput(row[k]);
         });
+        if (riaEl) riaEl.value = _fmtRiaInput(row.riaExternalPurchase);
         const memo = document.getElementById('pension-contrib-memo');
         if (memo) memo.value = row.memo || '';
         refreshStatus();
+        refreshRiaPreview();
         document.getElementById('pension-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     });
@@ -340,6 +434,13 @@ const PensionTable = (() => {
       const v = _parseWon(`pension-contrib-${k}`);
       if (!Number.isFinite(v)) return null;
       patch[k] = v;
+    }
+    // 해외지수ETF 순매수액: 빈값 = 키 생략(미입력 유지), "0" = 확정 무매수
+    const riaRaw = String(document.getElementById('pension-contrib-ria')?.value || '').replace(/,/g, '').trim();
+    if (riaRaw !== '') {
+      const riaVal = Number(riaRaw);
+      if (!Number.isFinite(riaVal) || riaVal < 0) return null;
+      patch.riaExternalPurchase = Math.round(riaVal);
     }
     const memo = document.getElementById('pension-contrib-memo')?.value?.trim() || '';
     if (memo) patch.memo = memo;
