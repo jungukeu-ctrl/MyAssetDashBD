@@ -273,6 +273,11 @@ const PensionEngine = (() => {
               ISA:      a.ISA      || 0,
               연금저축_비과세원금: 0
             };
+            // RIA 유입 catch-up: 실측 스냅샷이 fundingYM 이후인데도 RIA=0(stale)이면 1회 보정.
+            // 실측치가 이미 RIA를 반영했다면(0 아님) 건너뛰어 이중계산 방지.
+            if (fcBal.RIA === 0 && params.ria?.fundingYM && params.ria.fundingYM <= lastActualYM) {
+              fcBal.RIA += PS_RIA_TAX_BENEFIT.saleAmount;
+            }
             fcCurrentYear   = yr;
             fcYearlyPension = 0;
             fcYearlyIRP1    = 0;
