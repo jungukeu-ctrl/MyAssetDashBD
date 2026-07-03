@@ -76,6 +76,9 @@ const PS_DEFAULT_PARAMS = {
   irp2: {
     withdrawalStartAge: 70      // IRP2 실제수령개시 나이 (변수). 연차 시작(2029)과는 별개 개념
   },
+  ria: {
+    fundingYM: '2026-03'        // 해외주식→RIA 실물이관·매도 확정 시점 (fundingAmount는 PS_RIA_TAX_BENEFIT.saleAmount 재사용)
+  },
   spouse: {
     birthYM:   '1983-01',
     retireAge: 60                // 정년 = 피부양자 자연해제 시점

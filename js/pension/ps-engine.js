@@ -402,6 +402,11 @@ const PensionEngine = (() => {
       bal.IRP2 += (params.retire.severancePay || 0);
     }
 
+    // 2-1. 해외주식 → RIA 실물이관·매도 확정 (1회성, 기존 PS_RIA_TAX_BENEFIT.saleAmount 재사용)
+    if (params.ria?.fundingYM === ym) {
+      bal.RIA += PS_RIA_TAX_BENEFIT.saleAmount;
+    }
+
     // 3. ISA 이체 처리 (RIA → ISA)
     if (params.isa?.transfers) {
       for (const tx of params.isa.transfers) {
