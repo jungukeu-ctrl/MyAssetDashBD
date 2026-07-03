@@ -48,10 +48,16 @@ const PensionWithdrawalUI = (() => {
       { label: 'ISA',                key: 'ISA'      }
     ];
 
+    // 연금저축 표시액 = 과세분 + 비과세원금 버킷(ISA→연금저축 이전분, §9-3) 합산
+    function _val(key) {
+      if (key === '연금저축') return (balances.연금저축 || 0) + (balances.연금저축_비과세원금 || 0);
+      return balances[key] || 0;
+    }
+
     let totalBal = 0;
     let bodyRows = '';
     for (const { label, key } of rows) {
-      const v = balances[key] || 0;
+      const v = _val(key);
       if (v <= 0) continue;
       totalBal += v;
       bodyRows += `<tr>
@@ -59,7 +65,7 @@ const PensionWithdrawalUI = (() => {
         <td class="ps-wd-right ps-wd-amount">${_fmtAmt(v)}</td>
       </tr>`;
     }
-    totalBal = rows.reduce((s, r) => s + (balances[r.key] || 0), 0);
+    totalBal = rows.reduce((s, r) => s + _val(r.key), 0);
 
     return `
 <div class="ps-wd-card">

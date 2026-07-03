@@ -393,6 +393,7 @@ const PensionEngine = (() => {
 
     // 1. 수익률 적용 (복리)
     bal.연금저축 *= (1 + mr.연금저축);
+    bal.연금저축_비과세원금 *= (1 + mr.연금저축);  // §9-3: 인출 시작 전까지 연금저축 수익률로 계속 성장
     bal.IRP1     *= (1 + mr.IRP1);
     bal.IRP2     *= (1 + mr.IRP2);
     // 해외주식: VOO 서브셋은 mr.VOO, non-VOO 부분은 mr.해외주식 각각 적용
