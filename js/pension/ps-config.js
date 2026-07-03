@@ -19,6 +19,18 @@ function psAnnualToMonthly(annualRate) {
   return Math.pow(1 + annualRate, 1 / 12) - 1;
 }
 
+// ─── 인적 기본값 (pension 모듈 공용, ps-withdrawal.js BIRTH_YEAR/MONTH와 동일값) ──
+const PS_BIRTH = { year: 1974, month: 2 };
+
+/**
+ * 만 나이 → 생일월 'YYYY-MM' (PS_BIRTH 기준)
+ * @param {number} age
+ * @returns {string}
+ */
+function psAgeToYM(age) {
+  return `${PS_BIRTH.year + age}-${String(PS_BIRTH.month).padStart(2, '0')}`;
+}
+
 // ─── 기본 파라미터 ────────────────────────────────────────────────────────────
 const PS_DEFAULT_PARAMS = {
   rates: {
@@ -54,7 +66,25 @@ const PS_DEFAULT_PARAMS = {
   },
   nationalPension: {
     startYM:  '2039-03',
-    monthly:  1800000           // 국민연금 월 수령액 (원)
+    monthly:  1800000,          // 국민연금 월 수령액 (원)
+    startAge: 65                // 국민연금 개시 나이 (변수, startYM과 별개 트랙 — Phase2에서 동기화)
+  },
+  withdrawal: {
+    startAge:      61,          // 인출 시작 나이 (변수, 최소 55, 실질하한은 ISA만기 보정 적용)
+    monthlyTarget: 3050000      // 목표 월 생활비 (사용자 입력값, 기본값)
+  },
+  irp2: {
+    withdrawalStartAge: 70      // IRP2 실제수령개시 나이 (변수). 연차 시작(2029)과는 별개 개념
+  },
+  ria: {
+    fundingYM: '2026-03'        // 해외주식→RIA 실물이관·매도 확정 시점 (fundingAmount는 PS_RIA_TAX_BENEFIT.saleAmount 재사용)
+  },
+  spouse: {
+    birthYM:   '1983-01',
+    retireAge: 60                // 정년 = 피부양자 자연해제 시점
+  },
+  isaConversion: {
+    maturityYM: '2029-03'        // ISA 만기 (고정, isa.joinYM + 3년과 동기화)
   },
   tax: {
     deductRate:             0.132,    // 세액공제율 (연금저축+IRP 합산)

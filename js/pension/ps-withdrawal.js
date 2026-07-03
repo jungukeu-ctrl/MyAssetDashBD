@@ -1,45 +1,30 @@
 /**
- * ps-withdrawal.js — 연금 인출 시뮬레이션 엔진 (순수 함수)
- * 의존: ps-config.js (PS_DEFAULT_PARAMS, PS_START_YM)
+ * ps-withdrawal.js — 연금 인출 시뮬레이션 표시 계층 (순수 함수)
+ * 의존: ps-config.js (PS_DEFAULT_PARAMS, PS_START_YM, PS_BIRTH, psAgeToYM)
  * DOM / Firebase 접근 완전 금지.
  *
- * 설계 기준: .claude/PENSION_WITHDRAWAL.md
+ * 인출 금액·한도 계산 자체는 js/pension/ps-engine.js `_stepMonth()`가 담당한다
+ * (psResult.plan/forecast.withdrawalLog). 이 파일은 그 결과를 세율·건보료
+ * 계산과 결합해 화면 표시용으로 포맷팅만 한다 — 인출 금액 재계산 금지.
+ *
+ * 설계 기준: .claude/PENSION_WITHDRAWAL.md, Notion §9(적립-인출 통합 시뮬레이션)
  */
 
 'use strict';
 
 const PensionWithdrawal = (() => {
 
-  // ─── 인적 기본값 ────────────────────────────────────────────────────────────
-  const BIRTH_YEAR  = 1974;
-  const BIRTH_MONTH = 2;
-
-  // ─── 인출 타임라인 상수 (PENSION_WITHDRAWAL.md §2) ──────────────────────────
-  const WD_TAX_FREE_START   = '2035-02';  // 61세: 비과세원금 인출 시작
-  const WD_TAX_FREE_MONTHLY = 3050000;    // 비과세 월 인출액 (원)
-  const WD_TAX_FREE_END     = '2037-10';  // 비과세원금 소진 예상월 (~33개월)
-  const WD_TAXED_START      = '2037-11';  // 과세분 전환
-  const WD_TAXED_MONTHLY    = 1250000;    // 과세분 월 인출액 (국민연금 개시 전)
-  const WD_TAXED_MONTHLY_NP = 1000000;    // 국민연금 개시 후 조정액
-  const WD_IRP_START        = '2044-02';  // 70세: IRP 연금 개시
-  const WD_IRP_MONTHLY      = 1500000;    // IRP 월 인출액
-
   // O DRIP 계산 기준 시점
   const O_DRIP_BASE_YM = '2026-06';
 
   // ─── 유틸 ───────────────────────────────────────────────────────────────────
 
-  /** 만 나이 → 생일월 YM ('YYYY-MM') */
-  function _ageToYM(age) {
-    return `${BIRTH_YEAR + age}-${String(BIRTH_MONTH).padStart(2, '0')}`;
-  }
-
-  /** 'YYYY-MM' → 만 나이 */
+  /** 'YYYY-MM' → 만 나이 (PS_BIRTH 기준) */
   function _ymToAge(ym) {
     const y = parseInt(ym.slice(0, 4));
     const m = parseInt(ym.slice(5, 7));
-    let age = y - BIRTH_YEAR;
-    if (m < BIRTH_MONTH) age--;
+    let age = y - PS_BIRTH.year;
+    if (m < PS_BIRTH.month) age--;
     return age;
   }
 
@@ -57,6 +42,16 @@ const PensionWithdrawal = (() => {
     const by = parseInt(baseYM.slice(0, 4)), bm = parseInt(baseYM.slice(5, 7));
     const ty = parseInt(targetYM.slice(0, 4)), tm = parseInt(targetYM.slice(5, 7));
     return (ty - by) * 12 + (tm - bm);
+  }
+
+  /** 'YYYY-MM' 문자열 중 더 늦은 값 */
+  function _ymMax(a, b) { return a > b ? a : b; }
+
+  /** 'YYYY-MM' + n년 → 'YYYY-MM' */
+  function _addYears(ym, years) {
+    const y = parseInt(ym.slice(0, 4), 10);
+    const m = ym.slice(5, 7);
+    return `${y + (years || 0)}-${m}`;
   }
 
   // ─── O DRIP 시뮬레이션 ──────────────────────────────────────────────────────
@@ -102,6 +97,7 @@ const PensionWithdrawal = (() => {
   }
 
   // ─── 연금소득세 ─────────────────────────────────────────────────────────────
+  // (PR #81에서 이미 3단계 세율로 정확히 수정됨 — 그대로 유지)
 
   function _taxRate(params, targetYM) {
     const age = _ymToAge(targetYM);
@@ -111,6 +107,7 @@ const PensionWithdrawal = (() => {
   }
 
   // ─── 건강보험료 계산 ─────────────────────────────────────────────────────────
+  // (PR #81에서 이미 정확히 수정됨 — 피부양자 판정에 배우자 정년 조건만 추가, §9-8)
 
   /**
    * @param {object} params               PS_DEFAULT_PARAMS
@@ -154,8 +151,13 @@ const PensionWithdrawal = (() => {
     const depIncomeLimit   = hi.dependentIncomeLimit   || 20000000;
     const depPropertyLimit = hi.dependentPropertyLimit || 540000000;
 
-    // ③ 피부양자 판정 (소득·재산 기준 충족 시 — 국민연금 수령 여부 자체는 무관)
-    if (totalIncome <= depIncomeLimit && fairBase <= depPropertyLimit) {
+    // ②-1 배우자 정년(§9-8) — 정년 전까지만 배우자 직장가입자 피부양자 자격 유지 가능
+    const spouse = params.spouse;
+    const spouseRetireYM = spouse?.birthYM ? _addYears(spouse.birthYM, spouse.retireAge ?? 60) : null;
+    const spouseStillWorking = !spouseRetireYM || targetYM < spouseRetireYM;
+
+    // ③ 피부양자 판정 (소득·재산 기준 충족 + 배우자 정년 전 — §9-8: 둘 중 먼저 도달하는 쪽이 탈락 시점)
+    if (totalIncome <= depIncomeLimit && fairBase <= depPropertyLimit && spouseStillWorking) {
       return { type: '피부양자', monthly: 0, breakdown: { totalIncome } };
     }
 
@@ -181,7 +183,8 @@ const PensionWithdrawal = (() => {
     return {
       type: '지역가입자',
       monthly: totalMonthly,
-      breakdown: { totalIncome, incomeMonthly, propertyMonthly, ltcMonthly, fairBase: Math.round(fairBase) }
+      breakdown: { totalIncome, incomeMonthly, propertyMonthly, ltcMonthly, fairBase: Math.round(fairBase) },
+      spouseRetireYM
     };
   }
 
@@ -189,20 +192,25 @@ const PensionWithdrawal = (() => {
 
   /**
    * @param {number} targetAge  목표 나이 (만 나이 정수, 55~85)
-   * @param {object} psResult   PensionState.result (적립 시뮬레이션 결과)
+   * @param {object} psResult   PensionState.result (적립+인출 통합 시뮬레이션 결과, ps-engine.js)
    * @param {object} params     PS_DEFAULT_PARAMS (또는 커스텀 파라미터)
-   * @returns {object}          인출 시뮬레이션 결과
+   * @returns {object}          인출 시뮬레이션 결과 (표시용)
    */
   function calc(targetAge, psResult, params) {
     params = params || PS_DEFAULT_PARAMS;
 
-    const targetYM  = _ageToYM(targetAge);
+    const targetYM  = psAgeToYM(targetAge);
     const npStartYM = params.nationalPension.startYM;
     const rate      = _taxRate(params, targetYM);
     const ratePct   = Math.round(rate * 1000) / 10;
 
-    // ① 예상 잔액 추출 (forecast 우선, 없으면 plan)
-    const balances = { 연금저축: 0, IRP1: 0, IRP2: 0, 해외주식: 0, RIA: 0, ISA: 0 };
+    // ① 예상 잔액 + 인출 내역 추출 (forecast 우선, 없으면 plan — 엔진이 이미 계산해 둔 값 그대로 사용)
+    const balances = { 연금저축: 0, IRP1: 0, IRP2: 0, 해외주식: 0, RIA: 0, ISA: 0, 연금저축_비과세원금: 0 };
+    let wd = {
+      taxFree: 0, taxed: 0, taxedShortfall: 0, irp1: 0, irp2: 0, nationalPension: 0,
+      pensionLimitHit: false, irp1LimitHit: false, irp2LimitHit: false
+    };
+
     if (psResult && psResult.months) {
       const idx = Math.max(0, Math.min(_ymToIdx(targetYM), psResult.months.length - 1));
       const fc  = psResult.forecast?.byAccount;
@@ -212,66 +220,76 @@ const PensionWithdrawal = (() => {
         const plv = pl?.[k]?.[idx];
         balances[k] = (fcv != null && fcv > 0) ? fcv : (plv ?? 0);
       }
+
+      const fcLog = psResult.forecast?.withdrawalLog?.[idx];
+      const plLog = psResult.plan?.withdrawalLog?.[idx];
+      wd = fcLog || plLog || wd;
     }
 
     // ② O DRIP 계산
     const odrip = _calcODrip(params.realty, targetYM);
 
-    // ③ 소득원별 계산
+    // ③ 소득원별 계산 — ps-engine.js의 실제 월별 인출 내역(withdrawalLog)을 그대로 사용, 재계산 금지
     const sources = [];
     let privatePensionAnnual = 0;  // 건보 소득 계산용 누계
     let npAnnual = 0;
 
-    // 비과세원금 인출 (61세 ~ 2037-10)
-    if (targetYM >= WD_TAX_FREE_START && targetYM <= WD_TAX_FREE_END) {
+    if (wd.taxFree > 0) {
       sources.push({
         name: '연금저축 (비과세원금)',
-        monthly: WD_TAX_FREE_MONTHLY,
+        monthly: wd.taxFree,
         tax: 0,
-        net: WD_TAX_FREE_MONTHLY,
-        note: 'ISA→연금저축 이전 원금, 비과세 (약 1억, 33개월)'
+        net: wd.taxFree,
+        note: 'ISA→연금저축 이전 원금, 비과세'
       });
     }
 
-    // 과세분 연금저축 (2037-11 이후)
-    if (targetYM >= WD_TAXED_START) {
-      const monthly = targetYM >= npStartYM ? WD_TAXED_MONTHLY_NP : WD_TAXED_MONTHLY;
-      const tax     = Math.round(monthly * rate);
+    if (wd.taxed > 0) {
+      const tax = Math.round(wd.taxed * rate);
       sources.push({
         name: '연금저축 (과세)',
-        monthly,
+        monthly: wd.taxed,
         tax,
-        net: monthly - tax,
-        note: `연금소득세 ${ratePct}% · 연 1,500만 이하 분리과세`
+        net: wd.taxed - tax,
+        note: `연금소득세 ${ratePct}% · 연 1,500만 이하 분리과세${wd.pensionLimitHit ? ' · 연금수령한도 도달' : ''}`
       });
-      privatePensionAnnual += monthly * 12;
+      privatePensionAnnual += wd.taxed * 12;
     }
 
-    // 국민연금 (65세, 2039-03~)
-    if (targetYM >= npStartYM) {
-      const npMonthly = params.nationalPension.monthly;
-      const npTax     = Math.round(npMonthly * rate);
+    if (wd.nationalPension > 0) {
+      const npTax = Math.round(wd.nationalPension * rate);
       sources.push({
         name: '국민연금',
-        monthly: npMonthly,
+        monthly: wd.nationalPension,
         tax: npTax,
-        net: npMonthly - npTax,
+        net: wd.nationalPension - npTax,
         note: `연금소득세 ${ratePct}%`
       });
-      npAnnual = npMonthly * 12;
+      npAnnual = wd.nationalPension * 12;
     }
 
-    // IRP 연금 (70세, 2044-02~)
-    if (targetYM >= WD_IRP_START) {
-      const irpTax = Math.round(WD_IRP_MONTHLY * rate);
+    if (wd.irp1 > 0) {
+      const tax = Math.round(wd.irp1 * rate);
       sources.push({
-        name: 'IRP 연금',
-        monthly: WD_IRP_MONTHLY,
-        tax: irpTax,
-        net: WD_IRP_MONTHLY - irpTax,
-        note: `연금소득세 ${ratePct}% (연령별 세율 자동 적용)`
+        name: 'IRP1 연금',
+        monthly: wd.irp1,
+        tax,
+        net: wd.irp1 - tax,
+        note: `연금소득세 ${ratePct}%${wd.irp1LimitHit ? ' · 연금수령한도 도달' : ''}`
       });
-      privatePensionAnnual += WD_IRP_MONTHLY * 12;
+      privatePensionAnnual += wd.irp1 * 12;
+    }
+
+    if (wd.irp2 > 0) {
+      const tax = Math.round(wd.irp2 * rate);
+      sources.push({
+        name: 'IRP2 연금',
+        monthly: wd.irp2,
+        tax,
+        net: wd.irp2 - tax,
+        note: `연금소득세 ${ratePct}%${wd.irp2LimitHit ? ' · 연금수령한도 도달' : ''}`
+      });
+      privatePensionAnnual += wd.irp2 * 12;
     }
 
     // O(리얼티인컴) 배당 (항시)
@@ -297,8 +315,11 @@ const PensionWithdrawal = (() => {
 
     // ⑥ 경고
     const warnings = [];
-    if (targetAge < 61) {
-      warnings.push('61세 이전은 연금 인출 계획이 없습니다. 자산 적립 기간입니다.');
+    const withdrawStartYM = params.withdrawal?.startAge != null
+      ? _ymMax(psAgeToYM(params.withdrawal.startAge), params.isaConversion?.maturityYM || '0000-00')
+      : null;
+    if (withdrawStartYM && targetYM < withdrawStartYM) {
+      warnings.push(`${targetAge}세는 연금 인출 시작(${_ymToAge(withdrawStartYM)}세, ${withdrawStartYM}) 이전입니다. 자산 적립 기간입니다.`);
     }
     if (odrip.atLimit) {
       warnings.push('O 배당 수입이 금융소득 2,000만원 한도(85%)에 근접했습니다. DRIP 속도 조절을 검토하세요.');
@@ -309,6 +330,20 @@ const PensionWithdrawal = (() => {
     // 사적연금 분리과세 한도 초과 체크
     if (privatePensionAnnual > (params.tax.separateTaxThreshold || 15000000)) {
       warnings.push(`사적연금 합계(연 ${Math.round(privatePensionAnnual / 10000)}만원)가 분리과세 기준(1,500만원)을 초과합니다. 종합과세 여부 검토 필요.`);
+    }
+    // 목표 생활비 대비 부족분 (§9-6 — 자동으로 낮추지 않고 그대로 표시)
+    if (wd.taxedShortfall > 0) {
+      warnings.push(`목표 생활비 대비 월 ${Math.round(wd.taxedShortfall / 10000)}만원 부족합니다 (과세분 연 1,500만원 한도 초과).`);
+    }
+    // 연금수령한도(§9-9) 도달 경고
+    if (wd.pensionLimitHit) {
+      warnings.push('연금저축이 연금수령한도(§9-9)에 도달해 목표금액보다 적게 인출됐습니다.');
+    }
+    if (wd.irp1LimitHit) {
+      warnings.push('IRP1이 연금수령한도(§9-9)에 도달해 목표금액보다 적게 인출됐습니다.');
+    }
+    if (wd.irp2LimitHit) {
+      warnings.push('IRP2가 연금수령한도(§9-9)에 도달해 목표금액보다 적게 인출됐습니다.');
     }
 
     return {
@@ -322,6 +357,7 @@ const PensionWithdrawal = (() => {
       healthInsurance: hi,
       netAfterHI: totalNet - hi.monthly,
       odrip,
+      withdrawal: wd,
       warnings
     };
   }
