@@ -210,7 +210,7 @@ const PensionWithdrawal = (() => {
   // ─── 메인 계산 함수 ─────────────────────────────────────────────────────────
 
   /**
-   * @param {number} targetAge  목표 나이 (만 나이 정수, 55~85)
+   * @param {number} targetAge  목표 나이 (만 나이 정수, 55~100)
    * @param {object} psResult   PensionState.result (적립+인출 통합 시뮬레이션 결과, ps-engine.js)
    * @param {object} params     PS_DEFAULT_PARAMS (또는 커스텀 파라미터)
    * @returns {object}          인출 시뮬레이션 결과 (표시용)
