@@ -215,6 +215,12 @@
   opacity: 0.7;
 }
 
+.ps-select {
+  width: auto;
+  min-width: 220px;
+  text-align: left;
+}
+
 /* ── ISA 이체 행 ──────────────────────────────────────────────────────── */
 
 .ps-isa-transfer-row {
