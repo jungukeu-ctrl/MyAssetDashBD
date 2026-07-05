@@ -235,6 +235,7 @@ const PensionTable = (() => {
       </div>
 
       <div class="ps-card ps-table-card">
+        <p class="ps-table-scope-note">포함 계좌: 연금저축 · IRP1 · IRP2 · 해외주식 · RIA · ISA (평가금 기준, 전체 8개 계좌 중 6개)</p>
         <div class="ps-table-wrap">
           <table class="ps-month-table">
             <thead>
