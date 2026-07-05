@@ -352,6 +352,11 @@ const PensionEngine = (() => {
       events.push({ ym: wdStartYM, label: '연금 인출 시작', type: 'withdrawStart' });
     }
 
+    // §13: 사적연금 1,500만원 초과 문턱효과 — 연도별 전체 총액 기준 소급 판정
+    // (잔액 계산과 무관한 순수 후처리, cap15m 모드는 ps-withdrawal.js에서 결과 미사용)
+    _markExcessYears(planWithdrawalLog, months, params);
+    _markExcessYears(forecastWithdrawalLog, months, params);
+
     return {
       months,
       plan: { total: planTotal, byAccount: planByAcct, withdrawalLog: planWithdrawalLog },
@@ -545,11 +550,19 @@ const PensionEngine = (() => {
         withdrawal.taxFree = draw;
         withdrawal.pensionLimitHit = draw < want;
       } else {
-        // 과세분: 연 1,500만원(월 125만원) 상한(§9-6/9-7) + 연금수령한도(§9-9) 동시 적용
-        const annualCap    = params.tax?.separateTaxThreshold || 15000000;
-        const monthlyCap   = annualCap / 12;
-        const taxedRoomYear = Math.max(0, annualCap - wd.taxedWithdrawnYear);
-        const want = Math.min(target, monthlyCap, bal.연금저축, taxedRoomYear);
+        // 과세분: excessMode==='cap15m'(기본값)일 때만 연 1,500만원(월 125만원) 상한
+        // (§9-6/9-7) 적용. 그 외 모드(separate16_5/comprehensive)는 하드캡 해제하고
+        // target 그대로 인출 허용 — §9-9 연금수령한도(room9_9)는 모드 무관 항상 적용 (§13)
+        const excessMode = params.withdrawal?.excessMode || 'cap15m';
+        let want;
+        if (excessMode === 'cap15m') {
+          const annualCap     = params.tax?.separateTaxThreshold || 15000000;
+          const monthlyCap    = annualCap / 12;
+          const taxedRoomYear = Math.max(0, annualCap - wd.taxedWithdrawnYear);
+          want = Math.min(target, monthlyCap, bal.연금저축, taxedRoomYear);
+        } else {
+          want = Math.min(target, bal.연금저축);
+        }
         const draw = Math.min(want, room9_9);
         bal.연금저축 -= draw;
         wd.taxedWithdrawnYear   += draw;
@@ -561,7 +574,7 @@ const PensionEngine = (() => {
     }
 
     // 7-2. IRP (국민연금 개시 후에만, §9-2) — IRP1 우선 소진 → 부족분 IRP2(70세 이후만)
-    const IRP_MONTHLY_TARGET = 1500000;  // 기존 WD_IRP_MONTHLY 설계값 승계 (§9-2 미명시, 별도 파라미터화 안 함)
+    const IRP_MONTHLY_TARGET = params.withdrawal?.irp2MonthlyTarget ?? 1500000;  // 파라미터화 (§13), 기본값은 기존 하드코딩과 동일
     if (_ymLte(npStartYM, ym)) {
       let need = IRP_MONTHLY_TARGET;
 
@@ -614,6 +627,31 @@ const PensionEngine = (() => {
   function _sum(bal) {
     return (bal.연금저축 || 0) + (bal.연금저축_비과세원금 || 0) + (bal.IRP1 || 0) + (bal.IRP2 || 0) +
            (bal.해외주식 || 0) + (bal.RIA || 0) + (bal.ISA || 0);
+  }
+
+  /**
+   * §13: 사적연금(연금저축 과세분+IRP1+IRP2) 연간 합계가 분리과세 기준(1,500만원)을
+   * 초과하면 해당 연도 "전체" 월에 excessTriggeredYear=true 소급 표시(문턱효과 —
+   * 초과 시점 이후만이 아니라 연 전체가 재분류되므로). withdrawalLog 항목을
+   * 캘린더 연도로 그룹화한 순수 후처리이며, 잔액(bal)에는 영향 없음.
+   */
+  function _markExcessYears(log, months, params) {
+    const threshold = params.tax?.separateTaxThreshold || 15000000;
+    const byYear = {};
+    for (let i = 0; i < log.length; i++) {
+      if (!log[i]) continue;
+      const yr = _year(months[i]);
+      (byYear[yr] || (byYear[yr] = [])).push(i);
+    }
+    Object.keys(byYear).forEach(yr => {
+      const idxs = byYear[yr];
+      const total = idxs.reduce((s, i) => s + (log[i].taxed || 0) + (log[i].irp1 || 0) + (log[i].irp2 || 0), 0);
+      const triggered = total > threshold;
+      idxs.forEach(i => {
+        log[i].excessTriggeredYear = triggered;
+        log[i].excessAnnualTotal   = total;
+      });
+    });
   }
 
   /** 인출(withdrawal) 트랙 상태 초기값 */

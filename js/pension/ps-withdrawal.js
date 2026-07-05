@@ -106,6 +106,30 @@ const PensionWithdrawal = (() => {
     return params.tax.rate5569;
   }
 
+  // ─── 연금소득공제 (§5 표, 최대 900만원) ────────────────────────────────────
+  // 국민연금(공적연금) 건보료 산정용으로 쓰였으나, §13 종합과세 모드에서도
+  // (사적연금+공적연금 합계)에 동일 표를 적용하므로 공용 헬퍼로 분리.
+  function _pensionIncomeDeduction(annual) {
+    if (annual <= 0) return 0;
+    let deducted;
+    if      (annual <= 3500000)  deducted = annual;
+    else if (annual <= 7000000)  deducted = 3500000 + (annual - 3500000) * 0.40;
+    else if (annual <= 14000000) deducted = 4900000 + (annual - 7000000) * 0.20;
+    else                         deducted = 6300000 + (annual - 14000000) * 0.10;
+    return Math.min(deducted, 9000000);
+  }
+
+  // ─── 종합소득세 (§13, 사적연금 1,500만원 초과 시 comprehensive 모드) ────────
+  // PS_COMPREHENSIVE_TAX_BRACKETS(ps-config.js) 누진표 + 지방소득세 10% 별도 가산.
+  function _comprehensiveIncomeTax(netIncome) {
+    const base = Math.max(0, netIncome);
+    const bracket = PS_COMPREHENSIVE_TAX_BRACKETS.find(b => base <= b.upTo)
+      || PS_COMPREHENSIVE_TAX_BRACKETS[PS_COMPREHENSIVE_TAX_BRACKETS.length - 1];
+    const incomeTax = Math.max(0, base * bracket.rate - bracket.deduction);
+    const localTax  = Math.round(incomeTax * 0.10);
+    return { incomeTax: Math.round(incomeTax), localTax, total: Math.round(incomeTax) + localTax };
+  }
+
   // ─── 건강보험료 계산 ─────────────────────────────────────────────────────────
   // (PR #81에서 이미 정확히 수정됨 — 피부양자 판정에 배우자 정년 조건만 추가, §9-8)
 
@@ -123,18 +147,13 @@ const PensionWithdrawal = (() => {
     const yearsAhead = parseInt(targetYM.slice(0, 4)) - 2026;
 
     // ① 소득 산입 계산 (피부양자 기준: 국민건강보험법 시행령 제41조)
-    // 사적연금은 분리과세 유지 시 건보 소득에서 전액 제외 (공적연금만 산입)
-    const privatePensionNet = 0;
+    // 사적연금은 분리과세 유지 시 건보 소득에서 전액 제외 (공적연금만 산입).
+    // §13: excessMode==='comprehensive'로 종합과세를 선택한 해에 한해서만 호출측(calc())이
+    // privatePensionAnnual에 실값을 전달함 — cap15m/separate16_5는 항상 0 전달(§6 유지, 회귀 없음)
+    const privatePensionNet = privatePensionAnnual || 0;
 
     // 국민연금: 연금소득공제 후 산입
-    let npDeducted = 0;
-    if (npAnnual > 0) {
-      if      (npAnnual <= 3500000)  npDeducted = npAnnual;
-      else if (npAnnual <= 7000000)  npDeducted = 3500000 + (npAnnual - 3500000) * 0.40;
-      else if (npAnnual <= 14000000) npDeducted = 4900000 + (npAnnual - 7000000) * 0.20;
-      else                           npDeducted = 6300000 + (npAnnual - 14000000) * 0.10;
-      npDeducted = Math.min(npDeducted, 9000000);  // 공제 한도 900만
-    }
+    const npDeducted = _pensionIncomeDeduction(npAnnual);
     const npNet = Math.max(0, npAnnual - npDeducted);
 
     // 금융소득: 1,000만 초과 시 전액 산입 (2022.09 개편)
@@ -305,13 +324,47 @@ const PensionWithdrawal = (() => {
       });
     }
 
+    // ③-2 §13: 사적연금 1,500만원 초과 문턱효과 — excessMode!=='cap15m' && 해당 연도 초과 시
+    // taxed/irp1/irp2(+comprehensive는 국민연금도) 소스 전액을 다른 방식으로 재과세.
+    // wd.excessTriggeredYear/excessAnnualTotal은 ps-engine.js _markExcessYears()가 연도별로
+    // 이미 소급 계산해 둔 값 — 여기서는 재계산하지 않고 그대로 사용.
+    const excessMode    = params.withdrawal?.excessMode || 'cap15m';
+    const isExcessYear  = excessMode !== 'cap15m' && !!wd.excessTriggeredYear;
+    const PRIVATE_PENSION_SOURCE_NAMES = ['연금저축 (과세)', 'IRP1 연금', 'IRP2 연금'];
+
+    if (isExcessYear && excessMode === 'separate16_5') {
+      const sepRate = params.tax?.rateSeparate165 ?? 0.165;
+      sources.forEach(s => {
+        if (PRIVATE_PENSION_SOURCE_NAMES.includes(s.name)) {
+          s.tax  = Math.round(s.monthly * sepRate);
+          s.net  = s.monthly - s.tax;
+          s.note = '연 1,500만원 초과로 전액 16.5% 분리과세 적용(문턱효과, 종합소득 미합산)';
+        }
+      });
+    } else if (isExcessYear && excessMode === 'comprehensive') {
+      const combinedAnnual = (wd.excessAnnualTotal || 0) + npAnnual;
+      const deduction       = _pensionIncomeDeduction(combinedAnnual);
+      const netIncome       = Math.max(0, combinedAnnual - deduction);
+      const { total: annualTax } = _comprehensiveIncomeTax(netIncome);
+      sources.forEach(s => {
+        if (PRIVATE_PENSION_SOURCE_NAMES.includes(s.name) || s.name === '국민연금') {
+          const share = combinedAnnual > 0 ? (s.monthly * 12) / combinedAnnual : 0;
+          s.tax  = Math.round((annualTax * share) / 12);
+          s.net  = s.monthly - s.tax;
+          s.note = '연 1,500만원 초과로 종합과세 적용(문턱효과) · 연금소득공제 후 누진세율(연간세액 비례배분 표시)';
+        }
+      });
+    }
+
     // ④ 합계
     const totalGross = sources.reduce((s, x) => s + x.monthly, 0);
     const totalTax   = sources.reduce((s, x) => s + x.tax,     0);
     const totalNet   = totalGross - totalTax;
 
-    // ⑤ 건보료
-    const hi = _calcHI(params, targetYM, privatePensionAnnual, npAnnual, odrip.annualKRW || 0);
+    // ⑤ 건보료 — comprehensive 모드이면서 해당 연도 실제 초과된 경우에만 사적연금을
+    // 피부양자 소득기준 합산 대상에 포함 (cap15m/separate16_5는 항상 0 전달, §6 유지)
+    const includePrivateInHI = isExcessYear && excessMode === 'comprehensive';
+    const hi = _calcHI(params, targetYM, includePrivateInHI ? (wd.excessAnnualTotal || 0) : 0, npAnnual, odrip.annualKRW || 0);
 
     // ⑥ 경고
     const warnings = [];
@@ -327,9 +380,14 @@ const PensionWithdrawal = (() => {
     if (targetAge === 65 || targetAge === 66) {
       warnings.push('국민연금 수급 연령 67세 상향이 논의 중입니다. 개시 연령 변경 시 공백 시나리오를 재검토하세요.');
     }
-    // 사적연금 분리과세 한도 초과 체크
-    if (privatePensionAnnual > (params.tax.separateTaxThreshold || 15000000)) {
+    // 사적연금 분리과세 한도 초과 체크 (cap15m은 항상 캡 이내라 정보성 안내, §13 모드는 아래 전용 경고로 대체)
+    if (excessMode === 'cap15m' && privatePensionAnnual > (params.tax.separateTaxThreshold || 15000000)) {
       warnings.push(`사적연금 합계(연 ${Math.round(privatePensionAnnual / 10000)}만원)가 분리과세 기준(1,500만원)을 초과합니다. 종합과세 여부 검토 필요.`);
+    }
+    // §13: 1,500만원 초과 문턱효과 경고 (전액 재분류)
+    if (isExcessYear) {
+      const modeLabel = excessMode === 'separate16_5' ? 'separate16_5(16.5% 분리과세)' : 'comprehensive(종합과세)';
+      warnings.push(`⚠️ 연 1,500만원 초과로 전액이 ${modeLabel} 방식으로 재분류됨 (문턱효과)`);
     }
     // 목표 생활비 대비 부족분 (§9-6 — 자동으로 낮추지 않고 그대로 표시)
     if (wd.taxedShortfall > 0) {
