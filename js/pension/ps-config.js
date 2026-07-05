@@ -71,7 +71,9 @@ const PS_DEFAULT_PARAMS = {
   },
   withdrawal: {
     startAge:      61,          // 인출 시작 나이 (변수, 최소 55, 실질하한은 ISA만기 보정 적용)
-    monthlyTarget: 3050000      // 목표 월 생활비 (사용자 입력값, 기본값)
+    monthlyTarget: 3050000,     // 목표 월 생활비 (사용자 입력값, 기본값)
+    excessMode:    'cap15m',    // 사적연금 연 1,500만원 초과 처리 방식 (§13): 'cap15m'(기본값,현행) | 'separate16_5' | 'comprehensive'
+    irp2MonthlyTarget: 1500000  // IRP 목표 월 인출액 (기존 하드코딩 IRP_MONTHLY_TARGET 파라미터화)
   },
   irp2: {
     withdrawalStartAge: 70      // IRP2 실제수령개시 나이 (변수). 연차 시작(2029)과는 별개 개념
@@ -91,7 +93,8 @@ const PS_DEFAULT_PARAMS = {
     rate5569:               0.055,    // 연금소득세율 (55~69세)
     rate7079:               0.044,    // 연금소득세율 (70~79세)
     rate80:                 0.033,    // 연금소득세율 (80세~)
-    separateTaxThreshold:   15000000  // 분리과세 기준선 (원/년)
+    separateTaxThreshold:   15000000, // 분리과세 기준선 (원/년)
+    rateSeparate165:        0.165     // 1,500만원 초과 시 선택 가능한 16.5% 분리과세율 (§13)
   },
   healthInsurance: {
     rate:                   0.0709,    // 건보료율 (매년 1월 고시)
@@ -193,6 +196,20 @@ const PS_RIA_TAX_BENEFIT = {
   saleAmount:        49511610,  // RIA 매도금액(분모), 2026-03-31 확정 (키움 거래내역 근거)
   baseDeductionRate: 1.0        // 기초공제율 (1분기 내 매도 → 100%)
 };
+
+// ─── 종합소득세 누진세율표 (§13, 사적연금 1,500만원 초과 시 종합과세 선택 시 적용) ──
+// 2023년 세법개정 기준(6~45%, 8단계), 지방소득세(10%)는 별도 가산.
+// 정책 변경 시 이 표부터 갱신 (Notion §13-3 참고).
+const PS_COMPREHENSIVE_TAX_BRACKETS = [
+  { upTo:  14000000, rate: 0.06, deduction:        0 },
+  { upTo:  50000000, rate: 0.15, deduction:  1260000 },
+  { upTo:  88000000, rate: 0.24, deduction:  5760000 },
+  { upTo: 150000000, rate: 0.35, deduction: 15440000 },
+  { upTo: 300000000, rate: 0.38, deduction: 19940000 },
+  { upTo: 500000000, rate: 0.40, deduction: 25940000 },
+  { upTo: 1000000000, rate: 0.42, deduction: 35940000 },
+  { upTo: Infinity,   rate: 0.45, deduction: 65940000 }
+];
 
 /**
  * RIA 외 계좌 순매수 시점(월)별 가중치
