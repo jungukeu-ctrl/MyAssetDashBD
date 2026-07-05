@@ -409,7 +409,11 @@ const PensionEngine = (() => {
     }
 
     // 2-1. 해외주식 → RIA 실물이관·매도 확정 (1회성, 기존 PS_RIA_TAX_BENEFIT.saleAmount 재사용)
+    // 실물이관은 해외주식 계좌에서 RIA로 자산이 "이동"하는 것이므로 양쪽 다 반영해야 함.
+    // planStartBalances.해외주식은 이 유출을 반영하지 않은 원래 전체 잔액이므로 차감 필요
+    // (차감 누락 시 4,951만원이 이중으로 존재하게 됨 — RIA-FUNDING-DOUBLECOUNT).
     if (params.ria?.fundingYM === ym) {
+      bal.해외주식 -= PS_RIA_TAX_BENEFIT.saleAmount;
       bal.RIA += PS_RIA_TAX_BENEFIT.saleAmount;
     }
 
@@ -605,6 +609,8 @@ const PensionEngine = (() => {
 
   // ─── 내부 헬퍼 ──────────────────────────────────────────────────────────────
 
+  // planTotal/actualTotal 등에 합산되는 계좌는 6개(연금저축·IRP1·IRP2·해외주식·
+  // RIA·ISA)로 고정. 상세는 ps-firebase.js 상단 주석 참고.
   function _sum(bal) {
     return (bal.연금저축 || 0) + (bal.연금저축_비과세원금 || 0) + (bal.IRP1 || 0) + (bal.IRP2 || 0) +
            (bal.해외주식 || 0) + (bal.RIA || 0) + (bal.ISA || 0);
