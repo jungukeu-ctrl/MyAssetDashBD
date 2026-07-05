@@ -574,14 +574,22 @@ const PensionEngine = (() => {
     }
 
     // 7-2. IRP (국민연금 개시 후에만, §9-2) — IRP1 우선 소진 → 부족분 IRP2(70세 이후만)
+    // P5-2: 계좌별 연금수령연차가 irpUnlockYear(§9-9와 동일 기준, 기본 11년차)를 넘으면
+    // 그 계좌는 고정 목표(IRP_MONTHLY_TARGET) 대신 생활비 부족분(pensionGap)까지 인출 시도.
+    // IRP1/IRP2는 연차 기산일이 서로 달라(IRP1=국민연금 개시, IRP2=퇴직 이듬해) 해제 시점도 다르므로
+    // 계좌별로 독립 판단한다.
     const IRP_MONTHLY_TARGET = params.withdrawal?.irp2MonthlyTarget ?? 1500000;  // 파라미터화 (§13), 기본값은 기존 하드코딩과 동일
+    const irpUnlockYear = params.withdrawal?.irpUnlockYear ?? 11;
+    const pensionGap = Math.max(0, (params.withdrawal?.monthlyTarget || 0) - (withdrawal.taxFree + withdrawal.taxed));
     if (_ymLte(npStartYM, ym)) {
-      let need = IRP_MONTHLY_TARGET;
-
       const yr = _year(ym);
+
+      const irp1ReceiptYear = yr - _year(npStartYM) + 1;
+      const target1 = irp1ReceiptYear > irpUnlockYear ? pensionGap : IRP_MONTHLY_TARGET;
+      let need = target1;
+
       if (yr !== wd.irp1LimitYear) {
-        const receiptYear = yr - _year(npStartYM) + 1;
-        wd.irp1LimitAmt      = _receiptLimit(bal.IRP1, receiptYear);
+        wd.irp1LimitAmt      = _receiptLimit(bal.IRP1, irp1ReceiptYear);
         wd.irp1LimitYear     = yr;
         wd.irp1WithdrawnYear = 0;
       }
@@ -590,24 +598,28 @@ const PensionEngine = (() => {
       const irp1Draw = Math.min(wantIrp1, irp1Room);
       bal.IRP1 -= irp1Draw;
       wd.irp1WithdrawnYear += irp1Draw;
-      need -= irp1Draw;
       withdrawal.irp1 = irp1Draw;
       withdrawal.irp1LimitHit = irp1Draw < wantIrp1;
 
-      if (_ymLte(irp2StartYM, ym) && need > 0) {
-        if (yr !== wd.irp2LimitYear) {
-          const receiptYear = yr - _year(irp2ReceiptStartYM) + 1;
-          wd.irp2LimitAmt      = _receiptLimit(bal.IRP2, receiptYear);
-          wd.irp2LimitYear     = yr;
-          wd.irp2WithdrawnYear = 0;
+      if (_ymLte(irp2StartYM, ym)) {
+        const irp2ReceiptYear = yr - _year(irp2ReceiptStartYM) + 1;
+        const target2 = irp2ReceiptYear > irpUnlockYear ? pensionGap : IRP_MONTHLY_TARGET;
+        need = Math.max(0, target2 - irp1Draw);
+
+        if (need > 0) {
+          if (yr !== wd.irp2LimitYear) {
+            wd.irp2LimitAmt      = _receiptLimit(bal.IRP2, irp2ReceiptYear);
+            wd.irp2LimitYear     = yr;
+            wd.irp2WithdrawnYear = 0;
+          }
+          const irp2Room = Math.max(0, wd.irp2LimitAmt - wd.irp2WithdrawnYear);
+          const wantIrp2 = Math.min(need, bal.IRP2);
+          const irp2Draw = Math.min(wantIrp2, irp2Room);
+          bal.IRP2 -= irp2Draw;
+          wd.irp2WithdrawnYear += irp2Draw;
+          withdrawal.irp2 = irp2Draw;
+          withdrawal.irp2LimitHit = irp2Draw < wantIrp2;
         }
-        const irp2Room = Math.max(0, wd.irp2LimitAmt - wd.irp2WithdrawnYear);
-        const wantIrp2 = Math.min(need, bal.IRP2);
-        const irp2Draw = Math.min(wantIrp2, irp2Room);
-        bal.IRP2 -= irp2Draw;
-        wd.irp2WithdrawnYear += irp2Draw;
-        withdrawal.irp2 = irp2Draw;
-        withdrawal.irp2LimitHit = irp2Draw < wantIrp2;
       }
     }
 
