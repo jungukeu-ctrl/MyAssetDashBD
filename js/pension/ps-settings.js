@@ -85,6 +85,12 @@ const PensionSettings = (() => {
       value="${value || ''}" disabled>`;
   }
 
+  function _selectInput(id, options, selected) {
+    return `<select class="ps-input ps-select" id="${id}">
+      ${options.map(o => `<option value="${o.value}"${o.value === selected ? ' selected' : ''}>${o.label}</option>`).join('')}
+    </select>`;
+  }
+
   // ─── render() ────────────────────────────────────────────────────────────
 
   function render() {
@@ -136,6 +142,19 @@ const PensionSettings = (() => {
           </div>
         </div>`).join('')}
         ${_row('분리과세 기준선', _numInput('ps-tax-sep', p.tax.separateTaxThreshold, 100000), '원/년')}
+      </div>
+
+      <!-- 카드4: 사적연금 인출 설정 (§13) -->
+      <div class="ps-card">
+        <div class="ps-card-title">사적연금 인출 설정</div>
+        ${_row('인출 시작 나이',       _numInput('ps-wd-start-age', p.withdrawal.startAge, 1, 50, 90), '세')}
+        ${_row('목표 월 인출액',       _numInput('ps-wd-monthly',   p.withdrawal.monthlyTarget, 10000), '원/월')}
+        ${_row('IRP 목표 월 인출액',   _numInput('ps-wd-irp-monthly', p.withdrawal.irp2MonthlyTarget, 10000), '원/월')}
+        ${_row('1,500만원 초과 처리방식', _selectInput('ps-wd-excess-mode', [
+          { value: 'cap15m',        label: 'cap15m (기본, 현행 하드캡)' },
+          { value: 'separate16_5',  label: 'separate16_5 (16.5% 분리과세)' },
+          { value: 'comprehensive', label: 'comprehensive (종합과세)' }
+        ], p.withdrawal.excessMode), '§13 문턱효과 — cap15m 선택 시 지금과 동일')}
       </div>
 
       <!-- 고급 설정: 세율 & 건강보험료 -->
@@ -230,6 +249,12 @@ const PensionSettings = (() => {
     });
     _bindNum('ps-tax-sep', v => ({ tax: { separateTaxThreshold: v } }));
 
+    // ── 인출 설정 (§13) ──
+    _bindNum('ps-wd-start-age',    v => ({ withdrawal: { startAge: v } }));
+    _bindNum('ps-wd-monthly',      v => ({ withdrawal: { monthlyTarget: v } }));
+    _bindNum('ps-wd-irp-monthly',  v => ({ withdrawal: { irp2MonthlyTarget: v } }));
+    _bindSelect('ps-wd-excess-mode', v => ({ withdrawal: { excessMode: v } }));
+
     // ── 세율 & 건보료 ──
     _bindNum('ps-tax-deduct',    v => ({ tax: { deductRate: v / 100 } }));
     _bindNum('ps-tax-rate6069',  v => ({ tax: { rate6069: v / 100 } }));
@@ -280,6 +305,11 @@ const PensionSettings = (() => {
     (p.isa.transfers || []).forEach((tx, i) => _setVal(`ps-isa-tx-${i}`, tx.ym));
     _setVal('ps-tax-sep',        p.tax.separateTaxThreshold);
 
+    _setVal('ps-wd-start-age',    p.withdrawal.startAge);
+    _setVal('ps-wd-monthly',      p.withdrawal.monthlyTarget);
+    _setVal('ps-wd-irp-monthly',  p.withdrawal.irp2MonthlyTarget);
+    _setVal('ps-wd-excess-mode',  p.withdrawal.excessMode);
+
     _setVal('ps-tax-deduct',     _pct(p.tax.deductRate));
     _setVal('ps-tax-rate6069',   _pct(p.tax.rate6069));
     _setVal('ps-tax-rate70',     _pct(p.tax.rate70));
@@ -328,6 +358,14 @@ const PensionSettings = (() => {
       const v = el.value.trim();
       if (!v) return;
       PensionState.update(toPatch(v));
+    });
+  }
+
+  function _bindSelect(id, toPatch) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('change', () => {
+      PensionState.update(toPatch(el.value));
     });
   }
 
