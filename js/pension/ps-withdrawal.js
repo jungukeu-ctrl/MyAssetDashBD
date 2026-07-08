@@ -390,8 +390,24 @@ const PensionWithdrawal = (() => {
       warnings.push(`⚠️ 연 1,500만원 초과로 전액이 ${modeLabel} 방식으로 재분류됨 (문턱효과)`);
     }
     // 목표 생활비 대비 부족분 (§9-6 — 자동으로 낮추지 않고 그대로 표시)
-    if (wd.taxedShortfall > 0) {
-      warnings.push(`목표 생활비 대비 월 ${Math.round(wd.taxedShortfall / 10000)}만원 부족합니다 (과세분 연 1,500만원 한도 초과).`);
+    // overallShortfall은 연금저축+IRP1+IRP2 갭필링(§7-2)까지 전부 반영한 실제 부족분.
+    // taxedShortfall(연금저축 단독)만으로 판단하면 IRP가 메운 경우도 오탐으로 표시되므로 사용 금지.
+    if (wd.overallShortfall > 0) {
+      const reasons = [];
+      if (excessMode === 'cap15m' && wd.taxedShortfall > 0) {
+        reasons.push('연금저축 과세분 연 1,500만원 한도');
+      }
+      if (balances.연금저축 <= 0 && balances.연금저축_비과세원금 <= 0) {
+        reasons.push('연금저축 잔액 소진');
+      }
+      if (wd.pensionLimitHit) reasons.push('연금저축 §9-9 연금수령한도 도달');
+      if (wd.irp1LimitHit)    reasons.push('IRP1 §9-9 연금수령한도 도달');
+      if (wd.irp2LimitHit)    reasons.push('IRP2 §9-9 연금수령한도 도달');
+      if (balances.IRP1 <= 0) reasons.push('IRP1 잔액 소진');
+      if (balances.IRP2 <= 0) reasons.push('IRP2 잔액 소진');
+
+      const reasonText = reasons.length ? reasons.join(', ') : '계좌 잔액/인출한도 제약';
+      warnings.push(`목표 생활비 대비 월 ${Math.round(wd.overallShortfall / 10000)}만원 부족합니다 (${reasonText}).`);
     }
     // 연금수령한도(§9-9) 도달 경고
     if (wd.pensionLimitHit) {
