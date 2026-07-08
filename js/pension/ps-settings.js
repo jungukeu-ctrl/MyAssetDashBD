@@ -91,6 +91,24 @@ const PensionSettings = (() => {
     </select>`;
   }
 
+  // ─── 사적연금 인출 설정 카드 (인출 시뮬레이터 옆 사이드바에 별도 렌더) ────
+
+  function _renderWithdrawalCard(p) {
+    return `
+    <div class="ps-card">
+      <div class="ps-card-title">사적연금 인출 설정</div>
+      ${_row('인출 시작 나이',       _numInput('ps-wd-start-age', p.withdrawal.startAge, 1, 50, 90), '세')}
+      ${_row('목표 월 인출액',       _numInput('ps-wd-monthly',   p.withdrawal.monthlyTarget, 10000), '원/월')}
+      ${_row('IRP 목표 월 인출액',   _numInput('ps-wd-irp-monthly', p.withdrawal.irp2MonthlyTarget, 10000), '원/월')}
+      ${_row('1,500만원 초과 처리방식', _selectInput('ps-wd-excess-mode', [
+        { value: 'cap15m',        label: 'cap15m (기본, 현행 하드캡)' },
+        { value: 'separate16_5',  label: 'separate16_5 (16.5% 분리과세)' },
+        { value: 'comprehensive', label: 'comprehensive (종합과세)' }
+      ], p.withdrawal.excessMode), '§13 문턱효과 — cap15m 선택 시 지금과 동일')}
+      ${_row('IRP2 실제수령개시 나이', _numInput('ps-wd-irp2-start-age', p.irp2.withdrawalStartAge, 1, 55, 90), '세 (§9-4, 연차 시작과는 별개 개념)')}
+    </div>`;
+  }
+
   // ─── render() ────────────────────────────────────────────────────────────
 
   function render() {
@@ -142,20 +160,6 @@ const PensionSettings = (() => {
           </div>
         </div>`).join('')}
         ${_row('분리과세 기준선', _numInput('ps-tax-sep', p.tax.separateTaxThreshold, 100000), '원/년')}
-      </div>
-
-      <!-- 카드4: 사적연금 인출 설정 (§13) -->
-      <div class="ps-card">
-        <div class="ps-card-title">사적연금 인출 설정</div>
-        ${_row('인출 시작 나이',       _numInput('ps-wd-start-age', p.withdrawal.startAge, 1, 50, 90), '세')}
-        ${_row('목표 월 인출액',       _numInput('ps-wd-monthly',   p.withdrawal.monthlyTarget, 10000), '원/월')}
-        ${_row('IRP 목표 월 인출액',   _numInput('ps-wd-irp-monthly', p.withdrawal.irp2MonthlyTarget, 10000), '원/월')}
-        ${_row('1,500만원 초과 처리방식', _selectInput('ps-wd-excess-mode', [
-          { value: 'cap15m',        label: 'cap15m (기본, 현행 하드캡)' },
-          { value: 'separate16_5',  label: 'separate16_5 (16.5% 분리과세)' },
-          { value: 'comprehensive', label: 'comprehensive (종합과세)' }
-        ], p.withdrawal.excessMode), '§13 문턱효과 — cap15m 선택 시 지금과 동일')}
-        ${_row('IRP2 실제수령개시 나이', _numInput('ps-wd-irp2-start-age', p.irp2.withdrawalStartAge, 1, 55, 90), '세 (§9-4, 연차 시작과는 별개 개념)')}
       </div>
 
       <!-- 고급 설정: 세율 & 건강보험료 -->
@@ -213,6 +217,10 @@ const PensionSettings = (() => {
 
     </div>
     `;
+
+    // 사적연금 인출 설정 카드 (인출 시뮬레이터 옆 사이드바에 별도 렌더)
+    const wdContainer = document.getElementById('pension-wd-settings');
+    if (wdContainer) wdContainer.innerHTML = _renderWithdrawalCard(p);
 
     // 초기 ISA 금액 표시
     _updateISAAmounts();
