@@ -23,7 +23,13 @@ const PensionChart = (() => {
     VOO:      '#EF9F27',
     해외주식: '#D85A30',
     RIA:      '#D4537E',
-    ISA:      '#D4537E'
+    ISA:      '#D4537E',
+    연금저축_비과세원금: '#5CC9A0'
+  };
+
+  // 계좌별 표시 라벨 (범례/툴팁용, 키와 다르게 보여줄 항목만 등록)
+  const ACCT_LABEL = {
+    연금저축_비과세원금: '연금저축(비과세)'
   };
 
   // 현재 스택 모드 ('actual' | 'plan')
@@ -241,7 +247,7 @@ const PensionChart = (() => {
     const labels = d.months;
     const src = _stackMode === 'plan' ? d.plan.byAccount : d.forecast.byAccount;
 
-    const acctOrder = ['연금저축', 'IRP1', 'IRP2', 'VOO', '해외주식', 'RIA', 'ISA'];
+    const acctOrder = ['연금저축', '연금저축_비과세원금', 'IRP1', 'IRP2', 'VOO', '해외주식', 'RIA', 'ISA'];
 
     const datasets = acctOrder.map(acct => {
       const isActual = _stackMode === 'actual';
@@ -249,7 +255,7 @@ const PensionChart = (() => {
       const data = src[acct] || new Array(labels.length).fill(0);
 
       return {
-        label: acct,
+        label: ACCT_LABEL[acct] || acct,
         data,
         backgroundColor: isActual
           ? _hexAlpha(color, 0.8)
