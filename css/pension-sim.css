@@ -523,6 +523,28 @@
   margin: 0;
 }
 
+/* ── 인출 시뮬레이터 레이아웃 (설정 카드 + 결과) ─────────────────────────── */
+
+.ps-wd-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .ps-wd-layout { grid-template-columns: 1fr; }
+}
+
+.ps-wd-sidebar {
+  position: sticky;
+  top: 16px;
+}
+
+@media (max-width: 480px) {
+  .ps-wd-sidebar { position: static; }
+}
+
 /* ── 나이 슬라이더 바 ─────────────────────────────────────────────────────── */
 
 .ps-wd-age-bar {

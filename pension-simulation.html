@@ -122,17 +122,25 @@
         <p class="ps-wd-section-desc">미래 나이를 선택하면 해당 시점의 월 예상 수령액과 세금 내역을 계산합니다.</p>
       </div>
 
-      <!-- 나이 슬라이더 -->
-      <div class="ps-wd-age-bar">
-        <span class="ps-wd-age-label">나이</span>
-        <input type="range" id="wd-age-slider"
-               class="ps-slider" min="55" max="100" value="65">
-        <span id="wd-age-display" class="ps-wd-age-value">65세</span>
-        <span id="wd-year-display" class="ps-wd-age-year">(2039년)</span>
-      </div>
+      <div class="ps-wd-layout">
+        <aside class="ps-wd-sidebar">
+          <section id="pension-wd-settings"></section>
+        </aside>
 
-      <!-- 결과 카드 영역 -->
-      <div id="wd-result" class="ps-wd-result-grid"></div>
+        <div class="ps-wd-main">
+          <!-- 나이 슬라이더 -->
+          <div class="ps-wd-age-bar">
+            <span class="ps-wd-age-label">나이</span>
+            <input type="range" id="wd-age-slider"
+                   class="ps-slider" min="55" max="100" value="65">
+            <span id="wd-age-display" class="ps-wd-age-value">65세</span>
+            <span id="wd-year-display" class="ps-wd-age-year">(2039년)</span>
+          </div>
+
+          <!-- 결과 카드 영역 -->
+          <div id="wd-result" class="ps-wd-result-grid"></div>
+        </div>
+      </div>
 
     </section><!-- /#pension-withdrawal -->
 
