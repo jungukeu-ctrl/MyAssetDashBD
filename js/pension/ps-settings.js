@@ -155,6 +155,7 @@ const PensionSettings = (() => {
           { value: 'separate16_5',  label: 'separate16_5 (16.5% 분리과세)' },
           { value: 'comprehensive', label: 'comprehensive (종합과세)' }
         ], p.withdrawal.excessMode), '§13 문턱효과 — cap15m 선택 시 지금과 동일')}
+        ${_row('IRP2 실제수령개시 나이', _numInput('ps-wd-irp2-start-age', p.irp2.withdrawalStartAge, 1, 55, 90), '세 (§9-4, 연차 시작과는 별개 개념)')}
       </div>
 
       <!-- 고급 설정: 세율 & 건강보험료 -->
@@ -254,6 +255,7 @@ const PensionSettings = (() => {
     _bindNum('ps-wd-monthly',      v => ({ withdrawal: { monthlyTarget: v } }));
     _bindNum('ps-wd-irp-monthly',  v => ({ withdrawal: { irp2MonthlyTarget: v } }));
     _bindSelect('ps-wd-excess-mode', v => ({ withdrawal: { excessMode: v } }));
+    _bindNum('ps-wd-irp2-start-age', v => ({ irp2: { withdrawalStartAge: v } }));
 
     // ── 세율 & 건보료 ──
     _bindNum('ps-tax-deduct',    v => ({ tax: { deductRate: v / 100 } }));
@@ -309,6 +311,7 @@ const PensionSettings = (() => {
     _setVal('ps-wd-monthly',      p.withdrawal.monthlyTarget);
     _setVal('ps-wd-irp-monthly',  p.withdrawal.irp2MonthlyTarget);
     _setVal('ps-wd-excess-mode',  p.withdrawal.excessMode);
+    _setVal('ps-wd-irp2-start-age', p.irp2.withdrawalStartAge);
 
     _setVal('ps-tax-deduct',     _pct(p.tax.deductRate));
     _setVal('ps-tax-rate6069',   _pct(p.tax.rate6069));
