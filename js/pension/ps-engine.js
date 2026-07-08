@@ -628,6 +628,13 @@ const PensionEngine = (() => {
       withdrawal.nationalPension = params.nationalPension?.monthly || 0;
     }
 
+    // 7-4. 전체 소득원(연금저축+IRP1+IRP2) 기준 실제 부족분 — §7-1의 taxedShortfall은
+    // 연금저축 단독 계산이라 뒤이은 IRP 갭필링(§7-2)을 반영 못 함. 화면 경고는 이 값을 써야 함.
+    withdrawal.overallShortfall = Math.max(
+      0,
+      (params.withdrawal?.monthlyTarget || 0) - (withdrawal.taxFree + withdrawal.taxed + withdrawal.irp1 + withdrawal.irp2)
+    );
+
     setState({ yearlyPension, yearlyIRP1, paidToISA, prevTransfers, vooExhausted, wd });
     return withdrawal;
   }
