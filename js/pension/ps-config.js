@@ -42,6 +42,9 @@ const PS_DEFAULT_PARAMS = {
     ISA:      0.10,
     VOO:      0.09
   },
+  inflation: {
+    annualRate: 0.025   // 물가상승률 (연) — 인출/수령 목표액 실질가치 고정에 사용 (PS_START_YM 2026 기준 복리)
+  },
   voo: {
     startYM:       '2027-01',
     intervalWeeks: 3,           // N주마다 1주 매도

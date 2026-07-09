@@ -158,8 +158,10 @@
 | 파라미터 | 현행값 | 비고 |
 |---------|------|------|
 | 수령 시작 | 2039-03 (만 65세) | 생년월일 1974-02 기준 |
-| 월 수령액 | 1,800,000원 | 명목가치 고정 가정 (실질가치 조정 미반영) |
+| 월 수령액 | 1,800,000원 | 실질가치 고정 (매년 물가상승률만큼 명목액 증액, `inflation.annualRate` 기본 2.5%/년, `PS_START_YM`(2026) 기준 복리) |
 | 수령 나이 | 만 65세 | `nationalPension.startYM` |
+
+> **물가연동(실질가치 고정)**: 국민연금·사적연금 인출목표(`withdrawal.monthlyTarget`, `withdrawal.irp2MonthlyTarget`) 모두 위 표의 금액을 "2026년 기준 실질가치"로 보고, 지급/인출 시점(`ym`)의 연도가 `PS_START_YM`(2026) 대비 몇 년 경과했는지에 따라 `(1 + inflation.annualRate)^경과연수`만큼 명목액을 복리 증액한다(`ps-engine.js` `_stepMonth()` `inflationMultiplier`). `tax.separateTaxThreshold`(1,500만원 분리과세 캡) 등 세법상 고정 문턱값은 물가연동 대상이 아니다 — 법 개정 시에만 별도 갱신.
 
 > **⚠️ 수급 연령 상향 리스크**: 국민연금 재정 문제로 수급 개시 연령이  
 > 67세로 상향될 가능성 있음.  
@@ -230,7 +232,11 @@ PS_DEFAULT_PARAMS
   │     └── ownershipRatio            ← §1 지분 비율
   ├── nationalPension
   │     ├── startYM                   ← §6 수급 개시월
-  │     └── monthly                   ← §6 월 수령액
+  │     └── monthly                   ← §6 월 수령액 (물가연동 배율 적용 전 기준값)
+  ├── inflation
+  │     └── annualRate                ← §6 물가상승률(연, 기본 2.5%) — nationalPension.monthly·
+  │                                       withdrawal.monthlyTarget·withdrawal.irp2MonthlyTarget에
+  │                                       PS_START_YM(2026) 기준 복리 적용 (ps-engine.js _stepMonth())
   └── realty  (신규 추가 예정)
         ├── shares                    ← §5 보유 수량
         ├── currentPrice              ← §5 현재가 ($)

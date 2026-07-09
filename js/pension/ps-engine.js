@@ -513,6 +513,13 @@ const PensionEngine = (() => {
     }
 
     // 7. 인출 차감 (§9-2, §9-6, §9-9)
+    // 물가연동(실질가치 고정, PENSION_WITHDRAWAL.md §6): 인출/수령 목표액을
+    // PS_START_YM(2026) 기준 경과연수만큼 매년 물가상승률로 복리 증액.
+    const inflationMultiplier = Math.pow(
+      1 + (params.inflation?.annualRate || 0),
+      Math.max(0, _year(ym) - _year(PS_START_YM))
+    );
+
     const withdrawal = {
       taxFree: 0, taxed: 0, taxedShortfall: 0, irp1: 0, irp2: 0, nationalPension: 0,
       pensionLimitHit: false, irp1LimitHit: false, irp2LimitHit: false
@@ -538,7 +545,7 @@ const PensionEngine = (() => {
         wd.taxedWithdrawnYear   = 0;
       }
 
-      const target = params.withdrawal?.monthlyTarget || 0;
+      const target = (params.withdrawal?.monthlyTarget || 0) * inflationMultiplier;
       const room9_9 = Math.max(0, wd.pensionLimitAmt - wd.pensionWithdrawnYear);
 
       if (bal.연금저축_비과세원금 > 0) {
@@ -578,9 +585,9 @@ const PensionEngine = (() => {
     // 그 계좌는 고정 목표(IRP_MONTHLY_TARGET) 대신 생활비 부족분(pensionGap)까지 인출 시도.
     // IRP1/IRP2는 연차 기산일이 서로 달라(IRP1=국민연금 개시, IRP2=퇴직 이듬해) 해제 시점도 다르므로
     // 계좌별로 독립 판단한다.
-    const IRP_MONTHLY_TARGET = params.withdrawal?.irp2MonthlyTarget ?? 1500000;  // 파라미터화 (§13), 기본값은 기존 하드코딩과 동일
+    const IRP_MONTHLY_TARGET = (params.withdrawal?.irp2MonthlyTarget ?? 1500000) * inflationMultiplier;  // 파라미터화 (§13), 기본값은 기존 하드코딩과 동일, 물가연동 적용(§6)
     const irpUnlockYear = params.withdrawal?.irpUnlockYear ?? 11;
-    const pensionGap = Math.max(0, (params.withdrawal?.monthlyTarget || 0) - (withdrawal.taxFree + withdrawal.taxed));
+    const pensionGap = Math.max(0, (params.withdrawal?.monthlyTarget || 0) * inflationMultiplier - (withdrawal.taxFree + withdrawal.taxed));
     if (_ymLte(npStartYM, ym)) {
       const yr = _year(ym);
 
@@ -625,14 +632,14 @@ const PensionEngine = (() => {
 
     // 7-3. 국민연금 (§9-2) — 계좌 잔액 미차감, 지급액만 기록(건보료 계산용, Phase3)
     if (_ymLte(npStartYM, ym)) {
-      withdrawal.nationalPension = params.nationalPension?.monthly || 0;
+      withdrawal.nationalPension = (params.nationalPension?.monthly || 0) * inflationMultiplier;
     }
 
     // 7-4. 전체 소득원(연금저축+IRP1+IRP2) 기준 실제 부족분 — §7-1의 taxedShortfall은
     // 연금저축 단독 계산이라 뒤이은 IRP 갭필링(§7-2)을 반영 못 함. 화면 경고는 이 값을 써야 함.
     withdrawal.overallShortfall = Math.max(
       0,
-      (params.withdrawal?.monthlyTarget || 0) - (withdrawal.taxFree + withdrawal.taxed + withdrawal.irp1 + withdrawal.irp2)
+      (params.withdrawal?.monthlyTarget || 0) * inflationMultiplier - (withdrawal.taxFree + withdrawal.taxed + withdrawal.irp1 + withdrawal.irp2)
     );
 
     setState({ yearlyPension, yearlyIRP1, paidToISA, prevTransfers, vooExhausted, wd });
