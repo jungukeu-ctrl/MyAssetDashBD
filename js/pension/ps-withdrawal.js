@@ -14,9 +14,6 @@
 
 const PensionWithdrawal = (() => {
 
-  // O DRIP 계산 기준 시점
-  const O_DRIP_BASE_YM = '2026-06';
-
   // ─── 유틸 ───────────────────────────────────────────────────────────────────
 
   /** 'YYYY-MM' → 만 나이 (PS_BIRTH 기준) */
@@ -37,13 +34,6 @@ const PensionWithdrawal = (() => {
     return (ty - sy) * 12 + (tm - sm);
   }
 
-  /** 두 YM 사이 개월 수 (baseYM → targetYM) */
-  function _monthsBetween(baseYM, targetYM) {
-    const by = parseInt(baseYM.slice(0, 4)), bm = parseInt(baseYM.slice(5, 7));
-    const ty = parseInt(targetYM.slice(0, 4)), tm = parseInt(targetYM.slice(5, 7));
-    return (ty - by) * 12 + (tm - bm);
-  }
-
   /** 'YYYY-MM' 문자열 중 더 늦은 값 */
   function _ymMax(a, b) { return a > b ? a : b; }
 
@@ -52,48 +42,6 @@ const PensionWithdrawal = (() => {
     const y = parseInt(ym.slice(0, 4), 10);
     const m = ym.slice(5, 7);
     return `${y + (years || 0)}-${m}`;
-  }
-
-  // ─── O DRIP 시뮬레이션 ──────────────────────────────────────────────────────
-
-  /**
-   * O_DRIP_BASE_YM('2026-06')부터 targetYM까지 월 복리 DRIP 계산
-   * divGrowthRate / priceGrowthRate 둘 다 연율 → 월율로 변환
-   */
-  function _calcODrip(realty, targetYM) {
-    if (!realty || !realty.shares) {
-      return { shares: 0, monthlyKRW: 0, annualKRW: 0, atLimit: false };
-    }
-
-    const months = _monthsBetween(O_DRIP_BASE_YM, targetYM);
-
-    let shares     = realty.shares;
-    let monthlyDiv = realty.monthlyDivPerShare;  // USD/주
-    let price      = realty.currentPrice;        // USD/주
-
-    const mDivGrowth   = Math.pow(1 + realty.divGrowthRate,   1 / 12) - 1;
-    const mPriceGrowth = Math.pow(1 + realty.priceGrowthRate, 1 / 12) - 1;
-
-    for (let i = 0; i < Math.max(0, months); i++) {
-      shares    += (shares * monthlyDiv) / price;  // DRIP 재투자
-      monthlyDiv *= (1 + mDivGrowth);
-      price      *= (1 + mPriceGrowth);
-    }
-
-    const annualUSD      = shares * monthlyDiv * 12;
-    const annualKRWRaw   = annualUSD * realty.fxRate;
-    const limit          = realty.financialIncomeLimit || 20000000;
-    const annualKRW      = Math.round(Math.min(annualKRWRaw, limit));
-    const monthlyKRW     = Math.round(annualKRW / 12);
-
-    return {
-      shares:            Math.round(shares * 10) / 10,
-      monthlyDivUSD:     Math.round(monthlyDiv * 10000) / 10000,
-      monthlyKRW,
-      annualKRW,
-      uncappedAnnualKRW: Math.round(annualKRWRaw),
-      atLimit:           annualKRWRaw >= limit * 0.85  // 한도 85% 도달 시 경고
-    };
   }
 
   // ─── 연금소득세 ─────────────────────────────────────────────────────────────
@@ -227,7 +175,9 @@ const PensionWithdrawal = (() => {
     const balances = { 연금저축: 0, IRP1: 0, IRP2: 0, 해외주식: 0, RIA: 0, ISA: 0, 연금저축_비과세원금: 0 };
     let wd = {
       taxFree: 0, taxed: 0, taxedShortfall: 0, irp1: 0, irp2: 0, nationalPension: 0,
-      pensionLimitHit: false, irp1LimitHit: false, irp2LimitHit: false
+      pensionLimitHit: false, irp1LimitHit: false, irp2LimitHit: false,
+      oDripActive: true, realty: 0, realtyGrossKRW: 0, realtyShares: 0, realtyMonthlyDivUSD: 0,
+      realtyAnnualTotal: 0, realtyComprehensiveRequired: false
     };
 
     if (psResult && psResult.months) {
@@ -245,8 +195,8 @@ const PensionWithdrawal = (() => {
       wd = fcLog || plLog || wd;
     }
 
-    // ② O DRIP 계산
-    const odrip = _calcODrip(params.realty, targetYM);
+    // ② O DRIP 상태 — ps-engine.js _stepMonth() §7-5가 이미 계산해 둔 값 그대로 사용 (재계산 금지)
+    const oDripActive = wd.oDripActive !== false;  // 기본 true(마이그레이션 안전값)
 
     // ③ 소득원별 계산 — ps-engine.js의 실제 월별 인출 내역(withdrawalLog)을 그대로 사용, 재계산 금지
     const sources = [];
@@ -311,16 +261,27 @@ const PensionWithdrawal = (() => {
       privatePensionAnnual += wd.irp2 * 12;
     }
 
-    // O(리얼티인컴) 배당 (항시)
-    if (odrip.monthlyKRW > 0) {
-      const wRate = params.realty?.withholdingRate || 0.15;
-      const tax   = Math.round(odrip.monthlyKRW * wRate);
+    // O(리얼티인컴) 배당 — Phase1(재투자 중)에는 생활비 소득원이 아니므로 미표시 (§5).
+    // Phase2(현금인출 전환) 진입 후에만 표시하며, financialIncomeLimit 2,000만원 캡 없이
+    // 실제 배당액 전액을 다른 소득(사적연금·국민연금)과 합산해 종합과세 누진세율 근사 적용.
+    // ⚠️ 근사 구현 — 정확한 금융소득종합과세 비교과세는 세무사 확인 필요 (§13 disclaimers 참고).
+    if (!oDripActive && wd.realty > 0) {
+      const annualRealty = wd.realtyAnnualTotal || 0;              // 해당 연도 O 배당 총액(세전)
+      const pensionCombinedAnnual = privatePensionAnnual + npAnnual; // 이미 위에서 누계된 사적연금+국민연금 연 합계
+      const pensionDeduction = _pensionIncomeDeduction(pensionCombinedAnnual);
+      const taxableBase = Math.max(0, pensionCombinedAnnual - pensionDeduction) + annualRealty;
+      const { total: annualTaxTotal } = _comprehensiveIncomeTax(taxableBase);
+      const realtyShare = taxableBase > 0 ? annualRealty / taxableBase : 0;
+      const effRate = annualRealty > 0 ? (annualTaxTotal * realtyShare) / annualRealty : (params.realty?.withholdingRate || 0.15);
+
+      const monthly = wd.realtyGrossKRW || 0;
+      const tax     = Math.round(monthly * effRate);
       sources.push({
         name: 'O(리얼티인컴) 배당',
-        monthly: odrip.monthlyKRW,
+        monthly,
         tax,
-        net: odrip.monthlyKRW - tax,
-        note: `${Math.round(odrip.shares)}주 × $${odrip.monthlyDivUSD?.toFixed(4) || '?'}/주 · W-8BEN 15%`
+        net: monthly - tax,
+        note: `${wd.realtyShares != null ? Math.round(wd.realtyShares) : '?'}주 × $${wd.realtyMonthlyDivUSD ?? '?'}/주 · 현금인출 전환 · 종합과세 근사(세무사 확인 필요)`
       });
     }
 
@@ -364,7 +325,7 @@ const PensionWithdrawal = (() => {
     // ⑤ 건보료 — comprehensive 모드이면서 해당 연도 실제 초과된 경우에만 사적연금을
     // 피부양자 소득기준 합산 대상에 포함 (cap15m/separate16_5는 항상 0 전달, §6 유지)
     const includePrivateInHI = isExcessYear && excessMode === 'comprehensive';
-    const hi = _calcHI(params, targetYM, includePrivateInHI ? (wd.excessAnnualTotal || 0) : 0, npAnnual, odrip.annualKRW || 0);
+    const hi = _calcHI(params, targetYM, includePrivateInHI ? (wd.excessAnnualTotal || 0) : 0, npAnnual, wd.realtyAnnualTotal || 0);
 
     // ⑥ 경고
     const warnings = [];
@@ -374,8 +335,15 @@ const PensionWithdrawal = (() => {
     if (withdrawStartYM && targetYM < withdrawStartYM) {
       warnings.push(`${targetAge}세는 연금 인출 시작(${_ymToAge(withdrawStartYM)}세, ${withdrawStartYM}) 이전입니다. 자산 적립 기간입니다.`);
     }
-    if (odrip.atLimit) {
+    const realtyLimit = params.realty?.financialIncomeLimit || 20000000;
+    if (oDripActive && (wd.realtyAnnualTotal || 0) >= realtyLimit * 0.85) {
       warnings.push('O 배당 수입이 금융소득 2,000만원 한도(85%)에 근접했습니다. DRIP 속도 조절을 검토하세요.');
+    }
+    if (oDripActive && wd.realtyComprehensiveRequired) {
+      warnings.push('O(리얼티인컴) 배당은 재투자 중이지만 연간 누계가 2,000만원을 초과해 금융소득종합과세 신고의무가 발생할 수 있습니다 (근사 구현 — 세무사 확인 필요).');
+    }
+    if (!oDripActive) {
+      warnings.push('⚠️ IRP1·IRP2 소진으로 O(리얼티인컴) 배당이 재투자에서 현금인출로 전환됐습니다. 이후 배당은 다른 소득과 합산해 종합과세 근사 적용 중이며, 실제 세무 신고 시점엔 세무사 확인이 필요합니다.');
     }
     if (targetAge === 65 || targetAge === 66) {
       warnings.push('국민연금 수급 연령 67세 상향이 논의 중입니다. 개시 연령 변경 시 공백 시나리오를 재검토하세요.');
@@ -420,6 +388,15 @@ const PensionWithdrawal = (() => {
       warnings.push('IRP2가 연금수령한도(§9-9)에 도달해 목표금액보다 적게 인출됐습니다.');
     }
 
+    // O DRIP 요약 (ps-withdrawal-ui.js 배지 표시용 — wd 필드를 그대로 옮겨 담을 뿐, 재계산 없음)
+    const odrip = {
+      shares:        wd.realtyShares || 0,
+      monthlyDivUSD: wd.realtyMonthlyDivUSD || 0,
+      oDripActive,
+      annualKRW:     wd.realtyAnnualTotal || 0,
+      atLimit:       oDripActive && (wd.realtyAnnualTotal || 0) >= realtyLimit * 0.85
+    };
+
     return {
       targetAge,
       targetYM,
@@ -431,6 +408,7 @@ const PensionWithdrawal = (() => {
       healthInsurance: hi,
       netAfterHI: totalNet - hi.monthly,
       odrip,
+      oDripActive,
       withdrawal: wd,
       warnings
     };

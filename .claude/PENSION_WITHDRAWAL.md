@@ -151,6 +151,37 @@
 > **80세 이후 DRIP 속도 조절 필요**: 배당소득이 2,000만원에 근접하면  
 > DRIP 중단 또는 일부 매도로 수량 조절 검토.
 
+### O DRIP ↔ 조건부 현금인출 전환 (구현: `ps-engine.js` `_stepMonth()` §7-5)
+
+기존에는 `_calcODrip()`(ps-withdrawal.js)이 기준월→목표월 전체를 항상 DRIP 재투자로
+가정하는 순수 표시용 함수였다. O DRIP 조건부 전환 구현 이후 O는 연금저축/IRP처럼
+매달 상태를 추적하는 정식 항목(`bal.realty = { shares, monthlyDivPerShare, price }`,
+해외주식 계좌 내 VOO와 동일한 서브셋 패턴)으로 승격됐다.
+
+- **Phase 1 (재투자, `wd.oDripActive === true`, 기본값)**: 매달 세후 배당(원천징수 15%)으로
+  shares 추가 매수. 생활비 인출액(withdrawal)에 미포함, 화면에도 미노출.
+- **Phase 2 (현금인출, `wd.oDripActive === false`)**: shares 고정(재매수 없음),
+  `monthlyDivPerShare`는 `divGrowthRate`로 계속 성장. 세후 배당을 `withdrawal.realty`로
+  인출 결과에 포함, 생활비 부족분(`overallShortfall`)에 반영. `financialIncomeLimit`
+  2,000만원 캡 미적용(실제 배당액 전액 사용).
+- **전환 판정**: `bal.IRP1 <= 0 && bal.IRP2 <= 0`(IRP1·IRP2 둘 다 실제 소진) **그리고**
+  `overallShortfall > 0`일 때 그 달부터 영구 전환(되돌리지 않음). `overallShortfall > 0`
+  단독으로는 61세(인출 시작)~64세 구간에서 연금저축 §9-6 연 1,500만원 캡만으로도
+  상시 양수가 되어 조기 오발동하므로, IRP 잔액 실제 소진 여부를 반드시 함께 확인해야 한다.
+- **종합소득세 반영**: Phase 1이라도 연간 배당 누계(`wd.realtyAnnualTotal`, 세전)가
+  2,000만원을 초과하면 종합과세 신고의무 경고만 표시(세율 재계산은 하지 않음 — 여전히
+  15% 원천징수 표시). Phase 2에서는 O 배당 전액을 사적연금·국민연금 연 합계와 합산해
+  `PS_COMPREHENSIVE_TAX_BRACKETS` 누진세율을 근사 적용(`ps-withdrawal.js` `calc()`).
+  ⚠️ 정확한 금융소득종합과세 비교과세(2천만원까지 분리과세 완결 vs 전액 종합과세 중
+  유리한 쪽 선택) 로직까지는 근사 구현 — 실제 세무 신고 시점엔 세무사 확인 필요.
+- **기본 파라미터 검증 결과(2026-07-09)**: `PS_DEFAULT_PARAMS` 기준으로는 IRP1이
+  2051년경 소진되지만, IRP2는 퇴직금(1.4억) + 연 9% 성장이 인출목표(§9-2 갭필링)보다
+  훨씬 빨라 시뮬레이션 종료(2074-12, 만 100세)까지 소진되지 않는다. 따라서 현재
+  기본값으로는 Phase 2(현금인출 전환)가 전체 시뮬레이션 기간 내에 발생하지 않는다
+  — 코드 경로 자체는 강제 소진 시나리오(IRP 수익률 0%, 목표 생활비 상향)로 별도 검증
+  완료. `rates.IRP2`나 `withdrawal.irp2MonthlyTarget` 등 파라미터 재검토 필요 여부는
+  전략 세션에서 논의 필요.
+
 ---
 
 ## 6. 국민연금 파라미터
@@ -237,13 +268,15 @@ PS_DEFAULT_PARAMS
   │     └── annualRate                ← §6 물가상승률(연, 기본 2.5%) — nationalPension.monthly·
   │                                       withdrawal.monthlyTarget·withdrawal.irp2MonthlyTarget에
   │                                       PS_START_YM(2026) 기준 복리 적용 (ps-engine.js _stepMonth())
-  └── realty  (신규 추가 예정)
-        ├── shares                    ← §5 보유 수량
-        ├── currentPrice              ← §5 현재가 ($)
-        ├── monthlyDivPerShare        ← §5 월 배당/주
+  └── realty  (O DRIP 조건부 전환, ps-engine.js _stepMonth() §7-5가 매달 상태 추적)
+        ├── shares                    ← §5 보유 수량 (bal.realty.shares 초기값, 매달 갱신)
+        ├── currentPrice              ← §5 현재가 ($, bal.realty.price 초기값)
+        ├── monthlyDivPerShare        ← §5 월 배당/주 (bal.realty.monthlyDivPerShare 초기값)
         ├── divGrowthRate             ← §5 배당 성장률
         ├── priceGrowthRate           ← §5 주가 성장률
-        └── fxRate                    ← §5 기준 환율
+        ├── fxRate                    ← §5 기준 환율
+        ├── withholdingRate           ← §3-4 미국 원천징수율 (15%, W-8BEN)
+        └── financialIncomeLimit      ← §5 금융소득 상한 (2,000만원, Phase2 전환 후 캡 미적용)
 ```
 
 ---
@@ -253,4 +286,5 @@ PS_DEFAULT_PARAMS
 | 날짜 | 변경 내용 | 법령/근거 | 영향 파라미터 |
 |------|---------|---------|------------|
 | 2026-06-29 | 최초 설계 문서 작성. 엑셀 시뮬레이션(v2.7) 분석 반영 | — | 전체 |
+| 2026-07-09 | O(리얼티인컴) DRIP 조건부 전환(IRP1·IRP2 소진 시 재투자→현금인출) 구현. O를 `bal.realty` 서브셋으로 승격, ps-withdrawal.js `_calcODrip` 제거 | 소득세법 제62조(금융소득종합과세) | `realty.*`, §5 신설 |
 | _(추후 기록)_ | | | |

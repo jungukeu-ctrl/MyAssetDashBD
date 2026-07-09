@@ -121,12 +121,19 @@ const PensionEngine = (() => {
     // VOO: Firebase eval[]에서 해외주식 계좌 전체만 읽을 수 있어 분리 불가.
     //       params.voo.quantity × priceKRW 로 초기값 계산.
     const vooInit = (params.voo?.quantity || 0) * (params.voo?.priceKRW || 0);
+    // O(리얼티인컴): VOO와 동일하게 해외주식 계좌 내 서브셋으로 취급 (§5, ps-engine.js _stepMonth 참고)
+    const realtyInit = () => ({
+      shares:             params.realty?.shares             || 0,
+      monthlyDivPerShare: params.realty?.monthlyDivPerShare  || 0,
+      price:              params.realty?.currentPrice        || 0
+    });
     let bal = {
       연금저축: init.연금저축 || 0,
       IRP1:     init.IRP1     || 0,
       IRP2:     init.IRP2     || 0,
-      해외주식: init.해외주식 || 0,   // VOO 포함 해외주식 계좌 전체
+      해외주식: init.해외주식 || 0,   // VOO·O 포함 해외주식 계좌 전체
       VOO:      vooInit,              // 해외주식 계좌 내 VOO 서브셋
+      realty:   realtyInit(),         // 해외주식 계좌 내 O 서브셋 (shares/monthlyDivPerShare/price, USD)
       RIA:      init.RIA      || 0,
       ISA:      init.ISA      || 0
     };
@@ -166,6 +173,7 @@ const PensionEngine = (() => {
       IRP2:     ps.IRP2     || 0,
       해외주식: ps.해외주식 || 0,
       VOO:      vooInit,
+      realty:   realtyInit(),
       RIA:      ps.RIA      || 0,
       ISA:      ps.ISA      || 0,
       연금저축_비과세원금: 0
@@ -268,7 +276,8 @@ const PensionEngine = (() => {
               IRP1:     a.IRP1     || 0,
               IRP2:     a.IRP2     || 0,
               해외주식: a.해외주식 || 0,
-              VOO:      planBal.VOO,   // Firebase에서 VOO 분리 불가 → plan 추적값 사용
+              VOO:      planBal.VOO,       // Firebase에서 VOO 분리 불가 → plan 추적값 사용
+              realty:   { ...planBal.realty }, // Firebase에서 O 분리 불가 → plan 추적값 사용 (독립 객체로 복사)
               RIA:      a.RIA      || 0,
               ISA:      a.ISA      || 0,
               연금저축_비과세원금: 0
@@ -290,7 +299,7 @@ const PensionEngine = (() => {
       } else {
         // 예측 구간: fcBal 없으면 planBal 복사로 시작
         if (!fcBal) {
-          fcBal = { ...planBal };
+          fcBal = { ...planBal, realty: { ...planBal.realty } }; // realty는 중첩 객체 → 얕은 복사로 참조 공유되지 않도록 별도 복사
           fcCurrentYear = planCurrentYear;
           fcYearlyPension = planYearlyPension;
           fcYearlyIRP1    = planYearlyIRP1;
@@ -356,6 +365,8 @@ const PensionEngine = (() => {
     // (잔액 계산과 무관한 순수 후처리, cap15m 모드는 ps-withdrawal.js에서 결과 미사용)
     _markExcessYears(planWithdrawalLog, months, params);
     _markExcessYears(forecastWithdrawalLog, months, params);
+    _markRealtyAnnual(planWithdrawalLog, months, params);
+    _markRealtyAnnual(forecastWithdrawalLog, months, params);
 
     return {
       months,
@@ -401,10 +412,14 @@ const PensionEngine = (() => {
     bal.연금저축_비과세원금 *= (1 + mr.연금저축);  // §9-3: 인출 시작 전까지 연금저축 수익률로 계속 성장
     bal.IRP1     *= (1 + mr.IRP1);
     bal.IRP2     *= (1 + mr.IRP2);
-    // 해외주식: VOO 서브셋은 mr.VOO, non-VOO 부분은 mr.해외주식 각각 적용
-    const nonVoo  = Math.max(0, bal.해외주식 - bal.VOO);
+    // 해외주식: VOO·O(리얼티인컴) 서브셋은 각자 고유 성장률, 나머지는 mr.해외주식 적용
+    // O는 shares/price(USD) 상태로 별도 추적하므로, 이번 스텝 시작 시점 원화가치를 나머지(non-VOO/non-realty)
+    // 계산에서 제외했다가, §7-5(배당/DRIP)에서 이번 달 변동분만큼 bal.해외주식에 반영한다.
+    const realtyFxRate     = params.realty?.fxRate || 1380;
+    const priorRealtyKRW   = (bal.realty?.shares || 0) * (bal.realty?.price || 0) * realtyFxRate;
+    const nonVoo  = Math.max(0, bal.해외주식 - bal.VOO - priorRealtyKRW);
     bal.VOO       = bal.VOO * (1 + mr.VOO);
-    bal.해외주식  = nonVoo  * (1 + mr.해외주식) + bal.VOO;
+    bal.해외주식  = nonVoo  * (1 + mr.해외주식) + bal.VOO + priorRealtyKRW;
     bal.RIA      *= (1 + mr.RIA);
     bal.ISA      *= (1 + mr.ISA);
 
@@ -642,6 +657,56 @@ const PensionEngine = (() => {
       (params.withdrawal?.monthlyTarget || 0) * inflationMultiplier - (withdrawal.taxFree + withdrawal.taxed + withdrawal.irp1 + withdrawal.irp2)
     );
 
+    // 7-5. O(리얼티인컴) DRIP ↔ 조건부 현금인출 전환 (PENSION_WITHDRAWAL.md §5)
+    // "IRP1·IRP2가 둘 다 소진되어 목표 생활비 부족분이 발생하는 시점"부터 영구 전환(되돌리지 않음).
+    // overallShortfall > 0 단독으로는 61세(인출 시작)~64세 구간에서 연금저축 §9-6 연 1,500만원
+    // 캡(IRP는 아직 손도 안 댄 상태)만으로도 상시 양수가 되어 조기 오발동하므로,
+    // IRP1·IRP2 잔액이 실제로 소진된 경우에만(bal.IRP1<=0 && bal.IRP2<=0) 전환 판정한다.
+    if (wd.oDripActive && withdrawal.overallShortfall > 0 && bal.IRP1 <= 0 && bal.IRP2 <= 0) {
+      wd.oDripActive = false;
+    }
+
+    const realty = bal.realty || { shares: 0, monthlyDivPerShare: 0, price: 0 };
+    const realtyDivUSD      = realty.shares * realty.monthlyDivPerShare;
+    const realtyWithholding = params.realty?.withholdingRate || 0.15;
+    const realtyAfterTaxUSD = realtyDivUSD * (1 - realtyWithholding);
+    const realtyDivKRW      = realtyDivUSD * realtyFxRate;
+
+    if (wd.oDripActive) {
+      // 재투자 구간: 세후 배당으로 shares 추가 매수, 생활비 인출액에는 미포함
+      if (realty.price > 0) {
+        realty.shares += realtyAfterTaxUSD / realty.price;
+      }
+    } else {
+      // 현금인출 구간: shares 고정, 세후 배당을 생활비 부족분에 반영 (financialIncomeLimit 캡 미적용)
+      withdrawal.realty = Math.round(realtyAfterTaxUSD * realtyFxRate);
+      withdrawal.overallShortfall = Math.max(0, withdrawal.overallShortfall - withdrawal.realty);
+    }
+
+    // 연간 배당 총액(세전) 누계 — 건보료·종합과세 판정용(재투자 구간 포함 항상 기록)
+    const oDripYr = _year(ym);
+    if (oDripYr !== wd.oDripYear) {
+      wd.oDripYear        = oDripYr;
+      wd.oDripYearlyGross = 0;
+    }
+    wd.oDripYearlyGross += realtyDivKRW;
+
+    withdrawal.realtyGrossKRW      = Math.round(realtyDivKRW);
+    withdrawal.realtyShares        = Math.round(realty.shares * 10) / 10;
+    withdrawal.realtyMonthlyDivUSD = Math.round(realty.monthlyDivPerShare * 10000) / 10000;
+    withdrawal.oDripActive         = wd.oDripActive;
+
+    // 배당/주가 다음 달분 성장 반영
+    const mDivGrowthO   = Math.pow(1 + (params.realty?.divGrowthRate   || 0), 1 / 12) - 1;
+    const mPriceGrowthO = Math.pow(1 + (params.realty?.priceGrowthRate || 0), 1 / 12) - 1;
+    realty.monthlyDivPerShare *= (1 + mDivGrowthO);
+    realty.price              *= (1 + mPriceGrowthO);
+    bal.realty = realty;
+
+    // 해외주식 총액에 O(리얼티인컴) 이번 달 변동분(재매수·성장) 반영 (VOO와 동일 서브셋 패턴)
+    const newRealtyKRW = realty.shares * realty.price * realtyFxRate;
+    bal.해외주식 += (newRealtyKRW - priorRealtyKRW);
+
     setState({ yearlyPension, yearlyIRP1, paidToISA, prevTransfers, vooExhausted, wd });
     return withdrawal;
   }
@@ -680,6 +745,30 @@ const PensionEngine = (() => {
     });
   }
 
+  /**
+   * O(리얼티인컴) 배당 연간 합계(세전) 소급 집계 — 재투자(Phase1) 구간 포함 항상 계산.
+   * 연 2,000만원(financialIncomeLimit) 초과 시 재투자 중이라도 금융소득종합과세
+   * 신고의무가 발생할 수 있음을 ps-withdrawal.js 경고에 사용 (§5, 근사 구현).
+   */
+  function _markRealtyAnnual(log, months, params) {
+    const threshold = params.realty?.financialIncomeLimit || 20000000;
+    const byYear = {};
+    for (let i = 0; i < log.length; i++) {
+      if (!log[i]) continue;
+      const yr = _year(months[i]);
+      (byYear[yr] || (byYear[yr] = [])).push(i);
+    }
+    Object.keys(byYear).forEach(yr => {
+      const idxs = byYear[yr];
+      const total = idxs.reduce((s, i) => s + (log[i].realtyGrossKRW || 0), 0);
+      const required = total > threshold;
+      idxs.forEach(i => {
+        log[i].realtyAnnualTotal        = total;
+        log[i].realtyComprehensiveRequired = required;
+      });
+    });
+  }
+
   /** 인출(withdrawal) 트랙 상태 초기값 */
   function _wdInitial() {
     return {
@@ -693,7 +782,10 @@ const PensionEngine = (() => {
       irp1WithdrawnYear:  0,
       irp2LimitYear:      0,
       irp2LimitAmt:       0,
-      irp2WithdrawnYear:  0
+      irp2WithdrawnYear:  0,
+      oDripActive:        true,  // O(리얼티인컴) DRIP 재투자 활성 여부 (§5), 기본 true — IRP1·IRP2 소진 후 false로 영구 전환
+      oDripYear:          0,
+      oDripYearlyGross:   0
     };
   }
 

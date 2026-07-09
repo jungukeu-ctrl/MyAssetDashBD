@@ -37,7 +37,12 @@ const PensionWithdrawalUI = (() => {
   // ─── 결과 HTML 빌더 ─────────────────────────────────────────────────────────
 
   function _buildBalanceCard(result) {
-    const { targetAge, balances } = result;
+    const { targetAge, balances, oDripActive } = result;
+
+    // O(리얼티인컴) DRIP 재투자/현금인출 상태 배지 (§5 조건부 전환)
+    const oDripBadge = oDripActive !== false
+      ? `<span class="ps-wd-badge ps-wd-badge-ok">O 재투자 중</span>`
+      : `<span class="ps-wd-badge ps-wd-badge-region">O 현금인출 전환</span>`;
 
     const rows = [
       { label: '연금저축',           key: '연금저축' },
@@ -69,7 +74,7 @@ const PensionWithdrawalUI = (() => {
 
     return `
 <div class="ps-wd-card">
-  <div class="ps-wd-card-title">📊 ${targetAge}세 예상 연금자산 잔액</div>
+  <div class="ps-wd-card-title">📊 ${targetAge}세 예상 연금자산 잔액 ${oDripBadge}</div>
   <table class="ps-wd-table">
     <thead>
       <tr><th>계좌</th><th class="ps-wd-right">예상 잔액</th></tr>
