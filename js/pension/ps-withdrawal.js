@@ -184,14 +184,20 @@ const PensionWithdrawal = (() => {
       const idx = Math.max(0, Math.min(_ymToIdx(targetYM), psResult.months.length - 1));
       const fc  = psResult.forecast?.byAccount;
       const pl  = psResult.plan?.byAccount;
-      for (const k of Object.keys(balances)) {
-        const fcv = fc?.[k]?.[idx];
-        const plv = pl?.[k]?.[idx];
-        balances[k] = (fcv != null && fcv > 0) ? fcv : (plv ?? 0);
-      }
 
+      // 트랙 통일(옵션A): 같은 idx에서 잔액표(balances)와 소득원/O DRIP 상태(wd)는
+      // 반드시 같은 트랙(plan 또는 forecast) 하나에서만 나와야 한다.
+      // forecast.withdrawalLog[idx]가 존재하면(실적 이후 예측 구간) balances·wd를
+      // 통째로 forecast에서, 없으면(실적 구간/배열 밖) 통째로 plan에서 가져온다.
+      // 계좌별 "forecast값이 0이면 plan으로 대체"하던 개별 fallback은 금지 —
+      // forecast에서 IRP1·IRP2가 소진(0)됐는데 잔액표만 plan의 양수 잔액을 보여
+      // wd의 O DRIP 현금인출 전환 상태와 모순되던 버그의 원인이었다.
       const fcLog = psResult.forecast?.withdrawalLog?.[idx];
       const plLog = psResult.plan?.withdrawalLog?.[idx];
+      const src   = fcLog ? fc : pl;
+      for (const k of Object.keys(balances)) {
+        balances[k] = src?.[k]?.[idx] ?? 0;
+      }
       wd = fcLog || plLog || wd;
     }
 
