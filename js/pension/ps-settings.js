@@ -130,6 +130,7 @@ const PensionSettings = (() => {
         ${_row('해외주식',    _numInput('ps-rate-overseas', _pct(p.rates.해외주식), 0.1, 0, 30), '%/년')}
         ${_row('RIA / ISA',   _numInput('ps-rate-ria',     _pct(p.rates.RIA),     0.1, 0, 30), '%/년')}
         ${_row('VOO',         _numInput('ps-rate-voo',     _pct(p.rates.VOO),     0.1, 0, 30), '%/년')}
+        ${_row('물가상승률',  _numInput('ps-inflation-rate', _pct(p.inflation.annualRate), 0.1, 0, 10), '%/년 (인출목표·국민연금 실질가치 고정)')}
       </div>
 
       <!-- 카드2: VOO 매도 설정 -->
@@ -236,6 +237,7 @@ const PensionSettings = (() => {
     _bindNum('ps-rate-overseas',v => ({ rates: { 해외주식: v / 100 } }));
     _bindNum('ps-rate-ria',     v => ({ rates: { RIA: v / 100, ISA: v / 100 } }));
     _bindNum('ps-rate-voo',     v => ({ rates: { VOO: v / 100 } }));
+    _bindNum('ps-inflation-rate', v => ({ inflation: { annualRate: v / 100 } }));
 
     // ── VOO 매도 ──
     _bindText('ps-voo-start',    v => ({ voo: { startYM: v } }));
@@ -304,6 +306,7 @@ const PensionSettings = (() => {
     _setVal('ps-rate-overseas',  _pct(p.rates.해외주식));
     _setVal('ps-rate-ria',       _pct(p.rates.RIA));
     _setVal('ps-rate-voo',       _pct(p.rates.VOO));
+    _setVal('ps-inflation-rate', _pct(p.inflation.annualRate));
 
     _setVal('ps-voo-start',      p.voo.startYM);
     _setVal('ps-voo-interval',   p.voo.intervalWeeks);
