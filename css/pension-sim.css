@@ -145,6 +145,7 @@
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 16px;
+  overflow: hidden;
 }
 
 .ps-card-title {
@@ -159,10 +160,10 @@
 /* ── 설정 행 ──────────────────────────────────────────────────────────── */
 
 .ps-setting-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 4px 8px;
   margin-bottom: 8px;
 }
 
@@ -196,6 +197,7 @@
   font-size: 12px;
   padding: 4px 7px;
   width: 90px;
+  max-width: 100%;
   text-align: right;
   transition: border-color 0.15s;
   -moz-appearance: textfield;
@@ -216,8 +218,9 @@
 }
 
 .ps-select {
-  width: auto;
-  min-width: 220px;
+  width: 140px;
+  min-width: 0;
+  max-width: 100%;
   text-align: left;
 }
 
@@ -481,7 +484,8 @@
   .ps-chart-wrap-sm  { height: 140px; }
 
   .ps-setting-row {
-    grid-template-columns: 1fr;
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .ps-input {
