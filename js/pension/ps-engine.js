@@ -58,6 +58,32 @@ const PensionEngine = (() => {
   /** 연도 추출 */
   function _year(ym) { return parseInt(ym.slice(0, 4)); }
 
+  /** PS_START_YM 기준 배열 인덱스 (ps-withdrawal.js _ymToIdx와 동일 로직) */
+  function _ymToIdx(ym) {
+    const sy = parseInt(PS_START_YM.slice(0, 4));
+    const sm = parseInt(PS_START_YM.slice(5, 7));
+    const ty = parseInt(ym.slice(0, 4));
+    const tm = parseInt(ym.slice(5, 7));
+    return (ty - sy) * 12 + (tm - sm);
+  }
+
+  /** 'YYYY-MM' → 만 나이 (PS_BIRTH 기준, ps-withdrawal.js _ymToAge와 동일 로직) */
+  function _ymToAge(ym) {
+    const y = parseInt(ym.slice(0, 4));
+    const m = parseInt(ym.slice(5, 7));
+    let age = y - PS_BIRTH.year;
+    if (m < PS_BIRTH.month) age--;
+    return age;
+  }
+
+  /** 연금소득세율 (55~69/70~79/80세~, ps-withdrawal.js _taxRate와 동일 로직) */
+  function _pensionTaxRateAt(params, ym) {
+    const age = _ymToAge(ym);
+    if (age >= 80) return params.tax.rate80;
+    if (age >= 70) return params.tax.rate7079;
+    return params.tax.rate5569;
+  }
+
   // ─── ISA 이체 금액 계산 (외부 공개 — ps-settings.js 재사용) ─────────────────
 
   /**
@@ -367,6 +393,8 @@ const PensionEngine = (() => {
     _markExcessYears(forecastWithdrawalLog, months, params);
     _markRealtyAnnual(planWithdrawalLog, months, params);
     _markRealtyAnnual(forecastWithdrawalLog, months, params);
+    _markRealtyComprehensiveSettlement(planWithdrawalLog, months, params);
+    _markRealtyComprehensiveSettlement(forecastWithdrawalLog, months, params);
 
     return {
       months,
@@ -766,6 +794,95 @@ const PensionEngine = (() => {
         log[i].realtyAnnualTotal        = total;
         log[i].realtyComprehensiveRequired = required;
       });
+    });
+  }
+
+  /**
+   * O(리얼티인컴) 배당 연 2,000만원(financialIncomeLimit) 초과분 — 다음해 5월
+   * 금융소득종합과세(비교과세) 정산액 소급 계산·기록 (소득세법 §62).
+   *
+   * ⚠️ 사적연금(연금저축+IRP) §13 excessMode 선택과 완전히 독립된 별도 제도.
+   * excessMode는 "선택"(사적연금 1,500만원 초과분을 종합과세로 할지 16.5%
+   * 분리과세로 할지), 이 함수는 "신고의무 자동발생"(금융소득 2,000만원 초과 시
+   * 비교과세 강제 적용) — 서로 건드리지 않는다.
+   *
+   * 다른 종합소득금액(otherComprehensiveIncome):
+   *   - 국민연금(공적연금): 항상 포함 (연금소득공제 후)
+   *   - 사적연금(taxed+irp1+irp2): 그 해 excessTriggeredYear && excessMode==='comprehensive'
+   *     로 이미 종합과세에 편입된 경우에만 포함. 그 외(cap15m/separate16_5)는 이미
+   *     분리과세로 완결되어 종합소득에 잡히지 않으므로 미포함.
+   *
+   * 비교과세(최종세액 = max(방식1, 방식2)):
+   *   방식1 = 2,000만원×14% + comprehensiveTax(other + max(0, realty-2,000만원))
+   *   방식2 = realty×원천징수율(15%) + comprehensiveTax(other)
+   *
+   * 근사 구현 — 인적공제·외국납부세액공제 미반영, 세무사 확인 필요.
+   */
+  function _markRealtyComprehensiveSettlement(log, months, params) {
+    const threshold  = params.realty?.financialIncomeLimit || 20000000;
+    const excessMode = params.withdrawal?.excessMode || 'cap15m';
+    const withholdingRate = params.realty?.withholdingRate || 0.15;
+    const withdrawStartYM = _ymMax(
+      psAgeToYM(params.withdrawal?.startAge ?? 61),
+      params.isaConversion?.maturityYM || '0000-00'
+    );
+
+    const byYear = {};
+    for (let i = 0; i < log.length; i++) {
+      if (!log[i]) continue;
+      const yr = _year(months[i]);
+      (byYear[yr] || (byYear[yr] = [])).push(i);
+    }
+
+    Object.keys(byYear).forEach(yr => {
+      const idxs = byYear[yr];
+      const yrNum = parseInt(yr, 10);
+      const realtyAnnualTotal = log[idxs[0]].realtyAnnualTotal || 0;
+      if (realtyAnnualTotal <= threshold) return;
+
+      // Y년 전체가 인출 시작 나이 이후인 경우만 (1월 기준으로 판단)
+      const janYM = _toYM(yrNum, 1);
+      if (janYM < withdrawStartYM) return;
+
+      const npAnnual = idxs.reduce((s, i) => s + (log[i].nationalPension || 0), 0);
+      const privateAnnual = idxs.reduce(
+        (s, i) => s + (log[i].taxed || 0) + (log[i].irp1 || 0) + (log[i].irp2 || 0), 0
+      );
+      const includePrivate = !!log[idxs[0]].excessTriggeredYear && excessMode === 'comprehensive';
+
+      // 다른 종합소득금액 (연금소득공제는 국민연금+사적연금 합계에 1회 적용, ps-withdrawal.js comprehensive 모드와 동일 방식)
+      const pensionCombined = npAnnual + (includePrivate ? privateAnnual : 0);
+      const otherComprehensiveIncome = Math.max(0, pensionCombined - psPensionIncomeDeduction(pensionCombined));
+
+      // 비교과세: 방식1(종합과세) vs 방식2(분리과세 유지) 중 큰 세액
+      const excessRealty = Math.max(0, realtyAnnualTotal - threshold);
+      const tax1 = threshold * 0.14 + psComprehensiveIncomeTax(otherComprehensiveIncome + excessRealty).total;
+      const tax2 = realtyAnnualTotal * withholdingRate + psComprehensiveIncomeTax(otherComprehensiveIncome).total;
+      const finalTax = Math.max(tax1, tax2);
+
+      // 기납부세액: O배당(원천징수) + 국민연금(연금소득세, 월별 나이구간 반영) + 사적연금(includePrivate인 경우만)
+      const realtyWithheld = realtyAnnualTotal * withholdingRate;
+      let pensionWithheld = 0;
+      idxs.forEach(i => {
+        const rate = _pensionTaxRateAt(params, months[i]);
+        pensionWithheld += (log[i].nationalPension || 0) * rate;
+        if (includePrivate) {
+          pensionWithheld += ((log[i].taxed || 0) + (log[i].irp1 || 0) + (log[i].irp2 || 0)) * rate;
+        }
+      });
+      const totalWithheld = realtyWithheld + pensionWithheld;
+
+      const additionalPayment = Math.max(0, finalTax - totalWithheld);
+      if (additionalPayment <= 0) return;
+
+      const settlementYM = _toYM(yrNum + 1, 5);
+      const settlementIdx = _ymToIdx(settlementYM);
+      if (settlementIdx < 0 || settlementIdx >= log.length || !log[settlementIdx]) {
+        console.warn(`[ps-engine] realtyComprehensiveSettlement: ${settlementYM} 정산월이 시뮬레이션 범위를 벗어나 스킵됨 (${yr}년 O배당 ${realtyAnnualTotal}원)`);
+        return;
+      }
+      log[settlementIdx].realtyComprehensiveSettlement = Math.round(additionalPayment);
+      log[settlementIdx].realtyComprehensiveSettlementYear = yrNum;
     });
   }
 

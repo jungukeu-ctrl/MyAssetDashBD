@@ -80,7 +80,7 @@ const PS_DEFAULT_PARAMS = {
     irpUnlockYear: 11           // IRP 연금수령연차가 이 값을 넘으면(§9-9와 동일 기준) 고정 목표 해제 → 생활비 부족분까지 인출 허용
   },
   irp2: {
-    withdrawalStartAge: 70      // IRP2 실제수령개시 나이 (변수). 연차 시작(2029)과는 별개 개념
+    withdrawalStartAge: 65      // IRP2 실제수령개시 나이 (변수). 연차 시작(2029)과는 별개 개념
   },
   ria: {
     fundingYM: '2026-03'        // 해외주식→RIA 실물이관·매도 확정 시점 (fundingAmount는 PS_RIA_TAX_BENEFIT.saleAmount 재사용)
@@ -214,6 +214,31 @@ const PS_COMPREHENSIVE_TAX_BRACKETS = [
   { upTo: 1000000000, rate: 0.42, deduction: 35940000 },
   { upTo: Infinity,   rate: 0.45, deduction: 65940000 }
 ];
+
+// ─── 연금소득공제 (§5 표, 최대 900만원) ────────────────────────────────────
+// 국민연금(공적연금) 건보료 산정용, §13 종합과세 모드(사적연금+공적연금 합계),
+// §신규 O배당 비교과세(다른 종합소득금액)에서 공용으로 사용하는 전역 헬퍼.
+// (ps-withdrawal.js/ps-engine.js 양쪽에서 재사용하기 위해 이 파일로 이동됨)
+function psPensionIncomeDeduction(annual) {
+  if (annual <= 0) return 0;
+  let deducted;
+  if      (annual <= 3500000)  deducted = annual;
+  else if (annual <= 7000000)  deducted = 3500000 + (annual - 3500000) * 0.40;
+  else if (annual <= 14000000) deducted = 4900000 + (annual - 7000000) * 0.20;
+  else                         deducted = 6300000 + (annual - 14000000) * 0.10;
+  return Math.min(deducted, 9000000);
+}
+
+// ─── 종합소득세 (§13, PS_COMPREHENSIVE_TAX_BRACKETS 누진표 + 지방소득세 10%) ──
+// (ps-withdrawal.js/ps-engine.js 양쪽에서 재사용하기 위해 이 파일로 이동됨)
+function psComprehensiveIncomeTax(netIncome) {
+  const base = Math.max(0, netIncome);
+  const bracket = PS_COMPREHENSIVE_TAX_BRACKETS.find(b => base <= b.upTo)
+    || PS_COMPREHENSIVE_TAX_BRACKETS[PS_COMPREHENSIVE_TAX_BRACKETS.length - 1];
+  const incomeTax = Math.max(0, base * bracket.rate - bracket.deduction);
+  const localTax  = Math.round(incomeTax * 0.10);
+  return { incomeTax: Math.round(incomeTax), localTax, total: Math.round(incomeTax) + localTax };
+}
 
 /**
  * RIA 외 계좌 순매수 시점(월)별 가중치

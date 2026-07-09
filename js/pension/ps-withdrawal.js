@@ -55,27 +55,18 @@ const PensionWithdrawal = (() => {
   }
 
   // ─── 연금소득공제 (§5 표, 최대 900만원) ────────────────────────────────────
-  // 국민연금(공적연금) 건보료 산정용으로 쓰였으나, §13 종합과세 모드에서도
-  // (사적연금+공적연금 합계)에 동일 표를 적용하므로 공용 헬퍼로 분리.
+  // 국민연금(공적연금) 건보료 산정용으로 쓰였으나, §13 종합과세 모드 및
+  // §신규 O배당 비교과세(ps-engine.js)에서도 공용으로 쓰이므로
+  // psPensionIncomeDeduction()(ps-config.js, 전역)으로 이동됨 — 아래는 위임.
   function _pensionIncomeDeduction(annual) {
-    if (annual <= 0) return 0;
-    let deducted;
-    if      (annual <= 3500000)  deducted = annual;
-    else if (annual <= 7000000)  deducted = 3500000 + (annual - 3500000) * 0.40;
-    else if (annual <= 14000000) deducted = 4900000 + (annual - 7000000) * 0.20;
-    else                         deducted = 6300000 + (annual - 14000000) * 0.10;
-    return Math.min(deducted, 9000000);
+    return psPensionIncomeDeduction(annual);
   }
 
   // ─── 종합소득세 (§13, 사적연금 1,500만원 초과 시 comprehensive 모드) ────────
   // PS_COMPREHENSIVE_TAX_BRACKETS(ps-config.js) 누진표 + 지방소득세 10% 별도 가산.
+  // psComprehensiveIncomeTax()(ps-config.js, 전역)로 이동됨 — 아래는 위임.
   function _comprehensiveIncomeTax(netIncome) {
-    const base = Math.max(0, netIncome);
-    const bracket = PS_COMPREHENSIVE_TAX_BRACKETS.find(b => base <= b.upTo)
-      || PS_COMPREHENSIVE_TAX_BRACKETS[PS_COMPREHENSIVE_TAX_BRACKETS.length - 1];
-    const incomeTax = Math.max(0, base * bracket.rate - bracket.deduction);
-    const localTax  = Math.round(incomeTax * 0.10);
-    return { incomeTax: Math.round(incomeTax), localTax, total: Math.round(incomeTax) + localTax };
+    return psComprehensiveIncomeTax(netIncome);
   }
 
   // ─── 건강보험료 계산 ─────────────────────────────────────────────────────────
@@ -177,7 +168,7 @@ const PensionWithdrawal = (() => {
       taxFree: 0, taxed: 0, taxedShortfall: 0, irp1: 0, irp2: 0, nationalPension: 0,
       pensionLimitHit: false, irp1LimitHit: false, irp2LimitHit: false,
       oDripActive: true, realty: 0, realtyGrossKRW: 0, realtyShares: 0, realtyMonthlyDivUSD: 0,
-      realtyAnnualTotal: 0, realtyComprehensiveRequired: false
+      realtyAnnualTotal: 0, realtyComprehensiveRequired: false, realtyComprehensiveSettlement: 0
     };
 
     if (psResult && psResult.months) {
@@ -323,6 +314,21 @@ const PensionWithdrawal = (() => {
       });
     }
 
+    // ③-3 O배당 금융소득종합과세(비교과세) 정산 — §신규, 사적연금 excessMode와 무관하게
+    // 연 2,000만원 초과 시 자동 적용(ps-engine.js _markRealtyComprehensiveSettlement가
+    // Y+1년 5월 log에 소급 기록해 둔 값을 그대로 표시, 재계산 금지).
+    if (wd.realtyComprehensiveSettlement > 0) {
+      const settleAmt = wd.realtyComprehensiveSettlement;
+      const settleYr  = wd.realtyComprehensiveSettlementYear;
+      sources.push({
+        name: '전년도 금융소득종합과세(비교과세) 정산',
+        monthly: -settleAmt,
+        tax: 0,
+        net: -settleAmt,
+        note: `${settleYr}년 O배당 금융소득 2,000만원 초과분 비교과세 정산 · 5월 일시납부 · 근사 구현(인적공제·외국납부세액공제 미반영, 세무사 확인 필요)`
+      });
+    }
+
     // ④ 합계
     const totalGross = sources.reduce((s, x) => s + x.monthly, 0);
     const totalTax   = sources.reduce((s, x) => s + x.tax,     0);
@@ -346,7 +352,7 @@ const PensionWithdrawal = (() => {
       warnings.push('O 배당 수입이 금융소득 2,000만원 한도(85%)에 근접했습니다. DRIP 속도 조절을 검토하세요.');
     }
     if (oDripActive && wd.realtyComprehensiveRequired) {
-      warnings.push('O(리얼티인컴) 배당은 재투자 중이지만 연간 누계가 2,000만원을 초과해 금융소득종합과세 신고의무가 발생할 수 있습니다 (근사 구현 — 세무사 확인 필요).');
+      warnings.push('O배당 2,000만원 초과로 다음해 5월 금융소득종합과세(비교과세) 정산 대상입니다. 사적연금 처리방식(excessMode) 선택과는 무관하게 자동 적용됩니다.');
     }
     if (!oDripActive) {
       warnings.push('⚠️ IRP1·IRP2 소진으로 O(리얼티인컴) 배당이 재투자에서 현금인출로 전환됐습니다. 이후 배당은 다른 소득과 합산해 종합과세 근사 적용 중이며, 실제 세무 신고 시점엔 세무사 확인이 필요합니다.');
