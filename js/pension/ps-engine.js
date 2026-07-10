@@ -600,12 +600,14 @@ const PensionEngine = (() => {
         withdrawal.taxFree = draw;
         withdrawal.pensionLimitHit = draw < want;
       } else {
-        // 과세분: excessMode==='cap15m'(기본값) 또는 'cap15m_thenExpand'(§13 신규, IRP1·IRP2
+        // 과세분: excessMode==='cap15m' 또는 'cap15m_thenExpand'(기본값, §13 신규, IRP1·IRP2
         // 소진 전까지는 cap15m과 동일해야 함)일 때만 연 1,500만원(월 125만원) 상한(§9-6/9-7)
         // 적용. 그 외 모드(separate16_5/comprehensive)는 하드캡 해제하고 target 그대로 인출
         // 허용 — §9-9 연금수령한도(room9_9)는 모드 무관 항상 적용 (§13).
         // cap15m_thenExpand의 캡 초과 확장 인출은 §7-4b(아래, IRP1·IRP2 실제 소진 확인 후)에서
         // 별도로 처리한다 — 여기서 하드캡을 풀면 안 됨.
+        // fallback 'cap15m'은 excessMode 미지정(구버전 호출 등) 시 안전한 하드캡 유지용 —
+        // PS_DEFAULT_PARAMS의 실제 기본값(cap15m_thenExpand)과는 별개.
         const excessMode = params.withdrawal?.excessMode || 'cap15m';
         let want;
         if (excessMode === 'cap15m' || excessMode === 'cap15m_thenExpand') {
@@ -851,6 +853,8 @@ const PensionEngine = (() => {
    */
   function _markRealtyComprehensiveSettlement(log, months, params) {
     const threshold  = params.realty?.financialIncomeLimit || 20000000;
+    // fallback 'cap15m'은 excessMode 미지정 시 안전한 하드캡 유지용 —
+    // PS_DEFAULT_PARAMS의 실제 기본값(cap15m_thenExpand)과는 별개.
     const excessMode = params.withdrawal?.excessMode || 'cap15m';
     const withholdingRate = params.realty?.withholdingRate || 0.15;
     const withdrawStartYM = _ymMax(
