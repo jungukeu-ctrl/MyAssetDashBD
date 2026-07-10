@@ -75,7 +75,7 @@ const PS_DEFAULT_PARAMS = {
   withdrawal: {
     startAge:      61,          // 인출 시작 나이 (변수, 최소 55, 실질하한은 ISA만기 보정 적용)
     monthlyTarget: 3050000,     // 목표 월 생활비 (사용자 입력값, 기본값)
-    excessMode:    'cap15m',    // 사적연금 연 1,500만원 초과 처리 방식 (§13): 'cap15m'(기본값,현행) | 'separate16_5' | 'comprehensive'
+    excessMode:    'cap15m',    // 사적연금 연 1,500만원 초과 처리 방식 (§13): 'cap15m'(기본값,현행) | 'separate16_5' | 'comprehensive' | 'cap15m_thenExpand'(신규, IRP1·IRP2 소진 후에만 조건부 확장)
     irp2MonthlyTarget: 1500000, // IRP 목표 월 인출액 (기존 하드코딩 IRP_MONTHLY_TARGET 파라미터화)
     irpUnlockYear: 11           // IRP 연금수령연차가 이 값을 넘으면(§9-9와 동일 기준) 고정 목표 해제 → 생활비 부족분까지 인출 허용
   },

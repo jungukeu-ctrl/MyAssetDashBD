@@ -564,7 +564,7 @@ const PensionEngine = (() => {
     );
 
     const withdrawal = {
-      taxFree: 0, taxed: 0, taxedShortfall: 0, irp1: 0, irp2: 0, nationalPension: 0,
+      taxFree: 0, taxed: 0, taxedShortfall: 0, taxedExpansion: 0, irp1: 0, irp2: 0, nationalPension: 0,
       pensionLimitHit: false, irp1LimitHit: false, irp2LimitHit: false
     };
 
@@ -600,12 +600,15 @@ const PensionEngine = (() => {
         withdrawal.taxFree = draw;
         withdrawal.pensionLimitHit = draw < want;
       } else {
-        // 과세분: excessMode==='cap15m'(기본값)일 때만 연 1,500만원(월 125만원) 상한
-        // (§9-6/9-7) 적용. 그 외 모드(separate16_5/comprehensive)는 하드캡 해제하고
-        // target 그대로 인출 허용 — §9-9 연금수령한도(room9_9)는 모드 무관 항상 적용 (§13)
+        // 과세분: excessMode==='cap15m'(기본값) 또는 'cap15m_thenExpand'(§13 신규, IRP1·IRP2
+        // 소진 전까지는 cap15m과 동일해야 함)일 때만 연 1,500만원(월 125만원) 상한(§9-6/9-7)
+        // 적용. 그 외 모드(separate16_5/comprehensive)는 하드캡 해제하고 target 그대로 인출
+        // 허용 — §9-9 연금수령한도(room9_9)는 모드 무관 항상 적용 (§13).
+        // cap15m_thenExpand의 캡 초과 확장 인출은 §7-4b(아래, IRP1·IRP2 실제 소진 확인 후)에서
+        // 별도로 처리한다 — 여기서 하드캡을 풀면 안 됨.
         const excessMode = params.withdrawal?.excessMode || 'cap15m';
         let want;
-        if (excessMode === 'cap15m') {
+        if (excessMode === 'cap15m' || excessMode === 'cap15m_thenExpand') {
           const annualCap     = params.tax?.separateTaxThreshold || 15000000;
           const monthlyCap    = annualCap / 12;
           const taxedRoomYear = Math.max(0, annualCap - wd.taxedWithdrawnYear);
@@ -684,6 +687,34 @@ const PensionEngine = (() => {
       0,
       (params.withdrawal?.monthlyTarget || 0) * inflationMultiplier - (withdrawal.taxFree + withdrawal.taxed + withdrawal.irp1 + withdrawal.irp2)
     );
+
+    // 7-4b. cap15m_thenExpand: IRP1·IRP2 둘 다 소진 + 목표 생활비 부족 시 연금저축
+    // 과세분을 §9-6 하드캡(연 1,500만) 너머로 확장 인출(PENSION_WITHDRAWAL.md §13 신규).
+    // §7-5 O DRIP 전환과 동일한 트리거 조건(IRP1·IRP2 실제 소진 + 부족분 발생)을 쓰되,
+    // 연금저축 잔액이 남아있는 한 O DRIP 현금전환보다 먼저 이 계좌로 부족분을 메운다
+    // (§7-5는 이 블록 이후 실행되므로 여기서 줄인 overallShortfall을 그대로 이어받는다).
+    // 인출액 자체만 여기서 결정 — 세금(종합과세) 계산은 ps-withdrawal.js 전담(재계산 금지 원칙 유지).
+    if (
+      params.withdrawal?.excessMode === 'cap15m_thenExpand' &&
+      _ymLte(withdrawStartYM, ym) &&
+      withdrawal.overallShortfall > 0 &&
+      bal.IRP1 <= 0 && bal.IRP2 <= 0 &&
+      bal.연금저축_비과세원금 <= 0 &&
+      bal.연금저축 > 0
+    ) {
+      const room9_9Remaining = Math.max(0, wd.pensionLimitAmt - wd.pensionWithdrawnYear);
+      const wanted    = withdrawal.overallShortfall;
+      const extraDraw = Math.min(wanted, bal.연금저축, room9_9Remaining);
+      if (extraDraw > 0) {
+        bal.연금저축 -= extraDraw;
+        wd.taxedWithdrawnYear      += extraDraw;
+        wd.pensionWithdrawnYear    += extraDraw;
+        withdrawal.taxed           += extraDraw;
+        withdrawal.taxedExpansion  += extraDraw;
+        withdrawal.overallShortfall = Math.max(0, withdrawal.overallShortfall - extraDraw);
+      }
+      if (extraDraw < wanted) withdrawal.pensionLimitHit = true;
+    }
 
     // 7-5. O(리얼티인컴) DRIP ↔ 조건부 현금인출 전환 (PENSION_WITHDRAWAL.md §5)
     // "IRP1·IRP2가 둘 다 소진되어 목표 생활비 부족분이 발생하는 시점"부터 영구 전환(되돌리지 않음).

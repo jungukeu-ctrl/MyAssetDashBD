@@ -69,6 +69,23 @@ const PensionWithdrawal = (() => {
     return psComprehensiveIncomeTax(netIncome);
   }
 
+  // ─── 종합소득세 (§13-신규, cap15m_thenExpand 전용) ─────────────────────────
+  // cap15m 하드캡(연 1,500만)을 넘어 IRP1·IRP2 소진 후 자동 확장된 인출분에만 적용하는
+  // 한계세율 계산. 인출액 자체는 ps-engine.js _stepMonth()가 이미 확정한 값
+  // (wd.taxedExpansion)을 그대로 쓰고, 여기서는 그 금액의 세금만 계산한다(재계산 금지 원칙 유지).
+  // ⚠️ 1차 구현 단순 가정: "사적연금(연금저축) 소득만" 종합과세 대상으로 간주 —
+  // 국민연금·O배당 등 다른 종합소득 항목과는 합산하지 않는다. 실제 종합소득세 신고 시
+  // 다른 소득과 합산되면 세율 구간이 달라지므로 세무사 확인 필요.
+  // §13(excessMode 선택)·§13-B(O배당 비교과세)와는 완전히 별개 제도이며 서로 건드리지 않는다.
+  function _expansionComprehensiveTax(baseAnnual, expansionAnnual) {
+    const combinedAnnual = baseAnnual + expansionAnnual;
+    const netCombined = Math.max(0, combinedAnnual - psPensionIncomeDeduction(combinedAnnual));
+    const netBase     = Math.max(0, baseAnnual - psPensionIncomeDeduction(baseAnnual));
+    const taxCombined = psComprehensiveIncomeTax(netCombined).total;
+    const taxBase     = psComprehensiveIncomeTax(netBase).total;
+    return { total: Math.max(0, taxCombined - taxBase) };
+  }
+
   // ─── 건강보험료 계산 ─────────────────────────────────────────────────────────
   // (PR #81에서 이미 정확히 수정됨 — 피부양자 판정에 배우자 정년 조건만 추가, §9-8)
 
@@ -165,7 +182,7 @@ const PensionWithdrawal = (() => {
     // ① 예상 잔액 + 인출 내역 추출 (forecast 우선, 없으면 plan — 엔진이 이미 계산해 둔 값 그대로 사용)
     const balances = { 연금저축: 0, IRP1: 0, IRP2: 0, 해외주식: 0, RIA: 0, ISA: 0, 연금저축_비과세원금: 0 };
     let wd = {
-      taxFree: 0, taxed: 0, taxedShortfall: 0, irp1: 0, irp2: 0, nationalPension: 0,
+      taxFree: 0, taxed: 0, taxedShortfall: 0, taxedExpansion: 0, irp1: 0, irp2: 0, nationalPension: 0,
       pensionLimitHit: false, irp1LimitHit: false, irp2LimitHit: false,
       oDripActive: true, realty: 0, realtyGrossKRW: 0, realtyShares: 0, realtyMonthlyDivUSD: 0,
       realtyAnnualTotal: 0, realtyComprehensiveRequired: false, realtyComprehensiveSettlement: 0
@@ -211,15 +228,36 @@ const PensionWithdrawal = (() => {
     }
 
     if (wd.taxed > 0) {
-      const tax = Math.round(wd.taxed * rate);
-      sources.push({
-        name: '연금저축 (과세)',
-        monthly: wd.taxed,
-        tax,
-        net: wd.taxed - tax,
-        note: `연금소득세 ${ratePct}% · 연 1,500만 이하 분리과세${wd.pensionLimitHit ? ' · 연금수령한도 도달' : ''}`
-      });
-      privatePensionAnnual += wd.taxed * 12;
+      // cap15m_thenExpand 모드에서만 taxed를 기본분(base, 기존 세율)과 확장분(종합과세 근사)으로 분리.
+      // 그 외 모드는 wd.taxedExpansion을 0으로 취급해 기존 동작과 완전히 동일하게 유지(회귀 없음).
+      const excessModeForTaxed = params.withdrawal?.excessMode || 'cap15m';
+      const expansionMonthly   = excessModeForTaxed === 'cap15m_thenExpand' ? (wd.taxedExpansion || 0) : 0;
+      const baseMonthly        = wd.taxed - expansionMonthly;
+
+      if (baseMonthly > 0) {
+        const tax = Math.round(baseMonthly * rate);
+        sources.push({
+          name: '연금저축 (과세)',
+          monthly: baseMonthly,
+          tax,
+          net: baseMonthly - tax,
+          note: `연금소득세 ${ratePct}% · 연 1,500만 이하 분리과세${wd.pensionLimitHit ? ' · 연금수령한도 도달' : ''}`
+        });
+        privatePensionAnnual += baseMonthly * 12;
+      }
+
+      if (expansionMonthly > 0) {
+        const { total: expAnnualTax } = _expansionComprehensiveTax(baseMonthly * 12, expansionMonthly * 12);
+        const expTax = Math.round(expAnnualTax / 12);
+        sources.push({
+          name: '연금저축 (확장 인출)',
+          monthly: expansionMonthly,
+          tax: expTax,
+          net: expansionMonthly - expTax,
+          note: 'IRP1·IRP2 소진 후 부족분 확장 인출 · 종합과세 근사 적용(사적연금 소득만 단순 가정, 세무사 확인 필요)'
+        });
+        privatePensionAnnual += expansionMonthly * 12;
+      }
     }
 
     if (wd.nationalPension > 0) {
@@ -287,7 +325,9 @@ const PensionWithdrawal = (() => {
     // wd.excessTriggeredYear/excessAnnualTotal은 ps-engine.js _markExcessYears()가 연도별로
     // 이미 소급 계산해 둔 값 — 여기서는 재계산하지 않고 그대로 사용.
     const excessMode    = params.withdrawal?.excessMode || 'cap15m';
-    const isExcessYear  = excessMode !== 'cap15m' && !!wd.excessTriggeredYear;
+    // cap15m_thenExpand는 별도 확장 인출 방식(위 sources 분리 로직)을 쓰므로 이 문턱효과
+    // 재분류(전액 16.5%/종합과세 전환) 대상에서 명시적으로 제외 — cap15m과 함께 두 값 모두 배제.
+    const isExcessYear  = (excessMode === 'separate16_5' || excessMode === 'comprehensive') && !!wd.excessTriggeredYear;
     const PRIVATE_PENSION_SOURCE_NAMES = ['연금저축 (과세)', 'IRP1 연금', 'IRP2 연금'];
 
     if (isExcessYear && excessMode === 'separate16_5') {
@@ -356,6 +396,9 @@ const PensionWithdrawal = (() => {
     }
     if (!oDripActive) {
       warnings.push('⚠️ IRP1·IRP2 소진으로 O(리얼티인컴) 배당이 재투자에서 현금인출로 전환됐습니다. 이후 배당은 다른 소득과 합산해 종합과세 근사 적용 중이며, 실제 세무 신고 시점엔 세무사 확인이 필요합니다.');
+    }
+    if ((wd.taxedExpansion || 0) > 0) {
+      warnings.push(`⚠️ 연금저축 확장 인출 중 (IRP1·IRP2 소진, 종합과세 적용, 월 ${Math.round(wd.taxedExpansion / 10000)}만원 추가)`);
     }
     if (targetAge === 65 || targetAge === 66) {
       warnings.push('국민연금 수급 연령 67세 상향이 논의 중입니다. 개시 연령 변경 시 공백 시나리오를 재검토하세요.');

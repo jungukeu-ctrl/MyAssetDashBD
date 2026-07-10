@@ -101,10 +101,11 @@ const PensionSettings = (() => {
       ${_row('목표 월 인출액',       _numInput('ps-wd-monthly',   p.withdrawal.monthlyTarget, 10000), '원/월')}
       ${_row('IRP 목표 월 인출액',   _numInput('ps-wd-irp-monthly', p.withdrawal.irp2MonthlyTarget, 10000), '원/월')}
       ${_row('1,500만원 초과 처리방식', _selectInput('ps-wd-excess-mode', [
-        { value: 'cap15m',        label: 'cap15m (기본, 현행 하드캡)' },
-        { value: 'separate16_5',  label: 'separate16_5 (16.5% 분리과세)' },
-        { value: 'comprehensive', label: 'comprehensive (종합과세)' }
-      ], p.withdrawal.excessMode), '§13 문턱효과 — cap15m 선택 시 지금과 동일')}
+        { value: 'cap15m',            label: 'cap15m (기본, 현행 하드캡)' },
+        { value: 'separate16_5',      label: 'separate16_5 (16.5% 분리과세)' },
+        { value: 'comprehensive',     label: 'comprehensive (종합과세)' },
+        { value: 'cap15m_thenExpand', label: 'cap15m_thenExpand (IRP 소진 후 조건부 확장)' }
+      ], p.withdrawal.excessMode), '§13 문턱효과 — cap15m/cap15m_thenExpand는 지금과 동일, thenExpand는 IRP1·IRP2 소진 후에만 연금저축을 종합과세로 확장 인출')}
       ${_row('IRP2 실제수령개시 나이', _numInput('ps-wd-irp2-start-age', p.irp2.withdrawalStartAge, 1, 55, 90), '세 (§9-4, 연차 시작과는 별개 개념)')}
     </div>`;
   }
