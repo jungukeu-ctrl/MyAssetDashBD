@@ -537,7 +537,14 @@ const PensionEngine = (() => {
           remaining   -= addIRP1;
           paidToISA   += remaining;
 
-          bal.ISA += remaining;
+          // ISA 만기 이후(§7-6, wd.isaConverted)에는 ISA 계좌가 종료되어 3순위 배분분을
+          // 해외주식(일반 과세) 계좌로 대체 귀속 — 원래 VOO도 해외주식 계좌 서브셋이므로 자연스러운 귀속처
+          if (wd.isaConverted) {
+            bal.해외주식 += remaining;
+            wd.isaPostMaturityVooRedirect = (wd.isaPostMaturityVooRedirect || 0) + remaining;
+          } else {
+            bal.ISA += remaining;
+          }
         } else {
           // 급락: 연금저축 우선 → IRP1 → ISA
           const toPension = Math.min(_pensionRoom(yearlyPension), remaining);
@@ -551,7 +558,12 @@ const PensionEngine = (() => {
           remaining   -= toIRP1;
           paidToISA   += remaining;
 
-          bal.ISA += remaining;
+          if (wd.isaConverted) {
+            bal.해외주식 += remaining;
+            wd.isaPostMaturityVooRedirect = (wd.isaPostMaturityVooRedirect || 0) + remaining;
+          } else {
+            bal.ISA += remaining;
+          }
         }
       }
     }
@@ -789,6 +801,7 @@ const PensionEngine = (() => {
     withdrawal.realtyMonthlyDivUSD = Math.round(realty.monthlyDivPerShare * 10000) / 10000;
     withdrawal.oDripActive         = wd.oDripActive;
     withdrawal.isaMaturityRiaRemaining = wd.isaMaturityRiaRemaining || 0;
+    withdrawal.isaPostMaturityVooRedirect = wd.isaPostMaturityVooRedirect || 0;
 
     // 배당/주가 다음 달분 성장 반영
     const mDivGrowthO   = Math.pow(1 + (params.realty?.divGrowthRate   || 0), 1 / 12) - 1;
@@ -970,7 +983,8 @@ const PensionEngine = (() => {
       irp2WithdrawnYear:  0,
       oDripActive:        true,  // O(리얼티인컴) DRIP 재투자 활성 여부 (§5), 기본 true — IRP1·IRP2 소진 후 false로 영구 전환
       oDripYear:          0,
-      oDripYearlyGross:   0
+      oDripYearlyGross:   0,
+      isaPostMaturityVooRedirect: 0  // ISA 만기 이후 VOO 3순위 배분분이 해외주식 계좌로 대체 귀속된 누계
     };
   }
 
