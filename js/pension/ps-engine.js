@@ -106,6 +106,21 @@ const PensionEngine = (() => {
     return Math.min(available, Math.max(0, riaBalance));
   }
 
+  /**
+   * ISA 이체 시도 대상 월인지 판정 (RIA→ISA, 고정 이벤트 아닌 반복 스케줄)
+   * 최초 이체는 startYM에, 이후 매년 repeatMonth월에 반복 (RIA 잔액 0 될 때까지 _stepMonth에서 계속 시도)
+   * @param {string} ym           현재 월 'YYYY-MM'
+   * @param {string} startYM      최초 이체 가능 시점 'YYYY-MM'
+   * @param {number} repeatMonth  최초 이체 이후 매년 반복할 월 (1~12)
+   * @returns {boolean}
+   */
+  function _isIsaTransferMonth(ym, startYM, repeatMonth) {
+    if (!startYM || _ymLt(ym, startYM)) return false;
+    if (ym === startYM) return true;
+    const month = parseInt(ym.slice(5, 7), 10);
+    return month === (repeatMonth || 1);
+  }
+
   // ─── RIA 세제혜택 조정 공제율 계산 (외부 공개 — ps-table.js 재사용) ─────────
 
   /**
@@ -252,7 +267,7 @@ const PensionEngine = (() => {
         planPrevTransfers = patch.prevTransfers;
         planVooExhausted  = patch.vooExhausted;
         planWd            = patch.wd;
-      });
+      }, isaLimitLog);
 
       planTotal.push(_sum(planBal));
       Object.keys(planByAcct).forEach(k => planByAcct[k].push(planBal[k]));
@@ -356,7 +371,7 @@ const PensionEngine = (() => {
           fcPrevTransfers = patch.prevTransfers;
           fcVooExhausted  = patch.vooExhausted;
           fcWd            = patch.wd;
-        });
+        }, isaLimitLog);
 
         forecastTotal.push(_sum(fcBal));
         Object.keys(forecastByAcct).forEach(k => forecastByAcct[k].push(fcBal[k]));
@@ -371,11 +386,13 @@ const PensionEngine = (() => {
     if (params.voo?.startYM) {
       events.push({ ym: params.voo.startYM, label: 'VOO 매도 시작', type: 'voo' });
     }
-    if (params.isa?.transfers) {
-      params.isa.transfers.forEach((t, idx) => {
-        events.push({ ym: t.ym, label: `ISA ${idx + 1}차 이체`, type: 'transfer' });
+    // ISA 이체는 고정 이벤트가 아니라 반복 스케줄이므로, 시뮬레이션 중 실제 발생한
+    // 이체 이력(isaLimitLog, plan 트랙 기준)에서 이벤트 마커를 생성한다.
+    isaLimitLog
+      .filter(e => e.track === 'plan')
+      .forEach((e, idx) => {
+        events.push({ ym: e.ym, label: `ISA ${idx + 1}차 이체`, type: 'transfer' });
       });
-    }
     if (params.nationalPension?.startYM) {
       events.push({ ym: params.nationalPension.startYM, label: '국민연금 수령', type: 'pension' });
     }
@@ -420,7 +437,7 @@ const PensionEngine = (() => {
    * @param {object}   state    누계 상태
    * @param {function} setState 누계 상태 업데이트 콜백
    */
-  function _stepMonth(ym, bal, params, state, setState) {
+  function _stepMonth(ym, bal, params, state, setState, isaLimitLog) {
     let { yearlyPension, yearlyIRP1, paidToISA, prevTransfers, vooExhausted } = state;
     const wd = { ...(state.wd || _wdInitial()) };  // 트랙(plan/forecast)별 독립 mutate
 
@@ -465,16 +482,27 @@ const PensionEngine = (() => {
       bal.RIA += PS_RIA_TAX_BENEFIT.saleAmount;
     }
 
-    // 3. ISA 이체 처리 (RIA → ISA)
-    if (params.isa?.transfers) {
-      for (const tx of params.isa.transfers) {
-        if (tx.ym === ym) {
-          const txAmt = calcISATransfer(params, paidToISA, prevTransfers, ym, bal.RIA);
-          if (txAmt > 0) {
-            bal.RIA -= txAmt;
-            bal.ISA += txAmt;
-            prevTransfers += txAmt;
-          }
+    // 3. ISA 이체 처리 (RIA → ISA) — 고정 3회가 아니라 RIA 잔액이 0이 될 때까지 매년 반복.
+    // ISA 만기 전환(§6, wd.isaConverted) 이후에는 ISA 계좌 자체가 존재하지 않으므로 중단.
+    if (!wd.isaConverted && params.isa?.transferStartYM && bal.RIA > 0 &&
+        _isIsaTransferMonth(ym, params.isa.transferStartYM, params.isa.transferRepeatMonth)) {
+      const yearsJoined     = _year(ym) - _year(params.isa.joinYM) + 1;
+      const cumulativeLimit = yearsJoined * params.isa.annualLimit;
+      const available       = Math.max(0, cumulativeLimit - paidToISA - prevTransfers);
+      const txAmt = calcISATransfer(params, paidToISA, prevTransfers, ym, bal.RIA);
+      if (txAmt > 0) {
+        bal.RIA -= txAmt;
+        bal.ISA += txAmt;
+        prevTransfers += txAmt;
+        if (isaLimitLog) {
+          isaLimitLog.push({
+            ym,
+            track: state.isPlan ? 'plan' : 'forecast',
+            yearsJoined,
+            cumulativeLimit,
+            available,
+            transferred: txAmt
+          });
         }
       }
     }
@@ -553,6 +581,10 @@ const PensionEngine = (() => {
       bal.연금저축_비과세원금 += bal.ISA;
       bal.ISA = 0;
       wd.isaConverted = true;
+      // ISA 만기 시점에도 RIA 잔액이 남아있으면 자동 재가입/가속 이체 없이 경고만 기록 (ps-withdrawal.js에서 표시)
+      if (bal.RIA > 0) {
+        wd.isaMaturityRiaRemaining = bal.RIA;
+      }
     }
 
     // 7. 인출 차감 (§9-2, §9-6, §9-9)
@@ -756,6 +788,7 @@ const PensionEngine = (() => {
     withdrawal.realtyShares        = Math.round(realty.shares * 10) / 10;
     withdrawal.realtyMonthlyDivUSD = Math.round(realty.monthlyDivPerShare * 10000) / 10000;
     withdrawal.oDripActive         = wd.oDripActive;
+    withdrawal.isaMaturityRiaRemaining = wd.isaMaturityRiaRemaining || 0;
 
     // 배당/주가 다음 달분 성장 반영
     const mDivGrowthO   = Math.pow(1 + (params.realty?.divGrowthRate   || 0), 1 / 12) - 1;

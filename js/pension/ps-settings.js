@@ -19,21 +19,16 @@ const PensionSettings = (() => {
 
   function _updateISAAmounts() {
     const p = PensionState.params;
-    const transfers = p.isa?.transfers || [];
+    const el = document.getElementById('pension-isa-amount-0');
+    if (!el) return;
+    const startYM = p.isa?.transferStartYM;
+    if (!startYM) { el.textContent = '—'; return; }
 
-    // 각 이체 시점까지의 VOO→ISA 누적 납입액은 시뮬레이션 결과에서 가져오는 것이 정확하나,
-    // 설정 패널 실시간 표시 용도로 RIA 초기 잔액 기반 근사값 사용
+    // 최초 이체 시점까지의 VOO→ISA 누적 납입액은 시뮬레이션 결과에서 가져오는 것이 정확하나,
+    // 설정 패널 실시간 표시 용도로 RIA 초기 잔액 기반 근사값 사용 (이후 반복 이체는 시뮬레이션 결과 참조)
     const riaBalance = PensionState.actual?.initialBalances?.RIA || 0;
-    let prevTransfers = 0;
-
-    transfers.forEach((tx, idx) => {
-      const el = document.getElementById(`pension-isa-amount-${idx}`);
-      if (!el) return;
-      // paidToISA 근사: 이전 이체 합계만 사용 (정밀 계산은 엔진 담당)
-      const amt = PensionEngine.calcISATransfer(p, 0, prevTransfers, tx.ym || '2099-01', riaBalance - prevTransfers);
-      el.textContent = amt > 0 ? _fmtWon(amt) : '—';
-      prevTransfers += amt;
-    });
+    const amt = PensionEngine.calcISATransfer(p, 0, 0, startYM, riaBalance);
+    el.textContent = amt > 0 ? _fmtWon(amt) : '—';
   }
 
   /** 원/만/억 포맷 */
@@ -148,19 +143,19 @@ const PensionSettings = (() => {
       <div class="ps-card">
         <div class="ps-card-title">ISA 이체 스케줄</div>
         ${_row('ISA 가입일', _textInput('ps-isa-join', p.isa.joinYM, 'YYYY-MM'))}
-        ${p.isa.transfers.map((tx, i) => `
         <div class="ps-isa-transfer-row">
           <div class="ps-setting-row">
-            <label class="ps-setting-label">${i + 1}차 이체 시점</label>
-            <div class="ps-setting-input">${_textInput(`ps-isa-tx-${i}`, tx.ym, 'YYYY-MM')}</div>
+            <label class="ps-setting-label">최초 이체 시점</label>
+            <div class="ps-setting-input">${_textInput('ps-isa-transfer-start', p.isa.transferStartYM, 'YYYY-MM')}</div>
           </div>
+          ${_row('반복 월(매년)', _numInput('ps-isa-transfer-month', p.isa.transferRepeatMonth, 1, 1, 12), '월 — RIA 잔액 0 될 때까지 매년 반복')}
           <div class="ps-setting-row ps-isa-amount-row">
-            <label class="ps-setting-label ps-text3">└ 이체 금액</label>
+            <label class="ps-setting-label ps-text3">└ 최초 이체 금액</label>
             <div class="ps-setting-input">
-              <span class="ps-isa-amount" id="pension-isa-amount-${i}">—</span>
+              <span class="ps-isa-amount" id="pension-isa-amount-0">—</span>
             </div>
           </div>
-        </div>`).join('')}
+        </div>
         ${_row('분리과세 기준선', _numInput('ps-tax-sep', p.tax.separateTaxThreshold, 100000), '원/년')}
       </div>
 
@@ -249,16 +244,11 @@ const PensionSettings = (() => {
 
     // ── ISA 이체 ──
     _bindText('ps-isa-join', v => ({ isa: { joinYM: v } }));
-    const transfers = PensionState.params.isa?.transfers || [];
-    transfers.forEach((_, i) => {
-      _bindText(`ps-isa-tx-${i}`, v => {
-        const txs = PensionState.params.isa.transfers.map((t, j) =>
-          j === i ? { ...t, ym: v } : { ...t }
-        );
-        setTimeout(_updateISAAmounts, 0);
-        return { isa: { transfers: txs } };
-      });
+    _bindText('ps-isa-transfer-start', v => {
+      setTimeout(_updateISAAmounts, 0);
+      return { isa: { transferStartYM: v } };
     });
+    _bindNum('ps-isa-transfer-month', v => ({ isa: { transferRepeatMonth: v } }));
     _bindNum('ps-tax-sep', v => ({ tax: { separateTaxThreshold: v } }));
 
     // ── 인출 설정 (§13) ──
@@ -316,7 +306,8 @@ const PensionSettings = (() => {
     _setVal('ps-pension-base',   p.pension.baseMonthly);
 
     _setVal('ps-isa-join',       p.isa.joinYM);
-    (p.isa.transfers || []).forEach((tx, i) => _setVal(`ps-isa-tx-${i}`, tx.ym));
+    _setVal('ps-isa-transfer-start', p.isa.transferStartYM);
+    _setVal('ps-isa-transfer-month', p.isa.transferRepeatMonth);
     _setVal('ps-tax-sep',        p.tax.separateTaxThreshold);
 
     _setVal('ps-wd-start-age',    p.withdrawal.startAge);

@@ -185,7 +185,8 @@ const PensionWithdrawal = (() => {
       taxFree: 0, taxed: 0, taxedShortfall: 0, taxedExpansion: 0, irp1: 0, irp2: 0, nationalPension: 0,
       pensionLimitHit: false, irp1LimitHit: false, irp2LimitHit: false,
       oDripActive: true, realty: 0, realtyGrossKRW: 0, realtyShares: 0, realtyMonthlyDivUSD: 0,
-      realtyAnnualTotal: 0, realtyComprehensiveRequired: false, realtyComprehensiveSettlement: 0
+      realtyAnnualTotal: 0, realtyComprehensiveRequired: false, realtyComprehensiveSettlement: 0,
+      isaMaturityRiaRemaining: 0
     };
 
     if (psResult && psResult.months) {
@@ -399,6 +400,9 @@ const PensionWithdrawal = (() => {
     }
     if ((wd.taxedExpansion || 0) > 0) {
       warnings.push(`⚠️ 연금저축 확장 인출 중 (IRP1·IRP2 소진, 종합과세 적용, 월 ${Math.round(wd.taxedExpansion / 10000)}만원 추가)`);
+    }
+    if ((wd.isaMaturityRiaRemaining || 0) > 0) {
+      warnings.push(`⚠️ ISA 만기 시점에도 RIA 잔액 ${Math.round(wd.isaMaturityRiaRemaining / 10000)}만원이 남아있습니다. ISA 재가입 여부를 검토하세요.`);
     }
     if (targetAge === 65 || targetAge === 66) {
       warnings.push('국민연금 수급 연령 67세 상향이 논의 중입니다. 개시 연령 변경 시 공백 시나리오를 재검토하세요.');

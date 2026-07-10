@@ -55,13 +55,10 @@ const PS_DEFAULT_PARAMS = {
     baseMonthly: 1000000        // 연금저축 기본 납입 (VOO 분배 외, VOO 소진 후 사용)
   },
   isa: {
-    joinYM:      '2026-03',
-    annualLimit: 20000000,
-    transfers: [
-      { ym: '2027-05' },
-      { ym: '2028-01' },
-      { ym: '2029-01' }
-    ]
+    joinYM:              '2026-03',
+    annualLimit:         20000000,
+    transferStartYM:     '2027-05', // RIA 의무보유 해제(2027-05) 이후 최초 이체 가능 시점
+    transferRepeatMonth: 1          // 최초 이체 이후 매년 이 월에 반복 이체 시도(RIA 잔액 0 될 때까지, ps-engine.js _stepMonth 참고)
   },
   retire: {
     ym:           '2028-12',
