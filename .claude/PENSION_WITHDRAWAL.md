@@ -59,6 +59,28 @@
 |---------|------|----------|---------|---------|
 | `tax.separateTaxThreshold` | 15,000,000원/년 | 종합과세 or 16.5% 분리과세 | 매년 세법 개정안 | 2025: 1,200만→1,500만 상향 |
 
+### 3-2-1. cap15m_thenExpand (조건부 확장 인출, 신규)
+
+**목적**: `cap15m`(기본값)은 IRP1·IRP2 잔액이 남아 있어도 연금저축 과세분을 연 1,500만원(월
+125만원)으로 항상 고정해, IRP 소진 후 연금저축만으로는 목표 생활비를 못 채우는 문제가 있었다.
+`cap15m_thenExpand`는 **IRP1·IRP2가 둘 다 소진된 이후에만** 그 하드캡을 넘겨 연금저축을
+추가로 인출하는 opt-in 모드다 — 기존 `cap15m` 선택자에게는 전혀 영향 없다.
+
+| 항목 | 내용 |
+|------|------|
+| 파라미터 값 | `params.withdrawal.excessMode = 'cap15m_thenExpand'` |
+| 트리거 조건 | 해당 월에 `bal.IRP1 <= 0 && bal.IRP2 <= 0`(둘 다 실제 소진) **그리고** `overallShortfall > 0`(§7-4, 목표 월 인출액 세전 기준 부족분) |
+| 인출 결정 위치 | `js/pension/ps-engine.js` `_stepMonth()` §7-4b (§7-4 이후, §7-5 O DRIP 전환 이전 — 연금저축이 O DRIP 현금전환보다 우선 부족분을 메움) |
+| 인출 상한 | `Math.min(부족분, 연금저축 잔액, §9-9 연금수령한도 잔여분)` — 잔액 소진 시 자동으로 다시 부족 상태 표시(별도 하한 로직 불필요) |
+| 세금 계산 위치 | `js/pension/ps-withdrawal.js` `_expansionComprehensiveTax()` — 기존 §13 문턱효과(`_markExcessYears`, 연 전체 재분류)와 별개. 캡 이내 기본분(`taxedBase`)은 기존 연금소득세율(4.4%/3.3%) 유지, 캡 초과 확장분(`taxedExpansion`)만 종합소득세 누진표(6.6~49.5%, `PS_COMPREHENSIVE_TAX_BRACKETS`)로 한계세율 계산(전체 종합과세액 − 기본분 단독 종합과세액) |
+| 종합과세 합산 범위 | ⚠️ 1차 구현 단순 가정: **사적연금(연금저축) 소득만** 합산. 국민연금·O배당 등 다른 종합소득 항목과는 미합산 — 실제 신고 시 다른 소득과 합산되면 세율 구간이 달라지므로 세무사 확인 필요 |
+| §13-B(O배당 비교과세) 연동 | `_markRealtyComprehensiveSettlement`의 `includePrivate` 조건은 기존대로 `excessMode==='comprehensive'`일 때만 참 — `cap15m_thenExpand` 확장분은 O배당 비교과세의 "다른 종합소득"에 **포함하지 않음**(1차 구현 단순화, 기존 로직 무변경) |
+| 건보료(피부양자 소득) | 기존 `includePrivateInHI` 조건(`isExcessYear && excessMode==='comprehensive'`) 그대로 유지 — `cap15m_thenExpand`는 `isExcessYear` 자체가 false이므로 확장분이 건보 소득 산정에 미포함 |
+| UI | `js/pension/ps-settings.js` "1,500만원 초과 처리방식" 드롭다운 4번째 옵션. §13 안내 문구도 "cap15m/cap15m_thenExpand는 지금과 동일, thenExpand는 IRP 소진 후에만 확장"으로 조건부 표시 |
+
+**cap15m과의 결과 동일성**: IRP1·IRP2 중 하나라도 잔액이 남아있는 동안은 트리거 조건
+자체가 성립하지 않으므로, 그 구간까지는 `cap15m`과 월별 인출·세금·건보료 결과가 완전히 동일하다.
+
 ### 3-3. 금융소득 분리과세 기준 (소득세법 제62조)
 
 | 파라미터 | 현행값 | 초과 시 | 확인 시점 | 변경 이력 |
@@ -326,4 +348,5 @@ PS_DEFAULT_PARAMS
 | 2026-06-29 | 최초 설계 문서 작성. 엑셀 시뮬레이션(v2.7) 분석 반영 | — | 전체 |
 | 2026-07-09 | O(리얼티인컴) DRIP 조건부 전환(IRP1·IRP2 소진 시 재투자→현금인출) 구현. O를 `bal.realty` 서브셋으로 승격, ps-withdrawal.js `_calcODrip` 제거 | 소득세법 제62조(금융소득종합과세) | `realty.*`, §5 신설 |
 | 2026-07-09 | O배당 2,000만원 초과 시 금융소득종합과세(비교과세) 자동 정산 구현(§13-B 신설, §13 excessMode와 독립). `_pensionIncomeDeduction`/`_comprehensiveIncomeTax`를 `ps-withdrawal.js` 전용 함수에서 `ps-config.js`의 `psPensionIncomeDeduction`/`psComprehensiveIncomeTax` 전역 헬퍼로 이동(양쪽 모듈 재사용, 로직 변경 없음). IRP2 실제수령개시 나이 기본값 70→65세 변경. `.ps-select` 오버플로우 CSS 수정 | 소득세법 제62조 | `irp2.withdrawalStartAge`, §13-B 신설, `ps-select`/`ps-setting-row` |
+| 2026-07-10 | `cap15m_thenExpand` excessMode 신규 옵션 구현(§3-2-1 신설) — IRP1·IRP2 둘 다 소진 + 목표 생활비 부족 시에만 연금저축 과세분을 §9-6 하드캡(연 1,500만) 너머로 자동 확장 인출, 확장분만 종합과세 근사(`_expansionComprehensiveTax`, ps-withdrawal.js 신규). 인출액 결정은 `ps-engine.js` `_stepMonth()` §7-4b(§7-4 이후·§7-5 O DRIP 전환 이전), 세금 계산은 `ps-withdrawal.js`가 분리 전담. 기존 §13 문턱효과 `isExcessYear` 판정을 `excessMode!=='cap15m'`에서 `separate16_5`\|`comprehensive` 명시 조건으로 정정(4번째 옵션 추가에 따른 필수 버그 수정, 회귀 아님) | 소득세법 제14조 | `withdrawal.excessMode`(신규값), `withdrawal.taxedExpansion`, §3-2-1 신설 |
 | _(추후 기록)_ | | | |
