@@ -243,6 +243,39 @@
   완료. `rates.IRP2`나 `withdrawal.irp2MonthlyTarget` 등 파라미터 재검토 필요 여부는
   전략 세션에서 논의 필요.
 
+### 5-2. 해외주식 계좌 잔액 매도 (부족분 충당, 구현: `ps-engine.js` `_stepMonth()` §7-6)
+
+Phase2(IRP1·IRP2 소진, `wd.oDripActive===false`) 진입 이후 O 배당 세후 반영까지 마친
+시점에도 `withdrawal.overallShortfall > 0`이면, 해외주식 계좌(`bal.해외주식`, O 포함
+— VOO는 §4에서 별도 관리하므로 매도 대상에서 제외)에서 부족분만큼(잔액 한도 내) 추가
+매도해 인출액(`withdrawal.overseasSale`)에 포함한다.
+
+- **매도 순서**: ①"기타(non-VOO/non-O)" 잔액(`otherNow = bal.해외주식 - bal.VOO -
+  O가치`)을 먼저 소진 → ②그래도 부족하면 O(`bal.realty.shares`)를 비례 차감해 실제로
+  매도. `sellCeiling = otherNow + O가치`(VOO 제외)가 이번 달 매도 가능 상한.
+- **⚠️ 구현상 반드시 지켜야 할 제약(2026-07-17 확인)**: `bal.해외주식`은 VOO·O를 뺀
+  나머지가 매달 파생 재계산되는 구조(§1 `nonVoo = Math.max(0, bal.해외주식 - bal.VOO -
+  priorRealtyKRW)`)라, O(`bal.realty.shares`)를 건드리지 않고 `bal.해외주식`에서
+  매도액을 직접 통째로 빼면 다음 달 파생 계산에서 `nonVoo`가 0으로 클램프되며 차감분이
+  "부활"하는 결함이 있다 — **정적 코드 리뷰로는 발견되지 않고, 여러 달치 상태 전이를
+  실제로 시뮬레이션해야만 드러남**(1차 지시서의 "별도 보정 불필요" 가정이 틀렸음을
+  동적 시뮬레이션으로 확인). 따라서 O 매도분은 `bal.해외주식`을 직접 차감하지 않고
+  `bal.realty.shares`를 줄여 §7-5 하단의 `newRealtyKRW - priorRealtyKRW` 전파 로직이
+  자연스럽게 감소분을 반영하게 한다.
+- **양도소득세 근사**: 신규 파라미터 `overseasSale{costBasisRatio(취득원가율, 기본
+  50%), capitalGainsTaxRate(22%), annualExemption(연 250만원)}`(`ps-config.js`)를
+  사용해 매도차익·과세대상·세금을 근사 계산(`ps-withdrawal.js`에서 표시 전용, 인출액
+  자체는 세전 기준 — 다른 소득원과 동일 패턴). 취득원가율은 실제 평균 매입단가가
+  아닌 근사치이므로 설정 패널에서 사용자가 조정 가능.
+- **검증(node vm, 동적 시뮬레이션)**: `_stepMonth()` 실제 로직을 그대로 재현한 축소
+  스크립트로 6개월 연속 매도 시나리오 확인 — 수정 전(구 §7-6, `bal.해외주식 -=
+  sellAmt` 직접 차감) 코드는 3개월째부터 잔액이 반등(23,781,527→18,803,313→
+  18,864,970원으로 감소 후 증가)하는 결함 재현. 수정판(기타 우선 소진 → O shares
+  비례 차감)은 동일 시나리오에서 잔액이 단조 감소하다 정확히 0에서 멈추고(반등 없음),
+  `otherNow` 소진 이후 `realty.shares`가 매달 실제로 줄어드는 것(272.83→200.32→
+  127.98→55.82→0)을 확인 — O 배당액(`shares×monthlyDivPerShare`)도 구조적으로 다음
+  달마다 자동 감소.
+
 ---
 
 ## 6. 국민연금 파라미터
@@ -351,4 +384,5 @@ PS_DEFAULT_PARAMS
 | 2026-07-09 | O배당 2,000만원 초과 시 금융소득종합과세(비교과세) 자동 정산 구현(§13-B 신설, §13 excessMode와 독립). `_pensionIncomeDeduction`/`_comprehensiveIncomeTax`를 `ps-withdrawal.js` 전용 함수에서 `ps-config.js`의 `psPensionIncomeDeduction`/`psComprehensiveIncomeTax` 전역 헬퍼로 이동(양쪽 모듈 재사용, 로직 변경 없음). IRP2 실제수령개시 나이 기본값 70→65세 변경. `.ps-select` 오버플로우 CSS 수정 | 소득세법 제62조 | `irp2.withdrawalStartAge`, §13-B 신설, `ps-select`/`ps-setting-row` |
 | 2026-07-10 | `cap15m_thenExpand` excessMode 신규 옵션 구현(§3-2-1 신설) — IRP1·IRP2 둘 다 소진 + 목표 생활비 부족 시에만 연금저축 과세분을 §9-6 하드캡(연 1,500만) 너머로 자동 확장 인출, 확장분만 종합과세 근사(`_expansionComprehensiveTax`, ps-withdrawal.js 신규). 인출액 결정은 `ps-engine.js` `_stepMonth()` §7-4b(§7-4 이후·§7-5 O DRIP 전환 이전), 세금 계산은 `ps-withdrawal.js`가 분리 전담. 기존 §13 문턱효과 `isExcessYear` 판정을 `excessMode!=='cap15m'`에서 `separate16_5`\|`comprehensive` 명시 조건으로 정정(4번째 옵션 추가에 따른 필수 버그 수정, 회귀 아님) | 소득세법 제14조 | `withdrawal.excessMode`(신규값), `withdrawal.taxedExpansion`, §3-2-1 신설 |
 | 2026-07-10 | ISA 만기(§7-6, `wd.isaConverted`) 이후에도 §7-4 VOO 매도 3순위 분배("나머지 ISA")가 가드 없이 계속 실행되어 ISA 잔액이 영구 잔존·복리성장하던 버그 수정. 만기 이후 3순위 배분분은 해외주식(일반 과세) 계좌로 대체 귀속(`bal.해외주식 += remaining`, VOO와 동일하게 해외주식 계좌 서브셋 취급) + `wd.isaPostMaturityVooRedirect` 누계 추적. 발생 시 `ps-withdrawal.js` 경고("ISA 만기 이후 VOO 배분 XXX만원이 해외주식 계좌로 대체 귀속되었습니다") 표시. 계좌 간 재배치일 뿐 총자산 총합은 버그 수정 전후 동일 | — (자산 배분 로직 버그) | `ps-engine.js` §7-4 두 분배 분기(정상/급락), `_wdInitial()`, `wd.isaPostMaturityVooRedirect`(신규) |
+| 2026-07-17 | Phase2(IRP1·IRP2 소진) 이후 O 배당만으로 생활비 부족분을 못 메우는 문제 수정 — 해외주식 계좌 잔액(O 포함, VOO 제외)에서 부족분만큼 추가 매도(§5-2 신설). 취득원가율(기본 50%)·세율(22%)·연 250만원 공제로 양도소득세 근사(`overseasSale` 파라미터 신규). 구현 중 동적 시뮬레이션(정적 리뷰로는 미발견)으로 `bal.해외주식`을 직접 차감하면 다음 달 `nonVoo` 파생 재계산이 차감분을 "부활"시키는 결함을 발견 — "기타 잔액 우선 소진 → O(`bal.realty.shares`) 비례 차감" 방식으로 우회(`bal.해외주식`은 §7-5 하단 `newRealtyKRW-priorRealtyKRW` 전파로만 반영) | 소득세법 제118조의5·제118조의7(해외주식 양도소득세·기본공제) | `ps-config.js` `overseasSale`(신규), `ps-engine.js` §7-6 신설·`_wdInitial()`, `ps-withdrawal.js` 소득원/경고, `ps-settings.js` 설정 카드, §5-2 신설 |
 | _(추후 기록)_ | | | |

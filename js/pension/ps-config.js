@@ -130,6 +130,15 @@ const PS_DEFAULT_PARAMS = {
     financialIncomeLimit: 20000000   // 금융소득 연간 상한 (원, 소득세법 제62조)
   },
 
+  // ── 해외주식 계좌 잔액 매도 (PENSION_WITHDRAWAL.md §5-2) ──────────────────
+  // Phase2(IRP1·IRP2 소진) 이후 O 배당만으로 부족분을 못 메우면 해외주식 계좌
+  // (O 포함)에서 추가 매도. costBasisRatio는 실제 평균 매입단가가 아닌 근사치.
+  overseasSale: {
+    costBasisRatio:      0.5,        // 취득원가율(매도액 대비 원가 비율, 실제 평균 매입단가 확인 후 조정 필요)
+    capitalGainsTaxRate: 0.22,       // 해외주식 양도소득세율(지방세 포함, 소득세법 제118조의5)
+    annualExemption:     2500000     // 해외주식 양도소득 연 기본공제(원/년, 소득세법 제118조의7)
+  },
+
   // ── 계획선 기준 잔액 (PS_START_YM 직전 월인 2025-12 역산값) ──────────────
   // plan 선이 Firebase 최신 데이터(initialBalances)에서 출발하면
   // _stepMonth('2026-01') 적용 후 plan[0] = actual[0] + 1달 성장분 차이가 발생.

@@ -191,6 +191,19 @@ const PensionSettings = (() => {
         </div>
       </div>
 
+      <!-- 고급 설정: 해외주식 매도 (부족분 충당) -->
+      <div class="ps-card ps-advanced-card">
+        <button class="ps-advanced-toggle" id="ps-toggle-overseas-sale">
+          <span>해외주식 매도 (부족분 충당)</span>
+          <span class="ps-toggle-arrow">▼</span>
+        </button>
+        <div class="ps-advanced-body" id="ps-body-overseas-sale">
+          ${_row('취득원가율', _numInput('ps-os-cost-ratio', (p.overseasSale.costBasisRatio * 100).toFixed(0), 1, 0, 100), '% (매도액 대비 원가)')}
+          ${_row('양도소득세율', _numInput('ps-os-tax-rate', _pct(p.overseasSale.capitalGainsTaxRate), 0.1, 0, 50), '%')}
+          ${_row('연간 기본공제', _numInput('ps-os-exempt', p.overseasSale.annualExemption, 100000), '원/년')}
+        </div>
+      </div>
+
       <!-- 고급 설정: 초기값 / 고정값 -->
       <div class="ps-card ps-advanced-card">
         <button class="ps-advanced-toggle" id="ps-toggle-init">
@@ -275,6 +288,11 @@ const PensionSettings = (() => {
     _bindNum('ps-prop-raise', v => ({ property: { annualRaise: v / 100 } }));
     _bindNum('ps-prop-ratio', v => ({ property: { ownershipRatio: v / 100 } }));
 
+    // ── 해외주식 매도 (부족분 충당) ──
+    _bindNum('ps-os-cost-ratio', v => ({ overseasSale: { costBasisRatio: v / 100 } }));
+    _bindNum('ps-os-tax-rate',   v => ({ overseasSale: { capitalGainsTaxRate: v / 100 } }));
+    _bindNum('ps-os-exempt',     v => ({ overseasSale: { annualExemption: v } }));
+
     // ── 고정값 (퇴직/국민연금) ──
     _bindText('ps-retire-ym',    v => ({ retire: { ym: v } }));
     _bindNum('ps-retire-pay',    v => ({ retire: { severancePay: v } }));
@@ -284,6 +302,7 @@ const PensionSettings = (() => {
     // ── 고급 설정 토글 ──
     _bindToggle('ps-toggle-tax',      'ps-body-tax');
     _bindToggle('ps-toggle-property', 'ps-body-property');
+    _bindToggle('ps-toggle-overseas-sale', 'ps-body-overseas-sale');
     _bindToggle('ps-toggle-init',     'ps-body-init');
   }
 
@@ -331,6 +350,10 @@ const PensionSettings = (() => {
     _setVal('ps-prop-price',     p.property.publicPrice);
     _setVal('ps-prop-raise',     _pct(p.property.annualRaise));
     _setVal('ps-prop-ratio',     (p.property.ownershipRatio * 100).toFixed(0));
+
+    _setVal('ps-os-cost-ratio', (p.overseasSale.costBasisRatio * 100).toFixed(0));
+    _setVal('ps-os-tax-rate',   _pct(p.overseasSale.capitalGainsTaxRate));
+    _setVal('ps-os-exempt',     p.overseasSale.annualExemption);
 
     _setVal('ps-retire-ym',      p.retire.ym);
     _setVal('ps-retire-pay',     p.retire.severancePay);
