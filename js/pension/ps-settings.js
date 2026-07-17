@@ -167,8 +167,9 @@ const PensionSettings = (() => {
         </button>
         <div class="ps-advanced-body" id="ps-body-tax">
           ${_row('세액공제율',         _numInput('ps-tax-deduct',    _pct(p.tax.deductRate),    0.1, 0, 50),   '%')}
-          ${_row('연금세율 (60~69세)', _numInput('ps-tax-rate6069',  _pct(p.tax.rate6069),      0.1, 0, 50),   '%')}
-          ${_row('연금세율 (70세~)',   _numInput('ps-tax-rate70',    _pct(p.tax.rate70),        0.1, 0, 50),   '%')}
+          ${_row('연금세율 (55~69세)', _numInput('ps-tax-rate5569',  _pct(p.tax.rate5569),      0.1, 0, 50),   '%')}
+          ${_row('연금세율 (70~79세)', _numInput('ps-tax-rate7079',  _pct(p.tax.rate7079),      0.1, 0, 50),   '%')}
+          ${_row('연금세율 (80세~)',   _numInput('ps-tax-rate80',    _pct(p.tax.rate80),        0.1, 0, 50),   '%')}
           ${_row('건보료율',           _numInput('ps-hi-rate',       _pct(p.healthInsurance.rate), 0.01, 0, 30), '%')}
           ${_row('건보료 연간상승률',  _numInput('ps-hi-raise',      _pct(p.healthInsurance.annualRaise), 0.1, 0, 20), '%/년')}
           ${_row('장기요양보험료율',   _numInput('ps-ltc-rate',      _pct(p.healthInsurance.ltcRate), 0.1, 0, 50), '% (건보료 대비)')}
@@ -260,8 +261,9 @@ const PensionSettings = (() => {
 
     // ── 세율 & 건보료 ──
     _bindNum('ps-tax-deduct',    v => ({ tax: { deductRate: v / 100 } }));
-    _bindNum('ps-tax-rate6069',  v => ({ tax: { rate6069: v / 100 } }));
-    _bindNum('ps-tax-rate70',    v => ({ tax: { rate70: v / 100 } }));
+    _bindNum('ps-tax-rate5569',  v => ({ tax: { rate5569: v / 100 } }));
+    _bindNum('ps-tax-rate7079',  v => ({ tax: { rate7079: v / 100 } }));
+    _bindNum('ps-tax-rate80',    v => ({ tax: { rate80: v / 100 } }));
     _bindNum('ps-hi-rate',       v => ({ healthInsurance: { rate: v / 100 } }));
     _bindNum('ps-hi-raise',      v => ({ healthInsurance: { annualRaise: v / 100 } }));
     _bindNum('ps-ltc-rate',      v => ({ healthInsurance: { ltcRate: v / 100 } }));
@@ -317,8 +319,9 @@ const PensionSettings = (() => {
     _setVal('ps-wd-irp2-start-age', p.irp2.withdrawalStartAge);
 
     _setVal('ps-tax-deduct',     _pct(p.tax.deductRate));
-    _setVal('ps-tax-rate6069',   _pct(p.tax.rate6069));
-    _setVal('ps-tax-rate70',     _pct(p.tax.rate70));
+    _setVal('ps-tax-rate5569',   _pct(p.tax.rate5569));
+    _setVal('ps-tax-rate7079',   _pct(p.tax.rate7079));
+    _setVal('ps-tax-rate80',     _pct(p.tax.rate80));
     _setVal('ps-hi-rate',        _pct(p.healthInsurance.rate));
     _setVal('ps-hi-raise',       _pct(p.healthInsurance.annualRaise));
     _setVal('ps-ltc-rate',       _pct(p.healthInsurance.ltcRate));
