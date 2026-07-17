@@ -609,7 +609,8 @@ const PensionEngine = (() => {
 
     const withdrawal = {
       taxFree: 0, taxed: 0, taxedShortfall: 0, taxedExpansion: 0, irp1: 0, irp2: 0, nationalPension: 0,
-      pensionLimitHit: false, irp1LimitHit: false, irp2LimitHit: false
+      pensionLimitHit: false, irp1LimitHit: false, irp2LimitHit: false,
+      overseasSale: 0, overseasSaleTax: 0
     };
 
     const withdrawStartYM = _ymMax(
@@ -786,6 +787,54 @@ const PensionEngine = (() => {
       // 현금인출 구간: shares 고정, 세후 배당을 생활비 부족분에 반영 (financialIncomeLimit 캡 미적용)
       withdrawal.realty = Math.round(realtyAfterTaxUSD * realtyFxRate);
       withdrawal.overallShortfall = Math.max(0, withdrawal.overallShortfall - withdrawal.realty);
+    }
+
+    // 7-6. 해외주식 계좌 잔액 매도 (VOO 제외 — VOO는 §4에서 별도 관리) —
+    // Phase2(IRP1·IRP2 소진, oDripActive=false) 이후에도 O 배당만으로 부족분을 못 메우면
+    // "기타(non-VOO/non-O)" 잔액을 먼저 소진하고, 그래도 부족하면 O(bal.realty.shares)를
+    // 비례 차감해 실제로 매도한다.
+    // ⚠️ bal.해외주식은 VOO·O를 뺀 나머지가 매달 파생 재계산되는 구조(§1 nonVoo)라,
+    // O를 건드리지 않고 총액만 깎으면 다음 달 파생 계산에서 nonVoo가 0으로 클램프되며
+    // 차감분이 "부활"하는 결함이 있음(2026-07-17 동적 시뮬레이션으로 확인, 정적 리뷰로는
+    // 발견 안 됨). 반드시 아래 방식(기타 우선 소진 → O shares 비례 차감)으로 구현할 것 —
+    // bal.해외주식을 sellAmt만큼 직접 빼는 방식은 금지.
+    if (!wd.oDripActive && withdrawal.overallShortfall > 0) {
+      const otherNow    = Math.max(0, bal.해외주식 - bal.VOO - priorRealtyKRW);
+      const sellCeiling = otherNow + priorRealtyKRW;   // VOO 제외
+      const sellAmt     = Math.min(withdrawal.overallShortfall, sellCeiling);
+
+      if (sellAmt > 0) {
+        const fromOther  = Math.min(sellAmt, otherNow);
+        const fromRealty = sellAmt - fromOther;
+
+        // 기타 잔액분 — 안전 범위(otherNow) 내 직접 차감, 부활 문제 없음
+        if (fromOther > 0) bal.해외주식 -= fromOther;
+
+        // O 지분 실제 매도 — shares 비례 차감. bal.해외주식은 여기서 직접 건드리지 않고
+        // 파일 하단 "newRealtyKRW - priorRealtyKRW" 반영 로직이 감소분을 전파하게 둔다.
+        if (fromRealty > 0 && priorRealtyKRW > 0) {
+          const sellRatio = Math.min(1, fromRealty / priorRealtyKRW);
+          realty.shares *= (1 - sellRatio);
+        }
+
+        const saleYr = _year(ym);
+        if (saleYr !== wd.overseasSaleYear) {
+          wd.overseasSaleYear     = saleYr;
+          wd.overseasSaleGainYear = 0;
+        }
+        const os              = params.overseasSale || {};
+        const costBasisRatio  = os.costBasisRatio ?? 0.5;
+        const gain            = sellAmt * (1 - costBasisRatio);
+        const exemption       = os.annualExemption ?? 2500000;
+        const exemptRemaining = Math.max(0, exemption - wd.overseasSaleGainYear);
+        const taxableGain     = Math.max(0, gain - exemptRemaining);
+        const taxRate          = os.capitalGainsTaxRate ?? 0.22;
+
+        wd.overseasSaleGainYear += gain;
+        withdrawal.overseasSale     = sellAmt;
+        withdrawal.overseasSaleTax  = Math.round(taxableGain * taxRate);
+        withdrawal.overallShortfall = Math.max(0, withdrawal.overallShortfall - sellAmt);
+      }
     }
 
     // 연간 배당 총액(세전) 누계 — 건보료·종합과세 판정용(재투자 구간 포함 항상 기록)
@@ -984,7 +1033,9 @@ const PensionEngine = (() => {
       oDripActive:        true,  // O(리얼티인컴) DRIP 재투자 활성 여부 (§5), 기본 true — IRP1·IRP2 소진 후 false로 영구 전환
       oDripYear:          0,
       oDripYearlyGross:   0,
-      isaPostMaturityVooRedirect: 0  // ISA 만기 이후 VOO 3순위 배분분이 해외주식 계좌로 대체 귀속된 누계
+      isaPostMaturityVooRedirect: 0,  // ISA 만기 이후 VOO 3순위 배분분이 해외주식 계좌로 대체 귀속된 누계
+      overseasSaleYear:     0,
+      overseasSaleGainYear: 0   // 연간 누적 양도차익(250만원 공제 소진 추적용)
     };
   }
 

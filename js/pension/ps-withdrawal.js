@@ -186,7 +186,8 @@ const PensionWithdrawal = (() => {
       pensionLimitHit: false, irp1LimitHit: false, irp2LimitHit: false,
       oDripActive: true, realty: 0, realtyGrossKRW: 0, realtyShares: 0, realtyMonthlyDivUSD: 0,
       realtyAnnualTotal: 0, realtyComprehensiveRequired: false, realtyComprehensiveSettlement: 0,
-      isaMaturityRiaRemaining: 0, isaPostMaturityVooRedirect: 0
+      isaMaturityRiaRemaining: 0, isaPostMaturityVooRedirect: 0,
+      overseasSale: 0, overseasSaleTax: 0
     };
 
     if (psResult && psResult.months) {
@@ -321,6 +322,19 @@ const PensionWithdrawal = (() => {
       });
     }
 
+    // 해외주식 계좌 잔액 매도 — O 배당만으로 부족분을 못 메우면 발생(§5-2, ps-engine.js §7-6).
+    // 매도액 자체는 엔진이 이미 확정한 값(wd.overseasSale) 그대로 사용, 세금만 표시.
+    if (wd.overseasSale > 0) {
+      const os = params.overseasSale || {};
+      sources.push({
+        name: '해외주식 매도',
+        monthly: wd.overseasSale,
+        tax: wd.overseasSaleTax || 0,
+        net: wd.overseasSale - (wd.overseasSaleTax || 0),
+        note: `양도소득세 근사 적용(취득원가율 ${Math.round((os.costBasisRatio ?? 0.5) * 100)}%, 세율 ${Math.round((os.capitalGainsTaxRate ?? 0.22) * 100)}%, 연 250만원 공제) · 세무사 확인 필요`
+      });
+    }
+
     // ③-2 §13: 사적연금 1,500만원 초과 문턱효과 — excessMode!=='cap15m' && 해당 연도 초과 시
     // taxed/irp1/irp2(+comprehensive는 국민연금도) 소스 전액을 다른 방식으로 재과세.
     // wd.excessTriggeredYear/excessAnnualTotal은 ps-engine.js _markExcessYears()가 연도별로
@@ -397,6 +411,12 @@ const PensionWithdrawal = (() => {
     }
     if (!oDripActive) {
       warnings.push('⚠️ IRP1·IRP2 소진으로 O(리얼티인컴) 배당이 재투자에서 현금인출로 전환됐습니다. 이후 배당은 다른 소득과 합산해 종합과세 근사 적용 중이며, 실제 세무 신고 시점엔 세무사 확인이 필요합니다.');
+    }
+    if (wd.overseasSale > 0) {
+      warnings.push(`⚠️ O 배당만으로 부족해 해외주식 계좌에서 월 ${Math.round(wd.overseasSale / 10000)}만원을 추가 매도했습니다 (취득원가율 근사 적용, 세무사 확인 필요).`);
+    }
+    if (balances.해외주식 <= 0 && wd.overseasSale > 0) {
+      warnings.push('⚠️ 해외주식 계좌 잔액이 모두 소진되었습니다.');
     }
     if ((wd.taxedExpansion || 0) > 0) {
       warnings.push(`⚠️ 연금저축 확장 인출 중 (IRP1·IRP2 소진, 종합과세 적용, 월 ${Math.round(wd.taxedExpansion / 10000)}만원 추가)`);
