@@ -449,11 +449,20 @@ function renderKiwoom() {
 function updateBarChart(latest, AI) {
   if (!barChart) return;
   const IRP_LABEL_B = { '퇴직연금001':'IRP 1', '퇴직연금002':'IRP 2' };
-  const investData  = MAIN_ACCOUNTS.map(a => {
-    if (a === 'RIA') return (latest.eval[AI['RIA']] > 0) ? (state['ria']?.investVal || 0) : 0;
-    return _adjInvest(latest, AI[a]);
+  const th  = kiData.tossHistory || {};
+  const ev  = _evalWithToss(latest, th);
+  const inv = _investWithToss(latest, th);
+  const riaInvest  = state['ria']?.investVal || 0;
+  const riaStartYm = state['ria']?.riaStartYm || '2026-03';
+  const afterRia   = (latest.date?.slice(0, 7) || '') >= riaStartYm;
+
+  const investData = MAIN_ACCOUNTS.map(a => {
+    if (a === 'RIA') return (ev[AI['RIA']] > 0) ? riaInvest : 0;
+    const raw = inv[AI[a]] || 0;
+    return a === '해외' ? raw - (afterRia ? riaInvest : 0) : raw;
   });
-  const evalData   = MAIN_ACCOUNTS.map(a => latest.eval[AI[a]] || 0);
+  const evalData = MAIN_ACCOUNTS.map(a => ev[AI[a]] || 0);
+
   barChart.data.labels = MAIN_ACCOUNTS.map(a => IRP_LABEL_B[a] || a);
   barChart.data.datasets[0].data = investData;
   barChart.data.datasets[1].data = evalData;
