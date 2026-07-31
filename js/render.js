@@ -318,12 +318,26 @@ function renderKiwoom() {
   if (!kiData || !kiData.combined || kiData.combined.length === 0) return;
   const latest = kiData.combined[kiData.combined.length - 1];
   const prev   = kiData.combined.length > 1 ? kiData.combined[kiData.combined.length - 2] : null;
-  const AI = AI_IDX;
+  const AI  = AI_IDX;
+  const th_ = kiData.tossHistory || {};
+  const latestEv  = _evalWithToss(latest, th_);
+  const latestInv = _investWithToss(latest, th_);
+  const riaInvest  = state['ria']?.investVal || 0;
+  const riaStartYm = state['ria']?.riaStartYm || '2026-03';
+  const afterRia   = (latest.date?.slice(0, 7) || '') >= riaStartYm;
+
   let totalInvest = 0, totalEval = 0;
   MAIN_ACCOUNTS.forEach(a => {
     const i = AI[a];
-    totalInvest += _adjInvest(latest, i);
-    totalEval   += latest.eval[i] || 0;
+    let inv;
+    if (a === 'RIA') {
+      inv = (latestEv[i] > 0) ? riaInvest : 0;
+    } else {
+      const raw = latestInv[i] || 0;
+      inv = a === '해외' ? raw - (afterRia ? riaInvest : 0) : raw;
+    }
+    totalInvest += inv;
+    totalEval   += latestEv[i] || 0;
   });
 
   const totalPnl = totalEval - totalInvest;
@@ -331,9 +345,7 @@ function renderKiwoom() {
   const pctClass = totalPct >= 0 ? 'pct-pos' : 'pct-neg';
   let momEval = 0;
   if (prev) {
-    const th_      = kiData.tossHistory || {};
-    const latestEv = _evalWithToss(latest, th_);
-    const prevEv   = _evalWithToss(prev,   th_);
+    const prevEv = _evalWithToss(prev, th_);
     MAIN_ACCOUNTS.forEach(a => { const i = AI[a]; momEval += (latestEv[i] || 0) - (prevEv[i] || 0); });
   }
 
