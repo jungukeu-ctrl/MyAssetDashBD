@@ -341,6 +341,20 @@ const PensionTable = (() => {
     const saveBtn = document.getElementById('pension-contrib-save');
     const loadBtn = document.getElementById('pension-contrib-load');
 
+    // 대상 월 변경 시 해당 월 저장값으로 폼 필드 자동 리로드
+    const _fillFormFromYm = (ym) => {
+      const row = _contributions()[ym] || {};
+      CONTRIBUTION_ACCOUNTS.forEach(k => {
+        const el = document.getElementById(`pension-contrib-${k}`);
+        if (el) el.value = _fmtInput(row[k]);
+      });
+      const riaInput = document.getElementById('pension-contrib-ria');
+      if (riaInput) riaInput.value = _fmtRiaInput(row.riaExternalPurchase);
+      const memo = document.getElementById('pension-contrib-memo');
+      if (memo) memo.value = row.memo || '';
+    };
+    if (ymEl) ymEl.addEventListener('input', () => _fillFormFromYm(ymEl.value));
+
     const refreshStatus = () => {
       const ym = ymEl?.value || _latestEditableMonth(result);
       const patch = _readFormPatch();
