@@ -140,11 +140,31 @@ const PensionTable = (() => {
     return missing;
   }
 
+  // RIA 세액 계산 3단계(공제금액/과세표준/세액)를 "입력값 연산 = 결과값" 형태로 조립
+  // — 초기 렌더(_renderRiaCard)와 실시간 미리보기(refreshRiaPreview)가 공유
+  function _riaTaxLines(calc) {
+    const basicDeduction = PS_RIA_TAX_BENEFIT.basicDeduction ?? 2500000;
+    const taxRatePct = Math.round((PS_RIA_TAX_BENEFIT.capitalGainsTaxRate ?? 0.22) * 100);
+    const pctStr = (calc.finalDeductionRate * 100).toFixed(1);
+    const preFloor = calc.taxableBeforeBasicDeduction - basicDeduction;
+    const floored = preFloor < 0;
+
+    return {
+      benefit: `RIA 최종 공제금액: ${_fmtWon(calc.gain)} × ${pctStr}% = <strong id="pension-ria-benefit">${_fmtWon(calc.adjustedBenefitAmount)}</strong>`,
+      taxBase: `과세표준: ${_fmtWon(calc.gain)} − ${_fmtWon(calc.adjustedBenefitAmount)} − ${_fmtWon(basicDeduction)} = ${_fmtWon(preFloor)}`
+        + (floored
+          ? ` → <strong id="pension-ria-taxbase">0원</strong>(음수는 0원 처리)`
+          : ` → <strong id="pension-ria-taxbase">${_fmtWon(calc.taxBase)}</strong>`),
+      tax: `예상 양도소득세: ${_fmtWon(calc.taxBase)} × ${taxRatePct}% = <strong id="pension-ria-tax" class="ps-negative">${_fmtWon(calc.estimatedTax)}</strong>`
+    };
+  }
+
   function _renderRiaCard(contributions) {
     const purchases = _riaPurchaseMap(contributions);
     const calc = PensionEngine.calcRiaCapitalGainsTax(purchases);
     const missing = _missingRiaMonths(contributions);
     const pctStr = (calc.finalDeductionRate * 100).toFixed(1);
+    const lines = _riaTaxLines(calc);
 
     return `
       <div class="ps-card ps-limit-card">
@@ -154,9 +174,9 @@ const PensionTable = (() => {
           <li id="pension-ria-detail">가중 순매수액 <strong>${_fmtWon(calc.weightedTotal)}</strong> · 조정비율 <strong>${(calc.adjustRatio * 100).toFixed(1)}%</strong></li>
           <li>RIA 매도금액(분모): <strong>${_fmtWon(PS_RIA_TAX_BENEFIT.saleAmount)}</strong></li>
           <li>매도차익(양도소득): <strong id="pension-ria-gain">${_fmtWon(calc.gain)}</strong></li>
-          <li>RIA 최종 공제금액: <strong id="pension-ria-benefit">${_fmtWon(calc.adjustedBenefitAmount)}</strong></li>
-          <li>과세표준(기본공제 250만원 반영): <strong id="pension-ria-taxbase">${_fmtWon(calc.taxBase)}</strong></li>
-          <li>예상 양도소득세(22%): <strong id="pension-ria-tax" class="ps-negative">${_fmtWon(calc.estimatedTax)}</strong></li>
+          <li id="pension-ria-benefit-line">${lines.benefit}</li>
+          <li id="pension-ria-taxbase-line">${lines.taxBase}</li>
+          <li id="pension-ria-tax-line">${lines.tax}</li>
           <li>RIA 미이용 시 예상세액: <strong id="pension-ria-notax">${_fmtWon(calc.estimatedTaxNoRia)}</strong></li>
           <li>절감액: <strong id="pension-ria-saved" class="ps-positive">${_fmtWon(calc.savedTax)}</strong></li>
         </ul>
@@ -392,12 +412,13 @@ const PensionTable = (() => {
       }
       const gainEl = document.getElementById('pension-ria-gain');
       if (gainEl) gainEl.textContent = _fmtWon(calc.gain);
-      const benefitEl = document.getElementById('pension-ria-benefit');
-      if (benefitEl) benefitEl.textContent = _fmtWon(calc.adjustedBenefitAmount);
-      const taxBaseEl = document.getElementById('pension-ria-taxbase');
-      if (taxBaseEl) taxBaseEl.textContent = _fmtWon(calc.taxBase);
-      const taxEl = document.getElementById('pension-ria-tax');
-      if (taxEl) taxEl.textContent = _fmtWon(calc.estimatedTax);
+      const lines = _riaTaxLines(calc);
+      const benefitLineEl = document.getElementById('pension-ria-benefit-line');
+      if (benefitLineEl) benefitLineEl.innerHTML = lines.benefit;
+      const taxBaseLineEl = document.getElementById('pension-ria-taxbase-line');
+      if (taxBaseLineEl) taxBaseLineEl.innerHTML = lines.taxBase;
+      const taxLineEl = document.getElementById('pension-ria-tax-line');
+      if (taxLineEl) taxLineEl.innerHTML = lines.tax;
       const noTaxEl = document.getElementById('pension-ria-notax');
       if (noTaxEl) noTaxEl.textContent = _fmtWon(calc.estimatedTaxNoRia);
       const savedEl = document.getElementById('pension-ria-saved');
