@@ -141,6 +141,37 @@ const PensionEngine = (() => {
     return { weightedTotal, adjustRatio, finalDeductionRate };
   }
 
+  /**
+   * RIA 매도대금 기준 예상 양도소득세 계산
+   * (매도차익이 아닌 매도대금에 최종공제율을 적용하는 RIA 제도 구조 반영)
+   * @param {object} monthlyNetPurchases  calcRiaAdjustedDeduction와 동일 입력
+   * @param {object} [riaConfig]          PS_RIA_TAX_BENEFIT 구조 (기본값: PS_RIA_TAX_BENEFIT)
+   * @returns {{ weightedTotal:number, adjustRatio:number, finalDeductionRate:number,
+   *             saleAmount:number, adjustedBenefitAmount:number, taxableBeforeBasicDeduction:number,
+   *             taxBase:number, estimatedTax:number, taxBaseNoRia:number, estimatedTaxNoRia:number, savedTax:number }}
+   */
+  function calcRiaCapitalGainsTax(monthlyNetPurchases, riaConfig) {
+    const cfg = riaConfig || PS_RIA_TAX_BENEFIT;
+    const { weightedTotal, adjustRatio, finalDeductionRate } = calcRiaAdjustedDeduction(monthlyNetPurchases, cfg);
+    const saleAmount = cfg.saleAmount || 0;
+    const basicDeduction = cfg.basicDeduction ?? 2500000;
+    const taxRate = cfg.capitalGainsTaxRate ?? 0.22;
+
+    const adjustedBenefitAmount = saleAmount * finalDeductionRate;
+    const taxableBeforeBasicDeduction = saleAmount - adjustedBenefitAmount;
+    const taxBase = Math.max(0, taxableBeforeBasicDeduction - basicDeduction);
+    const estimatedTax = taxBase * taxRate;
+
+    const taxBaseNoRia = Math.max(0, saleAmount - basicDeduction);
+    const estimatedTaxNoRia = taxBaseNoRia * taxRate;
+
+    return {
+      weightedTotal, adjustRatio, finalDeductionRate, saleAmount,
+      adjustedBenefitAmount, taxableBeforeBasicDeduction, taxBase, estimatedTax,
+      taxBaseNoRia, estimatedTaxNoRia, savedTax: estimatedTaxNoRia - estimatedTax
+    };
+  }
+
   // ─── 메인 엔진 ──────────────────────────────────────────────────────────────
 
   /**
@@ -1063,6 +1094,6 @@ const PensionEngine = (() => {
 
   // ─── 공개 API ────────────────────────────────────────────────────────────────
 
-  return { run, calcISATransfer, calcRiaAdjustedDeduction };
+  return { run, calcISATransfer, calcRiaAdjustedDeduction, calcRiaCapitalGainsTax };
 
 })();
