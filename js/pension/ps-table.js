@@ -142,7 +142,7 @@ const PensionTable = (() => {
 
   function _renderRiaCard(contributions) {
     const purchases = _riaPurchaseMap(contributions);
-    const calc = PensionEngine.calcRiaAdjustedDeduction(purchases);
+    const calc = PensionEngine.calcRiaCapitalGainsTax(purchases);
     const missing = _missingRiaMonths(contributions);
     const pctStr = (calc.finalDeductionRate * 100).toFixed(1);
 
@@ -153,6 +153,11 @@ const PensionTable = (() => {
         <ul class="ps-limit-list">
           <li id="pension-ria-detail">가중 순매수액 <strong>${_fmtWon(calc.weightedTotal)}</strong> · 조정비율 <strong>${(calc.adjustRatio * 100).toFixed(1)}%</strong></li>
           <li>RIA 매도금액(분모): <strong>${_fmtWon(PS_RIA_TAX_BENEFIT.saleAmount)}</strong></li>
+          <li>환산 RIA 혜택금액: <strong id="pension-ria-benefit">${_fmtWon(calc.adjustedBenefitAmount)}</strong></li>
+          <li>과세표준(기본공제 250만원 반영): <strong id="pension-ria-taxbase">${_fmtWon(calc.taxBase)}</strong></li>
+          <li>예상 양도소득세(22%): <strong id="pension-ria-tax" class="ps-negative">${_fmtWon(calc.estimatedTax)}</strong></li>
+          <li>RIA 미이용 시 예상세액: <strong id="pension-ria-notax">${_fmtWon(calc.estimatedTaxNoRia)}</strong></li>
+          <li>절감액: <strong id="pension-ria-saved" class="ps-positive">${_fmtWon(calc.savedTax)}</strong></li>
         </ul>
         <div id="pension-ria-warning" class="ps-limit-msg ${missing.length ? 'ps-limit-warning' : 'ps-limit-ok'}">
           ${missing.length
@@ -363,13 +368,23 @@ const PensionTable = (() => {
       } else {
         delete purchases[ym];
       }
-      const calc = PensionEngine.calcRiaAdjustedDeduction(purchases);
+      const calc = PensionEngine.calcRiaCapitalGainsTax(purchases);
       const rateEl = document.getElementById('pension-ria-rate');
       if (rateEl) rateEl.textContent = `${(calc.finalDeductionRate * 100).toFixed(1)}%`;
       const detailEl = document.getElementById('pension-ria-detail');
       if (detailEl) {
         detailEl.innerHTML = `가중 순매수액 <strong>${_fmtWon(calc.weightedTotal)}</strong> · 조정비율 <strong>${(calc.adjustRatio * 100).toFixed(1)}%</strong>`;
       }
+      const benefitEl = document.getElementById('pension-ria-benefit');
+      if (benefitEl) benefitEl.textContent = _fmtWon(calc.adjustedBenefitAmount);
+      const taxBaseEl = document.getElementById('pension-ria-taxbase');
+      if (taxBaseEl) taxBaseEl.textContent = _fmtWon(calc.taxBase);
+      const taxEl = document.getElementById('pension-ria-tax');
+      if (taxEl) taxEl.textContent = _fmtWon(calc.estimatedTax);
+      const noTaxEl = document.getElementById('pension-ria-notax');
+      if (noTaxEl) noTaxEl.textContent = _fmtWon(calc.estimatedTaxNoRia);
+      const savedEl = document.getElementById('pension-ria-saved');
+      if (savedEl) savedEl.textContent = _fmtWon(calc.savedTax);
     };
 
     [ymEl, riaEl].filter(Boolean).forEach(el => el.addEventListener('input', refreshRiaPreview));
