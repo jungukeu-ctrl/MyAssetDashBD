@@ -153,7 +153,8 @@ const PensionTable = (() => {
         <ul class="ps-limit-list">
           <li id="pension-ria-detail">가중 순매수액 <strong>${_fmtWon(calc.weightedTotal)}</strong> · 조정비율 <strong>${(calc.adjustRatio * 100).toFixed(1)}%</strong></li>
           <li>RIA 매도금액(분모): <strong>${_fmtWon(PS_RIA_TAX_BENEFIT.saleAmount)}</strong></li>
-          <li>환산 RIA 혜택금액: <strong id="pension-ria-benefit">${_fmtWon(calc.adjustedBenefitAmount)}</strong></li>
+          <li>매도차익(양도소득): <strong id="pension-ria-gain">${_fmtWon(calc.gain)}</strong></li>
+          <li>RIA 최종 공제금액: <strong id="pension-ria-benefit">${_fmtWon(calc.adjustedBenefitAmount)}</strong></li>
           <li>과세표준(기본공제 250만원 반영): <strong id="pension-ria-taxbase">${_fmtWon(calc.taxBase)}</strong></li>
           <li>예상 양도소득세(22%): <strong id="pension-ria-tax" class="ps-negative">${_fmtWon(calc.estimatedTax)}</strong></li>
           <li>RIA 미이용 시 예상세액: <strong id="pension-ria-notax">${_fmtWon(calc.estimatedTaxNoRia)}</strong></li>
@@ -389,6 +390,8 @@ const PensionTable = (() => {
       if (detailEl) {
         detailEl.innerHTML = `가중 순매수액 <strong>${_fmtWon(calc.weightedTotal)}</strong> · 조정비율 <strong>${(calc.adjustRatio * 100).toFixed(1)}%</strong>`;
       }
+      const gainEl = document.getElementById('pension-ria-gain');
+      if (gainEl) gainEl.textContent = _fmtWon(calc.gain);
       const benefitEl = document.getElementById('pension-ria-benefit');
       if (benefitEl) benefitEl.textContent = _fmtWon(calc.adjustedBenefitAmount);
       const taxBaseEl = document.getElementById('pension-ria-taxbase');
