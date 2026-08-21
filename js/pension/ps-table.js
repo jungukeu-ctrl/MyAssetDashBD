@@ -473,7 +473,9 @@ const PensionTable = (() => {
           const updated = await PensionFirebase.saveContribution(ym, patch);
           const nextActual = { ...(PensionState.actual || {}), contributions: updated };
           PensionState.setActual(nextActual);
-          _setStatus(validation.level, validation.message + ' · 저장 완료');
+          // 저장 직후 실제 반영된 값(updated) 기준으로 재검증 — "연간 한도 점검" 카드와 항상 일치시킴
+          const savedValidation = validateContribution(ym, updated[ym] || {}, updated);
+          _setStatus(savedValidation.level, savedValidation.message + ' · 저장 완료');
         } catch (e) {
           console.error('[PensionTable] 납입 실적 저장 실패:', e);
           _setStatus('error', '⛔ 저장 중 오류가 발생했습니다. localStorage/Firebase 상태를 확인해 주세요');
