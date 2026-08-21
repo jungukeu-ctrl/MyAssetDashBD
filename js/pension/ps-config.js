@@ -19,6 +19,18 @@ function psAnnualToMonthly(annualRate) {
   return Math.pow(1 + annualRate, 1 / 12) - 1;
 }
 
+// ─── 인적 기본값 (pension 모듈 공용, ps-withdrawal.js BIRTH_YEAR/MONTH와 동일값) ──
+const PS_BIRTH = { year: 1974, month: 2 };
+
+/**
+ * 만 나이 → 생일월 'YYYY-MM' (PS_BIRTH 기준)
+ * @param {number} age
+ * @returns {string}
+ */
+function psAgeToYM(age) {
+  return `${PS_BIRTH.year + age}-${String(PS_BIRTH.month).padStart(2, '0')}`;
+}
+
 // ─── 기본 파라미터 ────────────────────────────────────────────────────────────
 const PS_DEFAULT_PARAMS = {
   rates: {
@@ -30,6 +42,9 @@ const PS_DEFAULT_PARAMS = {
     ISA:      0.10,
     VOO:      0.09
   },
+  inflation: {
+    annualRate: 0.025   // 물가상승률 (연) — 인출/수령 목표액 실질가치 고정에 사용 (PS_START_YM 2026 기준 복리)
+  },
   voo: {
     startYM:       '2027-01',
     intervalWeeks: 3,           // N주마다 1주 매도
@@ -40,13 +55,10 @@ const PS_DEFAULT_PARAMS = {
     baseMonthly: 1000000        // 연금저축 기본 납입 (VOO 분배 외, VOO 소진 후 사용)
   },
   isa: {
-    joinYM:      '2026-03',
-    annualLimit: 20000000,
-    transfers: [
-      { ym: '2027-05' },
-      { ym: '2028-01' },
-      { ym: '2029-01' }
-    ]
+    joinYM:              '2026-03',
+    annualLimit:         20000000,
+    transferStartYM:     '2027-05', // RIA 의무보유 해제(2027-05) 이후 최초 이체 가능 시점
+    transferRepeatMonth: 1          // 최초 이체 이후 매년 이 월에 반복 이체 시도(RIA 잔액 0 될 때까지, ps-engine.js _stepMonth 참고)
   },
   retire: {
     ym:           '2028-12',
@@ -54,13 +66,36 @@ const PS_DEFAULT_PARAMS = {
   },
   nationalPension: {
     startYM:  '2039-03',
-    monthly:  1800000           // 국민연금 월 수령액 (원)
+    monthly:  1800000,          // 국민연금 월 수령액 (원)
+    startAge: 65                // 국민연금 개시 나이 (변수, startYM과 별개 트랙 — Phase2에서 동기화)
+  },
+  withdrawal: {
+    startAge:      61,          // 인출 시작 나이 (변수, 최소 55, 실질하한은 ISA만기 보정 적용)
+    monthlyTarget: 3050000,     // 목표 월 생활비 (사용자 입력값, 기본값)
+    excessMode:    'cap15m_thenExpand', // 사적연금 연 1,500만원 초과 처리 방식 (§13, 4-way): 'cap15m' | 'cap15m_thenExpand'(기본값, IRP1·IRP2 소진 후에만 조건부 확장) | 'separate16_5' | 'comprehensive'
+    irp2MonthlyTarget: 1500000, // IRP 목표 월 인출액 (기존 하드코딩 IRP_MONTHLY_TARGET 파라미터화)
+    irpUnlockYear: 11           // IRP 연금수령연차가 이 값을 넘으면(§9-9와 동일 기준) 고정 목표 해제 → 생활비 부족분까지 인출 허용
+  },
+  irp2: {
+    withdrawalStartAge: 65      // IRP2 실제수령개시 나이 (변수). 연차 시작(2029)과는 별개 개념
+  },
+  ria: {
+    fundingYM: '2026-03'        // 해외주식→RIA 실물이관·매도 확정 시점 (fundingAmount는 PS_RIA_TAX_BENEFIT.saleAmount 재사용)
+  },
+  spouse: {
+    birthYM:   '1983-01',
+    retireAge: 60                // 정년 = 피부양자 자연해제 시점
+  },
+  isaConversion: {
+    maturityYM: '2029-03'        // ISA 만기 (고정, isa.joinYM + 3년과 동기화)
   },
   tax: {
     deductRate:             0.132,    // 세액공제율 (연금저축+IRP 합산)
-    rate6069:               0.044,    // 연금소득세율 (60~69세)
-    rate70:                 0.033,    // 연금소득세율 (70세~)
-    separateTaxThreshold:   15000000  // 분리과세 기준선 (원/년)
+    rate5569:               0.055,    // 연금소득세율 (55~69세)
+    rate7079:               0.044,    // 연금소득세율 (70~79세)
+    rate80:                 0.033,    // 연금소득세율 (80세~)
+    separateTaxThreshold:   15000000, // 분리과세 기준선 (원/년)
+    rateSeparate165:        0.165     // 1,500만원 초과 시 선택 가능한 16.5% 분리과세율 (§13)
   },
   healthInsurance: {
     rate:                   0.0709,    // 건보료율 (매년 1월 고시)
@@ -93,6 +128,15 @@ const PS_DEFAULT_PARAMS = {
     fxRate:               1380,      // 기준 환율 (원/달러, 고정 가정)
     withholdingRate:      0.15,      // 미국 원천징수율 (W-8BEN 제출 기준 15%, 미제출 시 30%)
     financialIncomeLimit: 20000000   // 금융소득 연간 상한 (원, 소득세법 제62조)
+  },
+
+  // ── 해외주식 계좌 잔액 매도 (PENSION_WITHDRAWAL.md §5-2) ──────────────────
+  // Phase2(IRP1·IRP2 소진) 이후 O 배당만으로 부족분을 못 메우면 해외주식 계좌
+  // (O 포함)에서 추가 매도. costBasisRatio는 실제 평균 매입단가가 아닌 근사치.
+  overseasSale: {
+    costBasisRatio:      0.5,        // 취득원가율(매도액 대비 원가 비율, 실제 평균 매입단가 확인 후 조정 필요)
+    capitalGainsTaxRate: 0.22,       // 해외주식 양도소득세율(지방세 포함, 소득세법 제118조의5)
+    annualExemption:     2500000     // 해외주식 양도소득 연 기본공제(원/년, 소득세법 제118조의7)
   },
 
   // ── 계획선 기준 잔액 (PS_START_YM 직전 월인 2025-12 역산값) ──────────────
@@ -158,10 +202,60 @@ const PS_CONTRIBUTION_LIMITS = {
 // 양도소득 공제율이 깎인다.
 //   조정비율   = 1 − (가중 순매수액 / RIA 매도금액)
 //   최종공제율 = 기초공제율 × max(0, 조정비율)
+//
+// 양도소득세 계산(2026-08-07 정정, RIA 양도차익 기준 — 매도대금이 아님.
+// 구글시트 세무전문가 계산기 검증 근거로 매도대금 기준에서 양도차익 기준으로 원복):
+//   RIA최종공제금액 = 양도차익 × 최종공제율
+//   과세대상(공제전) = 양도차익 − RIA최종공제금액
+//   과세표준        = max(0, 과세대상(공제전) − 기본공제)
+//   예상 양도소득세  = 과세표준 × 양도소득세율
+// (매도대금 5,000만원 한도는 RIA 혜택 적용 자격 한도이며, 세액 계산식의 기준값은 아님)
 const PS_RIA_TAX_BENEFIT = {
-  saleAmount:        49511610,  // RIA 매도금액(분모), 2026-03-31 확정 (키움 거래내역 근거)
-  baseDeductionRate: 1.0        // 기초공제율 (1분기 내 매도 → 100%)
+  saleAmount:          49511610,  // RIA 매도금액(공제율 조정비율의 분모), 2026-03-31 확정 (키움 거래내역 근거)
+  baseDeductionRate:   1.0,       // 기초공제율 (1분기 내 매도 → 100%)
+  realizedGain:        18196392,  // RIA 양도차익 확정값(SPY 51주 17,848,770원 + VOO 347,622원, 키움양도세조회 완료, 2026-08-07)
+  basicDeduction:      2500000,   // 양도소득 기본공제(원/년)
+  capitalGainsTaxRate: 0.22       // 양도소득세율(지방소득세 포함 22%)
 };
+
+// ─── 종합소득세 누진세율표 (§13, 사적연금 1,500만원 초과 시 종합과세 선택 시 적용) ──
+// 2023년 세법개정 기준(6~45%, 8단계), 지방소득세(10%)는 별도 가산.
+// 정책 변경 시 이 표부터 갱신 (Notion §13-3 참고).
+const PS_COMPREHENSIVE_TAX_BRACKETS = [
+  { upTo:  14000000, rate: 0.06, deduction:        0 },
+  { upTo:  50000000, rate: 0.15, deduction:  1260000 },
+  { upTo:  88000000, rate: 0.24, deduction:  5760000 },
+  { upTo: 150000000, rate: 0.35, deduction: 15440000 },
+  { upTo: 300000000, rate: 0.38, deduction: 19940000 },
+  { upTo: 500000000, rate: 0.40, deduction: 25940000 },
+  { upTo: 1000000000, rate: 0.42, deduction: 35940000 },
+  { upTo: Infinity,   rate: 0.45, deduction: 65940000 }
+];
+
+// ─── 연금소득공제 (§5 표, 최대 900만원) ────────────────────────────────────
+// 국민연금(공적연금) 건보료 산정용, §13 종합과세 모드(사적연금+공적연금 합계),
+// §신규 O배당 비교과세(다른 종합소득금액)에서 공용으로 사용하는 전역 헬퍼.
+// (ps-withdrawal.js/ps-engine.js 양쪽에서 재사용하기 위해 이 파일로 이동됨)
+function psPensionIncomeDeduction(annual) {
+  if (annual <= 0) return 0;
+  let deducted;
+  if      (annual <= 3500000)  deducted = annual;
+  else if (annual <= 7000000)  deducted = 3500000 + (annual - 3500000) * 0.40;
+  else if (annual <= 14000000) deducted = 4900000 + (annual - 7000000) * 0.20;
+  else                         deducted = 6300000 + (annual - 14000000) * 0.10;
+  return Math.min(deducted, 9000000);
+}
+
+// ─── 종합소득세 (§13, PS_COMPREHENSIVE_TAX_BRACKETS 누진표 + 지방소득세 10%) ──
+// (ps-withdrawal.js/ps-engine.js 양쪽에서 재사용하기 위해 이 파일로 이동됨)
+function psComprehensiveIncomeTax(netIncome) {
+  const base = Math.max(0, netIncome);
+  const bracket = PS_COMPREHENSIVE_TAX_BRACKETS.find(b => base <= b.upTo)
+    || PS_COMPREHENSIVE_TAX_BRACKETS[PS_COMPREHENSIVE_TAX_BRACKETS.length - 1];
+  const incomeTax = Math.max(0, base * bracket.rate - bracket.deduction);
+  const localTax  = Math.round(incomeTax * 0.10);
+  return { incomeTax: Math.round(incomeTax), localTax, total: Math.round(incomeTax) + localTax };
+}
 
 /**
  * RIA 외 계좌 순매수 시점(월)별 가중치

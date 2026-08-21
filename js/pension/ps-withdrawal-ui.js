@@ -37,7 +37,12 @@ const PensionWithdrawalUI = (() => {
   // ─── 결과 HTML 빌더 ─────────────────────────────────────────────────────────
 
   function _buildBalanceCard(result) {
-    const { targetAge, balances } = result;
+    const { targetAge, balances, oDripActive } = result;
+
+    // O(리얼티인컴) DRIP 재투자/현금인출 상태 배지 (§5 조건부 전환)
+    const oDripBadge = oDripActive !== false
+      ? `<span class="ps-wd-badge ps-wd-badge-ok">O 재투자 중</span>`
+      : `<span class="ps-wd-badge ps-wd-badge-region">O 현금인출 전환</span>`;
 
     const rows = [
       { label: '연금저축',           key: '연금저축' },
@@ -48,10 +53,16 @@ const PensionWithdrawalUI = (() => {
       { label: 'ISA',                key: 'ISA'      }
     ];
 
+    // 연금저축 표시액 = 과세분 + 비과세원금 버킷(ISA→연금저축 이전분, §9-3) 합산
+    function _val(key) {
+      if (key === '연금저축') return (balances.연금저축 || 0) + (balances.연금저축_비과세원금 || 0);
+      return balances[key] || 0;
+    }
+
     let totalBal = 0;
     let bodyRows = '';
     for (const { label, key } of rows) {
-      const v = balances[key] || 0;
+      const v = _val(key);
       if (v <= 0) continue;
       totalBal += v;
       bodyRows += `<tr>
@@ -59,11 +70,11 @@ const PensionWithdrawalUI = (() => {
         <td class="ps-wd-right ps-wd-amount">${_fmtAmt(v)}</td>
       </tr>`;
     }
-    totalBal = rows.reduce((s, r) => s + (balances[r.key] || 0), 0);
+    totalBal = rows.reduce((s, r) => s + _val(r.key), 0);
 
     return `
 <div class="ps-wd-card">
-  <div class="ps-wd-card-title">📊 ${targetAge}세 예상 연금자산 잔액</div>
+  <div class="ps-wd-card-title">📊 ${targetAge}세 예상 연금자산 잔액 ${oDripBadge}</div>
   <table class="ps-wd-table">
     <thead>
       <tr><th>계좌</th><th class="ps-wd-right">예상 잔액</th></tr>

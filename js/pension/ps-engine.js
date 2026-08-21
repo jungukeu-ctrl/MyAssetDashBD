@@ -37,6 +37,8 @@ const PensionEngine = (() => {
   function _ymLt(a, b) { return a < b; }
   /** 'YYYY-MM' 비교: a <= b */
   function _ymLte(a, b) { return a <= b; }
+  /** 'YYYY-MM' 문자열 중 더 늦은 값 */
+  function _ymMax(a, b) { return a > b ? a : b; }
 
   /** 해당 월이 VOO 매도 월인지 판단
    * intervalWeeks 주마다 1주 매도 → 한 달(약 4.33주) 안에 몇 번 매도?
@@ -55,6 +57,32 @@ const PensionEngine = (() => {
 
   /** 연도 추출 */
   function _year(ym) { return parseInt(ym.slice(0, 4)); }
+
+  /** PS_START_YM 기준 배열 인덱스 (ps-withdrawal.js _ymToIdx와 동일 로직) */
+  function _ymToIdx(ym) {
+    const sy = parseInt(PS_START_YM.slice(0, 4));
+    const sm = parseInt(PS_START_YM.slice(5, 7));
+    const ty = parseInt(ym.slice(0, 4));
+    const tm = parseInt(ym.slice(5, 7));
+    return (ty - sy) * 12 + (tm - sm);
+  }
+
+  /** 'YYYY-MM' → 만 나이 (PS_BIRTH 기준, ps-withdrawal.js _ymToAge와 동일 로직) */
+  function _ymToAge(ym) {
+    const y = parseInt(ym.slice(0, 4));
+    const m = parseInt(ym.slice(5, 7));
+    let age = y - PS_BIRTH.year;
+    if (m < PS_BIRTH.month) age--;
+    return age;
+  }
+
+  /** 연금소득세율 (55~69/70~79/80세~, ps-withdrawal.js _taxRate와 동일 로직) */
+  function _pensionTaxRateAt(params, ym) {
+    const age = _ymToAge(ym);
+    if (age >= 80) return params.tax.rate80;
+    if (age >= 70) return params.tax.rate7079;
+    return params.tax.rate5569;
+  }
 
   // ─── ISA 이체 금액 계산 (외부 공개 — ps-settings.js 재사용) ─────────────────
 
@@ -78,6 +106,21 @@ const PensionEngine = (() => {
     return Math.min(available, Math.max(0, riaBalance));
   }
 
+  /**
+   * ISA 이체 시도 대상 월인지 판정 (RIA→ISA, 고정 이벤트 아닌 반복 스케줄)
+   * 최초 이체는 startYM에, 이후 매년 repeatMonth월에 반복 (RIA 잔액 0 될 때까지 _stepMonth에서 계속 시도)
+   * @param {string} ym           현재 월 'YYYY-MM'
+   * @param {string} startYM      최초 이체 가능 시점 'YYYY-MM'
+   * @param {number} repeatMonth  최초 이체 이후 매년 반복할 월 (1~12)
+   * @returns {boolean}
+   */
+  function _isIsaTransferMonth(ym, startYM, repeatMonth) {
+    if (!startYM || _ymLt(ym, startYM)) return false;
+    if (ym === startYM) return true;
+    const month = parseInt(ym.slice(5, 7), 10);
+    return month === (repeatMonth || 1);
+  }
+
   // ─── RIA 세제혜택 조정 공제율 계산 (외부 공개 — ps-table.js 재사용) ─────────
 
   /**
@@ -96,6 +139,38 @@ const PensionEngine = (() => {
     const adjustRatio = cfg.saleAmount > 0 ? Math.max(0, 1 - (weightedTotal / cfg.saleAmount)) : 1;
     const finalDeductionRate = cfg.baseDeductionRate * adjustRatio;
     return { weightedTotal, adjustRatio, finalDeductionRate };
+  }
+
+  /**
+   * RIA 양도차익 기준 예상 양도소득세 계산
+   * (RIA 매도대금은 공제율 산정의 분모로만 쓰이고, 세액은 양도차익에 최종공제율을 적용해 계산)
+   * @param {object} monthlyNetPurchases  calcRiaAdjustedDeduction와 동일 입력
+   * @param {object} [riaConfig]          PS_RIA_TAX_BENEFIT 구조 (기본값: PS_RIA_TAX_BENEFIT)
+   * @returns {{ weightedTotal:number, adjustRatio:number, finalDeductionRate:number,
+   *             saleAmount:number, gain:number, adjustedBenefitAmount:number, taxableBeforeBasicDeduction:number,
+   *             taxBase:number, estimatedTax:number, taxBaseNoRia:number, estimatedTaxNoRia:number, savedTax:number }}
+   */
+  function calcRiaCapitalGainsTax(monthlyNetPurchases, riaConfig) {
+    const cfg = riaConfig || PS_RIA_TAX_BENEFIT;
+    const { weightedTotal, adjustRatio, finalDeductionRate } = calcRiaAdjustedDeduction(monthlyNetPurchases, cfg);
+    const saleAmount = cfg.saleAmount || 0;
+    const gain = cfg.realizedGain || 0;
+    const basicDeduction = cfg.basicDeduction ?? 2500000;
+    const taxRate = cfg.capitalGainsTaxRate ?? 0.22;
+
+    const adjustedBenefitAmount = gain * finalDeductionRate;
+    const taxableBeforeBasicDeduction = gain - adjustedBenefitAmount;
+    const taxBase = Math.max(0, taxableBeforeBasicDeduction - basicDeduction);
+    const estimatedTax = taxBase * taxRate;
+
+    const taxBaseNoRia = Math.max(0, gain - basicDeduction);
+    const estimatedTaxNoRia = taxBaseNoRia * taxRate;
+
+    return {
+      weightedTotal, adjustRatio, finalDeductionRate, saleAmount, gain,
+      adjustedBenefitAmount, taxableBeforeBasicDeduction, taxBase, estimatedTax,
+      taxBaseNoRia, estimatedTaxNoRia, savedTax: estimatedTaxNoRia - estimatedTax
+    };
   }
 
   // ─── 메인 엔진 ──────────────────────────────────────────────────────────────
@@ -119,12 +194,19 @@ const PensionEngine = (() => {
     // VOO: Firebase eval[]에서 해외주식 계좌 전체만 읽을 수 있어 분리 불가.
     //       params.voo.quantity × priceKRW 로 초기값 계산.
     const vooInit = (params.voo?.quantity || 0) * (params.voo?.priceKRW || 0);
+    // O(리얼티인컴): VOO와 동일하게 해외주식 계좌 내 서브셋으로 취급 (§5, ps-engine.js _stepMonth 참고)
+    const realtyInit = () => ({
+      shares:             params.realty?.shares             || 0,
+      monthlyDivPerShare: params.realty?.monthlyDivPerShare  || 0,
+      price:              params.realty?.currentPrice        || 0
+    });
     let bal = {
       연금저축: init.연금저축 || 0,
       IRP1:     init.IRP1     || 0,
       IRP2:     init.IRP2     || 0,
-      해외주식: init.해외주식 || 0,   // VOO 포함 해외주식 계좌 전체
+      해외주식: init.해외주식 || 0,   // VOO·O 포함 해외주식 계좌 전체
       VOO:      vooInit,              // 해외주식 계좌 내 VOO 서브셋
+      realty:   realtyInit(),         // 해외주식 계좌 내 O 서브셋 (shares/monthlyDivPerShare/price, USD)
       RIA:      init.RIA      || 0,
       ISA:      init.ISA      || 0
     };
@@ -140,10 +222,12 @@ const PensionEngine = (() => {
 
     // ── result 구조 ──
     const planTotal = [];
-    const planByAcct = { 연금저축: [], IRP1: [], IRP2: [], VOO: [], 해외주식: [], RIA: [], ISA: [] };
+    const planByAcct = { 연금저축: [], IRP1: [], IRP2: [], VOO: [], 해외주식: [], RIA: [], ISA: [], 연금저축_비과세원금: [] };
+    const planWithdrawalLog = [];
 
     const forecastTotal = [];
-    const forecastByAcct = { 연금저축: [], IRP1: [], IRP2: [], VOO: [], 해외주식: [], RIA: [], ISA: [] };
+    const forecastByAcct = { 연금저축: [], IRP1: [], IRP2: [], VOO: [], 해외주식: [], RIA: [], ISA: [], 연금저축_비과세원금: [] };
+    const forecastWithdrawalLog = [];
 
     const actualTotal = [];
     const actualByAcct = { 연금저축: [], IRP1: [], IRP2: [], VOO: [], 해외주식: [], RIA: [], ISA: [] };
@@ -162,8 +246,10 @@ const PensionEngine = (() => {
       IRP2:     ps.IRP2     || 0,
       해외주식: ps.해외주식 || 0,
       VOO:      vooInit,
+      realty:   realtyInit(),
       RIA:      ps.RIA      || 0,
-      ISA:      ps.ISA      || 0
+      ISA:      ps.ISA      || 0,
+      연금저축_비과세원금: 0
     };
     let planYearlyPension = 0;
     let planYearlyIRP1    = 0;
@@ -171,6 +257,7 @@ const PensionEngine = (() => {
     let planPrevTransfers = 0;
     let planCurrentYear   = _year(PS_START_YM);
     let planVooExhausted  = false;
+    let planWd             = _wdInitial();
 
     // ── forecast 잔액 (실적 이후 구간에서 plan 대신 실적 기반 출발) ──
     let fcBal = null;  // 실적 마지막 월 이후 초기화
@@ -180,6 +267,7 @@ const PensionEngine = (() => {
     let fcPrevTransfers = 0;
     let fcCurrentYear   = _year(PS_START_YM);
     let fcVooExhausted  = false;
+    let fcWd             = _wdInitial();
 
     const actualKeys = Object.keys(monthlyActual).sort();
     const lastActualYM = actualKeys.length ? actualKeys[actualKeys.length - 1] : null;
@@ -196,12 +284,13 @@ const PensionEngine = (() => {
       }
 
       // ── [PLAN] 월별 시뮬레이션 ──
-      _stepMonth(ym, planBal, params, {
+      const planWdLog = _stepMonth(ym, planBal, params, {
         yearlyPension:    planYearlyPension,
         yearlyIRP1:       planYearlyIRP1,
         paidToISA:        planPaidToISA,
         prevTransfers:    planPrevTransfers,
         vooExhausted:     planVooExhausted,
+        wd:               planWd,
         isPlan:           true
       }, (patch) => {
         planYearlyPension = patch.yearlyPension;
@@ -209,10 +298,12 @@ const PensionEngine = (() => {
         planPaidToISA     = patch.paidToISA;
         planPrevTransfers = patch.prevTransfers;
         planVooExhausted  = patch.vooExhausted;
-      });
+        planWd            = patch.wd;
+      }, isaLimitLog);
 
       planTotal.push(_sum(planBal));
       Object.keys(planByAcct).forEach(k => planByAcct[k].push(planBal[k]));
+      planWithdrawalLog.push(planWdLog);
 
       // ── [ACTUAL] 실데이터 있으면 채우기 ──
       if (monthlyActual[ym]) {
@@ -245,10 +336,12 @@ const PensionEngine = (() => {
           forecastByAcct.해외주식.push(a.해외주식 ?? null);
           forecastByAcct.RIA.push(a.RIA         ?? null);
           forecastByAcct.ISA.push(a.ISA         ?? null);
+          forecastByAcct.연금저축_비과세원금.push(null);
           forecastTotal.push(
             (a.연금저축 || 0) + (a.IRP1 || 0) + (a.IRP2 || 0) +
             (a.VOO || 0) + (a.해외주식 || 0) + (a.RIA || 0) + (a.ISA || 0)
           );
+          forecastWithdrawalLog.push(null);
           // 실적 마지막 달 → forecast 초기 잔액 세팅
           if (ym === lastActualYM) {
             fcBal = {
@@ -256,10 +349,17 @@ const PensionEngine = (() => {
               IRP1:     a.IRP1     || 0,
               IRP2:     a.IRP2     || 0,
               해외주식: a.해외주식 || 0,
-              VOO:      planBal.VOO,   // Firebase에서 VOO 분리 불가 → plan 추적값 사용
+              VOO:      planBal.VOO,       // Firebase에서 VOO 분리 불가 → plan 추적값 사용
+              realty:   { ...planBal.realty }, // Firebase에서 O 분리 불가 → plan 추적값 사용 (독립 객체로 복사)
               RIA:      a.RIA      || 0,
-              ISA:      a.ISA      || 0
+              ISA:      a.ISA      || 0,
+              연금저축_비과세원금: 0
             };
+            // RIA 유입 catch-up: 실측 스냅샷이 fundingYM 이후인데도 RIA=0(stale)이면 1회 보정.
+            // 실측치가 이미 RIA를 반영했다면(0 아님) 건너뛰어 이중계산 방지.
+            if (fcBal.RIA === 0 && params.ria?.fundingYM && params.ria.fundingYM <= lastActualYM) {
+              fcBal.RIA += PS_RIA_TAX_BENEFIT.saleAmount;
+            }
             fcCurrentYear   = yr;
             fcYearlyPension = 0;
             fcYearlyIRP1    = 0;
@@ -267,17 +367,19 @@ const PensionEngine = (() => {
         } else {
           Object.keys(forecastByAcct).forEach(k => forecastByAcct[k].push(null));
           forecastTotal.push(null);
+          forecastWithdrawalLog.push(null);
         }
       } else {
         // 예측 구간: fcBal 없으면 planBal 복사로 시작
         if (!fcBal) {
-          fcBal = { ...planBal };
+          fcBal = { ...planBal, realty: { ...planBal.realty } }; // realty는 중첩 객체 → 얕은 복사로 참조 공유되지 않도록 별도 복사
           fcCurrentYear = planCurrentYear;
           fcYearlyPension = planYearlyPension;
           fcYearlyIRP1    = planYearlyIRP1;
           fcPaidToISA     = planPaidToISA;
           fcPrevTransfers = planPrevTransfers;
           fcVooExhausted  = planVooExhausted;
+          fcWd            = { ...planWd };
         }
 
         if (yr !== fcCurrentYear) {
@@ -286,12 +388,13 @@ const PensionEngine = (() => {
           fcCurrentYear   = yr;
         }
 
-        _stepMonth(ym, fcBal, params, {
+        const fcWdLog = _stepMonth(ym, fcBal, params, {
           yearlyPension: fcYearlyPension,
           yearlyIRP1:    fcYearlyIRP1,
           paidToISA:     fcPaidToISA,
           prevTransfers: fcPrevTransfers,
           vooExhausted:  fcVooExhausted,
+          wd:            fcWd,
           isPlan:        false
         }, (patch) => {
           fcYearlyPension = patch.yearlyPension;
@@ -299,10 +402,12 @@ const PensionEngine = (() => {
           fcPaidToISA     = patch.paidToISA;
           fcPrevTransfers = patch.prevTransfers;
           fcVooExhausted  = patch.vooExhausted;
-        });
+          fcWd            = patch.wd;
+        }, isaLimitLog);
 
         forecastTotal.push(_sum(fcBal));
         Object.keys(forecastByAcct).forEach(k => forecastByAcct[k].push(fcBal[k]));
+        forecastWithdrawalLog.push(fcWdLog);
       }
     }
 
@@ -313,19 +418,37 @@ const PensionEngine = (() => {
     if (params.voo?.startYM) {
       events.push({ ym: params.voo.startYM, label: 'VOO 매도 시작', type: 'voo' });
     }
-    if (params.isa?.transfers) {
-      params.isa.transfers.forEach((t, idx) => {
-        events.push({ ym: t.ym, label: `ISA ${idx + 1}차 이체`, type: 'transfer' });
+    // ISA 이체는 고정 이벤트가 아니라 반복 스케줄이므로, 시뮬레이션 중 실제 발생한
+    // 이체 이력(isaLimitLog, plan 트랙 기준)에서 이벤트 마커를 생성한다.
+    isaLimitLog
+      .filter(e => e.track === 'plan')
+      .forEach((e, idx) => {
+        events.push({ ym: e.ym, label: `ISA ${idx + 1}차 이체`, type: 'transfer' });
       });
-    }
     if (params.nationalPension?.startYM) {
       events.push({ ym: params.nationalPension.startYM, label: '국민연금 수령', type: 'pension' });
     }
+    if (params.isaConversion?.maturityYM) {
+      events.push({ ym: params.isaConversion.maturityYM, label: 'ISA→연금저축 이전', type: 'isaConversion' });
+    }
+    if (params.withdrawal?.startAge != null) {
+      const wdStartYM = _ymMax(psAgeToYM(params.withdrawal.startAge), params.isaConversion?.maturityYM || '0000-00');
+      events.push({ ym: wdStartYM, label: '연금 인출 시작', type: 'withdrawStart' });
+    }
+
+    // §13: 사적연금 1,500만원 초과 문턱효과 — 연도별 전체 총액 기준 소급 판정
+    // (잔액 계산과 무관한 순수 후처리, cap15m 모드는 ps-withdrawal.js에서 결과 미사용)
+    _markExcessYears(planWithdrawalLog, months, params);
+    _markExcessYears(forecastWithdrawalLog, months, params);
+    _markRealtyAnnual(planWithdrawalLog, months, params);
+    _markRealtyAnnual(forecastWithdrawalLog, months, params);
+    _markRealtyComprehensiveSettlement(planWithdrawalLog, months, params);
+    _markRealtyComprehensiveSettlement(forecastWithdrawalLog, months, params);
 
     return {
       months,
-      plan: { total: planTotal, byAccount: planByAcct },
-      forecast: { total: forecastTotal, byAccount: forecastByAcct },
+      plan: { total: planTotal, byAccount: planByAcct, withdrawalLog: planWithdrawalLog },
+      forecast: { total: forecastTotal, byAccount: forecastByAcct, withdrawalLog: forecastWithdrawalLog },
       actual: { total: actualTotal, byAccount: actualByAcct },
       events,
       meta: {
@@ -346,8 +469,9 @@ const PensionEngine = (() => {
    * @param {object}   state    누계 상태
    * @param {function} setState 누계 상태 업데이트 콜백
    */
-  function _stepMonth(ym, bal, params, state, setState) {
+  function _stepMonth(ym, bal, params, state, setState, isaLimitLog) {
     let { yearlyPension, yearlyIRP1, paidToISA, prevTransfers, vooExhausted } = state;
+    const wd = { ...(state.wd || _wdInitial()) };  // 트랙(plan/forecast)별 독립 mutate
 
     const rates = params.rates;
     const mr = {
@@ -362,12 +486,17 @@ const PensionEngine = (() => {
 
     // 1. 수익률 적용 (복리)
     bal.연금저축 *= (1 + mr.연금저축);
+    bal.연금저축_비과세원금 *= (1 + mr.연금저축);  // §9-3: 인출 시작 전까지 연금저축 수익률로 계속 성장
     bal.IRP1     *= (1 + mr.IRP1);
     bal.IRP2     *= (1 + mr.IRP2);
-    // 해외주식: VOO 서브셋은 mr.VOO, non-VOO 부분은 mr.해외주식 각각 적용
-    const nonVoo  = Math.max(0, bal.해외주식 - bal.VOO);
+    // 해외주식: VOO·O(리얼티인컴) 서브셋은 각자 고유 성장률, 나머지는 mr.해외주식 적용
+    // O는 shares/price(USD) 상태로 별도 추적하므로, 이번 스텝 시작 시점 원화가치를 나머지(non-VOO/non-realty)
+    // 계산에서 제외했다가, §7-5(배당/DRIP)에서 이번 달 변동분만큼 bal.해외주식에 반영한다.
+    const realtyFxRate     = params.realty?.fxRate || 1380;
+    const priorRealtyKRW   = (bal.realty?.shares || 0) * (bal.realty?.price || 0) * realtyFxRate;
+    const nonVoo  = Math.max(0, bal.해외주식 - bal.VOO - priorRealtyKRW);
     bal.VOO       = bal.VOO * (1 + mr.VOO);
-    bal.해외주식  = nonVoo  * (1 + mr.해외주식) + bal.VOO;
+    bal.해외주식  = nonVoo  * (1 + mr.해외주식) + bal.VOO + priorRealtyKRW;
     bal.RIA      *= (1 + mr.RIA);
     bal.ISA      *= (1 + mr.ISA);
 
@@ -376,16 +505,36 @@ const PensionEngine = (() => {
       bal.IRP2 += (params.retire.severancePay || 0);
     }
 
-    // 3. ISA 이체 처리 (RIA → ISA)
-    if (params.isa?.transfers) {
-      for (const tx of params.isa.transfers) {
-        if (tx.ym === ym) {
-          const txAmt = calcISATransfer(params, paidToISA, prevTransfers, ym, bal.RIA);
-          if (txAmt > 0) {
-            bal.RIA -= txAmt;
-            bal.ISA += txAmt;
-            prevTransfers += txAmt;
-          }
+    // 2-1. 해외주식 → RIA 실물이관·매도 확정 (1회성, 기존 PS_RIA_TAX_BENEFIT.saleAmount 재사용)
+    // 실물이관은 해외주식 계좌에서 RIA로 자산이 "이동"하는 것이므로 양쪽 다 반영해야 함.
+    // planStartBalances.해외주식은 이 유출을 반영하지 않은 원래 전체 잔액이므로 차감 필요
+    // (차감 누락 시 4,951만원이 이중으로 존재하게 됨 — RIA-FUNDING-DOUBLECOUNT).
+    if (params.ria?.fundingYM === ym) {
+      bal.해외주식 -= PS_RIA_TAX_BENEFIT.saleAmount;
+      bal.RIA += PS_RIA_TAX_BENEFIT.saleAmount;
+    }
+
+    // 3. ISA 이체 처리 (RIA → ISA) — 고정 3회가 아니라 RIA 잔액이 0이 될 때까지 매년 반복.
+    // ISA 만기 전환(§6, wd.isaConverted) 이후에는 ISA 계좌 자체가 존재하지 않으므로 중단.
+    if (!wd.isaConverted && params.isa?.transferStartYM && bal.RIA > 0 &&
+        _isIsaTransferMonth(ym, params.isa.transferStartYM, params.isa.transferRepeatMonth)) {
+      const yearsJoined     = _year(ym) - _year(params.isa.joinYM) + 1;
+      const cumulativeLimit = yearsJoined * params.isa.annualLimit;
+      const available       = Math.max(0, cumulativeLimit - paidToISA - prevTransfers);
+      const txAmt = calcISATransfer(params, paidToISA, prevTransfers, ym, bal.RIA);
+      if (txAmt > 0) {
+        bal.RIA -= txAmt;
+        bal.ISA += txAmt;
+        prevTransfers += txAmt;
+        if (isaLimitLog) {
+          isaLimitLog.push({
+            ym,
+            track: state.isPlan ? 'plan' : 'forecast',
+            yearsJoined,
+            cumulativeLimit,
+            available,
+            transferred: txAmt
+          });
         }
       }
     }
@@ -420,7 +569,14 @@ const PensionEngine = (() => {
           remaining   -= addIRP1;
           paidToISA   += remaining;
 
-          bal.ISA += remaining;
+          // ISA 만기 이후(§7-6, wd.isaConverted)에는 ISA 계좌가 종료되어 3순위 배분분을
+          // 해외주식(일반 과세) 계좌로 대체 귀속 — 원래 VOO도 해외주식 계좌 서브셋이므로 자연스러운 귀속처
+          if (wd.isaConverted) {
+            bal.해외주식 += remaining;
+            wd.isaPostMaturityVooRedirect = (wd.isaPostMaturityVooRedirect || 0) + remaining;
+          } else {
+            bal.ISA += remaining;
+          }
         } else {
           // 급락: 연금저축 우선 → IRP1 → ISA
           const toPension = Math.min(_pensionRoom(yearlyPension), remaining);
@@ -434,36 +590,497 @@ const PensionEngine = (() => {
           remaining   -= toIRP1;
           paidToISA   += remaining;
 
-          bal.ISA += remaining;
+          if (wd.isaConverted) {
+            bal.해외주식 += remaining;
+            wd.isaPostMaturityVooRedirect = (wd.isaPostMaturityVooRedirect || 0) + remaining;
+          } else {
+            bal.ISA += remaining;
+          }
         }
       }
     }
 
-    // 5. VOO 시작 전 또는 소진 후: 연금저축 기본 납입 (100만/월)
-    if (vooExhausted || !vooStartYM || _ymLt(ym, vooStartYM || '9999-12')) {
-      if (!vooStartYM || _ymLt(ym, vooStartYM)) {
-        // VOO 시작 전: 연금저축 기본 납입
-        const base = params.pension.baseMonthly || 0;
-        const addBase = Math.min(base, _pensionRoom(yearlyPension));
-        bal.연금저축  += addBase;
-        yearlyPension += addBase;
-      } else if (vooExhausted) {
-        // VOO 소진 후
-        const base = params.pension.baseMonthly || 0;
-        const addBase = Math.min(base, _pensionRoom(yearlyPension));
-        bal.연금저축  += addBase;
-        yearlyPension += addBase;
+    // 5. VOO 시작 전 또는 소진 후: 연금저축 기본 납입 (100만/월) — 퇴직(§9-1) 전까지만
+    if (_ymLte(ym, params.retire?.ym || '9999-12')) {
+      if (vooExhausted || !vooStartYM || _ymLt(ym, vooStartYM || '9999-12')) {
+        if (!vooStartYM || _ymLt(ym, vooStartYM)) {
+          // VOO 시작 전: 연금저축 기본 납입
+          const base = params.pension.baseMonthly || 0;
+          const addBase = Math.min(base, _pensionRoom(yearlyPension));
+          bal.연금저축  += addBase;
+          yearlyPension += addBase;
+        } else if (vooExhausted) {
+          // VOO 소진 후
+          const base = params.pension.baseMonthly || 0;
+          const addBase = Math.min(base, _pensionRoom(yearlyPension));
+          bal.연금저축  += addBase;
+          yearlyPension += addBase;
+        }
       }
     }
 
-    setState({ yearlyPension, yearlyIRP1, paidToISA, prevTransfers, vooExhausted });
+    // 6. ISA → 연금저축 이전 (§9-3, 1회성) — ISA 만기 시점, "비과세원금" 버킷으로 분리 추적
+    const maturityYM = params.isaConversion?.maturityYM;
+    if (!wd.isaConverted && maturityYM && _ymLte(maturityYM, ym)) {
+      bal.연금저축_비과세원금 += bal.ISA;
+      bal.ISA = 0;
+      wd.isaConverted = true;
+      // ISA 만기 시점에도 RIA 잔액이 남아있으면 자동 재가입/가속 이체 없이 경고만 기록 (ps-withdrawal.js에서 표시)
+      if (bal.RIA > 0) {
+        wd.isaMaturityRiaRemaining = bal.RIA;
+      }
+    }
+
+    // 7. 인출 차감 (§9-2, §9-6, §9-9)
+    // 물가연동(실질가치 고정, PENSION_WITHDRAWAL.md §6): 인출/수령 목표액을
+    // PS_START_YM(2026) 기준 경과연수만큼 매년 물가상승률로 복리 증액.
+    const inflationMultiplier = Math.pow(
+      1 + (params.inflation?.annualRate || 0),
+      Math.max(0, _year(ym) - _year(PS_START_YM))
+    );
+
+    const withdrawal = {
+      taxFree: 0, taxed: 0, taxedShortfall: 0, taxedExpansion: 0, irp1: 0, irp2: 0, nationalPension: 0,
+      pensionLimitHit: false, irp1LimitHit: false, irp2LimitHit: false,
+      overseasSale: 0, overseasSaleTax: 0
+    };
+
+    const withdrawStartYM = _ymMax(
+      psAgeToYM(params.withdrawal?.startAge ?? 61),
+      maturityYM || '0000-00'
+    );
+    const npStartYM  = params.nationalPension?.startYM || '9999-12';
+    const irp2StartYM = psAgeToYM(params.irp2?.withdrawalStartAge ?? 70);
+    // IRP2 연금수령연차는 실제 인출개시(70세)와 별개로 퇴직 이듬해 1월부터 카운트 (§9-4)
+    const irp2ReceiptStartYM = params.retire?.ym ? _toYM(_year(params.retire.ym) + 1, 1) : irp2StartYM;
+
+    // 7-1. 연금저축 (비과세원금 우선 → 과세분, §9-9 계좌 자체 한도 병행 적용)
+    if (_ymLte(withdrawStartYM, ym)) {
+      const yr = _year(ym);
+      if (yr !== wd.pensionLimitYear) {
+        const receiptYear = yr - _year(withdrawStartYM) + 1;
+        wd.pensionLimitAmt      = _receiptLimit(bal.연금저축 + bal.연금저축_비과세원금, receiptYear);
+        wd.pensionLimitYear     = yr;
+        wd.pensionWithdrawnYear = 0;
+        wd.taxedWithdrawnYear   = 0;
+      }
+
+      const target = (params.withdrawal?.monthlyTarget || 0) * inflationMultiplier;
+      const room9_9 = Math.max(0, wd.pensionLimitAmt - wd.pensionWithdrawnYear);
+
+      if (bal.연금저축_비과세원금 > 0) {
+        // 비과세원금 버킷: 1,500만원 캡 무관(§9-6), 단 연금수령한도(§9-9)는 계좌 공통 적용
+        const want = Math.min(target, bal.연금저축_비과세원금);
+        const draw = Math.min(want, room9_9);
+        bal.연금저축_비과세원금 -= draw;
+        wd.pensionWithdrawnYear += draw;
+        withdrawal.taxFree = draw;
+        withdrawal.pensionLimitHit = draw < want;
+      } else {
+        // 과세분: excessMode==='cap15m' 또는 'cap15m_thenExpand'(기본값, §13 신규, IRP1·IRP2
+        // 소진 전까지는 cap15m과 동일해야 함)일 때만 연 1,500만원(월 125만원) 상한(§9-6/9-7)
+        // 적용. 그 외 모드(separate16_5/comprehensive)는 하드캡 해제하고 target 그대로 인출
+        // 허용 — §9-9 연금수령한도(room9_9)는 모드 무관 항상 적용 (§13).
+        // cap15m_thenExpand의 캡 초과 확장 인출은 §7-4b(아래, IRP1·IRP2 실제 소진 확인 후)에서
+        // 별도로 처리한다 — 여기서 하드캡을 풀면 안 됨.
+        // fallback 'cap15m'은 excessMode 미지정(구버전 호출 등) 시 안전한 하드캡 유지용 —
+        // PS_DEFAULT_PARAMS의 실제 기본값(cap15m_thenExpand)과는 별개.
+        const excessMode = params.withdrawal?.excessMode || 'cap15m';
+        let want;
+        if (excessMode === 'cap15m' || excessMode === 'cap15m_thenExpand') {
+          const annualCap     = params.tax?.separateTaxThreshold || 15000000;
+          const monthlyCap    = annualCap / 12;
+          const taxedRoomYear = Math.max(0, annualCap - wd.taxedWithdrawnYear);
+          want = Math.min(target, monthlyCap, bal.연금저축, taxedRoomYear);
+        } else {
+          want = Math.min(target, bal.연금저축);
+        }
+        const draw = Math.min(want, room9_9);
+        bal.연금저축 -= draw;
+        wd.taxedWithdrawnYear   += draw;
+        wd.pensionWithdrawnYear += draw;
+        withdrawal.taxed = draw;
+        withdrawal.taxedShortfall = Math.max(0, target - draw);
+        withdrawal.pensionLimitHit = draw < want;
+      }
+    }
+
+    // 7-2. IRP (국민연금 개시 후에만, §9-2) — IRP1 우선 소진 → 부족분 IRP2(70세 이후만)
+    // P5-2: 계좌별 연금수령연차가 irpUnlockYear(§9-9와 동일 기준, 기본 11년차)를 넘으면
+    // 그 계좌는 고정 목표(IRP_MONTHLY_TARGET) 대신 생활비 부족분(pensionGap)까지 인출 시도.
+    // IRP1/IRP2는 연차 기산일이 서로 달라(IRP1=국민연금 개시, IRP2=퇴직 이듬해) 해제 시점도 다르므로
+    // 계좌별로 독립 판단한다.
+    const IRP_MONTHLY_TARGET = (params.withdrawal?.irp2MonthlyTarget ?? 1500000) * inflationMultiplier;  // 파라미터화 (§13), 기본값은 기존 하드코딩과 동일, 물가연동 적용(§6)
+    const irpUnlockYear = params.withdrawal?.irpUnlockYear ?? 11;
+    const pensionGap = Math.max(0, (params.withdrawal?.monthlyTarget || 0) * inflationMultiplier - (withdrawal.taxFree + withdrawal.taxed));
+    if (_ymLte(npStartYM, ym)) {
+      const yr = _year(ym);
+
+      const irp1ReceiptYear = yr - _year(npStartYM) + 1;
+      const target1 = irp1ReceiptYear > irpUnlockYear ? pensionGap : IRP_MONTHLY_TARGET;
+      let need = target1;
+
+      if (yr !== wd.irp1LimitYear) {
+        wd.irp1LimitAmt      = _receiptLimit(bal.IRP1, irp1ReceiptYear);
+        wd.irp1LimitYear     = yr;
+        wd.irp1WithdrawnYear = 0;
+      }
+      const irp1Room = Math.max(0, wd.irp1LimitAmt - wd.irp1WithdrawnYear);
+      const wantIrp1 = Math.min(need, bal.IRP1);
+      const irp1Draw = Math.min(wantIrp1, irp1Room);
+      bal.IRP1 -= irp1Draw;
+      wd.irp1WithdrawnYear += irp1Draw;
+      withdrawal.irp1 = irp1Draw;
+      withdrawal.irp1LimitHit = irp1Draw < wantIrp1;
+
+      if (_ymLte(irp2StartYM, ym)) {
+        const irp2ReceiptYear = yr - _year(irp2ReceiptStartYM) + 1;
+        const target2 = irp2ReceiptYear > irpUnlockYear ? pensionGap : IRP_MONTHLY_TARGET;
+        need = Math.max(0, target2 - irp1Draw);
+
+        if (need > 0) {
+          if (yr !== wd.irp2LimitYear) {
+            wd.irp2LimitAmt      = _receiptLimit(bal.IRP2, irp2ReceiptYear);
+            wd.irp2LimitYear     = yr;
+            wd.irp2WithdrawnYear = 0;
+          }
+          const irp2Room = Math.max(0, wd.irp2LimitAmt - wd.irp2WithdrawnYear);
+          const wantIrp2 = Math.min(need, bal.IRP2);
+          const irp2Draw = Math.min(wantIrp2, irp2Room);
+          bal.IRP2 -= irp2Draw;
+          wd.irp2WithdrawnYear += irp2Draw;
+          withdrawal.irp2 = irp2Draw;
+          withdrawal.irp2LimitHit = irp2Draw < wantIrp2;
+        }
+      }
+    }
+
+    // 7-3. 국민연금 (§9-2) — 계좌 잔액 미차감, 지급액만 기록(건보료 계산용, Phase3)
+    if (_ymLte(npStartYM, ym)) {
+      withdrawal.nationalPension = (params.nationalPension?.monthly || 0) * inflationMultiplier;
+    }
+
+    // 7-4. 전체 소득원(연금저축+IRP1+IRP2) 기준 실제 부족분 — §7-1의 taxedShortfall은
+    // 연금저축 단독 계산이라 뒤이은 IRP 갭필링(§7-2)을 반영 못 함. 화면 경고는 이 값을 써야 함.
+    withdrawal.overallShortfall = Math.max(
+      0,
+      (params.withdrawal?.monthlyTarget || 0) * inflationMultiplier - (withdrawal.taxFree + withdrawal.taxed + withdrawal.irp1 + withdrawal.irp2)
+    );
+
+    // 7-4b. cap15m_thenExpand: IRP1·IRP2 둘 다 소진 + 목표 생활비 부족 시 연금저축
+    // 과세분을 §9-6 하드캡(연 1,500만) 너머로 확장 인출(PENSION_WITHDRAWAL.md §13 신규).
+    // §7-5 O DRIP 전환과 동일한 트리거 조건(IRP1·IRP2 실제 소진 + 부족분 발생)을 쓰되,
+    // 연금저축 잔액이 남아있는 한 O DRIP 현금전환보다 먼저 이 계좌로 부족분을 메운다
+    // (§7-5는 이 블록 이후 실행되므로 여기서 줄인 overallShortfall을 그대로 이어받는다).
+    // 인출액 자체만 여기서 결정 — 세금(종합과세) 계산은 ps-withdrawal.js 전담(재계산 금지 원칙 유지).
+    if (
+      params.withdrawal?.excessMode === 'cap15m_thenExpand' &&
+      _ymLte(withdrawStartYM, ym) &&
+      withdrawal.overallShortfall > 0 &&
+      bal.IRP1 <= 0 && bal.IRP2 <= 0 &&
+      bal.연금저축_비과세원금 <= 0 &&
+      bal.연금저축 > 0
+    ) {
+      const room9_9Remaining = Math.max(0, wd.pensionLimitAmt - wd.pensionWithdrawnYear);
+      const wanted    = withdrawal.overallShortfall;
+      const extraDraw = Math.min(wanted, bal.연금저축, room9_9Remaining);
+      if (extraDraw > 0) {
+        bal.연금저축 -= extraDraw;
+        wd.taxedWithdrawnYear      += extraDraw;
+        wd.pensionWithdrawnYear    += extraDraw;
+        withdrawal.taxed           += extraDraw;
+        withdrawal.taxedExpansion  += extraDraw;
+        withdrawal.overallShortfall = Math.max(0, withdrawal.overallShortfall - extraDraw);
+      }
+      if (extraDraw < wanted) withdrawal.pensionLimitHit = true;
+    }
+
+    // 7-5. O(리얼티인컴) DRIP ↔ 조건부 현금인출 전환 (PENSION_WITHDRAWAL.md §5)
+    // "IRP1·IRP2가 둘 다 소진되어 목표 생활비 부족분이 발생하는 시점"부터 영구 전환(되돌리지 않음).
+    // overallShortfall > 0 단독으로는 61세(인출 시작)~64세 구간에서 연금저축 §9-6 연 1,500만원
+    // 캡(IRP는 아직 손도 안 댄 상태)만으로도 상시 양수가 되어 조기 오발동하므로,
+    // IRP1·IRP2 잔액이 실제로 소진된 경우에만(bal.IRP1<=0 && bal.IRP2<=0) 전환 판정한다.
+    if (wd.oDripActive && withdrawal.overallShortfall > 0 && bal.IRP1 <= 0 && bal.IRP2 <= 0) {
+      wd.oDripActive = false;
+    }
+
+    const realty = bal.realty || { shares: 0, monthlyDivPerShare: 0, price: 0 };
+    const realtyDivUSD      = realty.shares * realty.monthlyDivPerShare;
+    const realtyWithholding = params.realty?.withholdingRate || 0.15;
+    const realtyAfterTaxUSD = realtyDivUSD * (1 - realtyWithholding);
+    const realtyDivKRW      = realtyDivUSD * realtyFxRate;
+
+    if (wd.oDripActive) {
+      // 재투자 구간: 세후 배당으로 shares 추가 매수, 생활비 인출액에는 미포함
+      if (realty.price > 0) {
+        realty.shares += realtyAfterTaxUSD / realty.price;
+      }
+    } else {
+      // 현금인출 구간: shares 고정, 세후 배당을 생활비 부족분에 반영 (financialIncomeLimit 캡 미적용)
+      withdrawal.realty = Math.round(realtyAfterTaxUSD * realtyFxRate);
+      withdrawal.overallShortfall = Math.max(0, withdrawal.overallShortfall - withdrawal.realty);
+    }
+
+    // 7-6. 해외주식 계좌 잔액 매도 (VOO 제외 — VOO는 §4에서 별도 관리) —
+    // Phase2(IRP1·IRP2 소진, oDripActive=false) 이후에도 O 배당만으로 부족분을 못 메우면
+    // "기타(non-VOO/non-O)" 잔액을 먼저 소진하고, 그래도 부족하면 O(bal.realty.shares)를
+    // 비례 차감해 실제로 매도한다.
+    // ⚠️ bal.해외주식은 VOO·O를 뺀 나머지가 매달 파생 재계산되는 구조(§1 nonVoo)라,
+    // O를 건드리지 않고 총액만 깎으면 다음 달 파생 계산에서 nonVoo가 0으로 클램프되며
+    // 차감분이 "부활"하는 결함이 있음(2026-07-17 동적 시뮬레이션으로 확인, 정적 리뷰로는
+    // 발견 안 됨). 반드시 아래 방식(기타 우선 소진 → O shares 비례 차감)으로 구현할 것 —
+    // bal.해외주식을 sellAmt만큼 직접 빼는 방식은 금지.
+    if (!wd.oDripActive && withdrawal.overallShortfall > 0) {
+      const otherNow    = Math.max(0, bal.해외주식 - bal.VOO - priorRealtyKRW);
+      const sellCeiling = otherNow + priorRealtyKRW;   // VOO 제외
+      const sellAmt     = Math.min(withdrawal.overallShortfall, sellCeiling);
+
+      if (sellAmt > 0) {
+        const fromOther  = Math.min(sellAmt, otherNow);
+        const fromRealty = sellAmt - fromOther;
+
+        // 기타 잔액분 — 안전 범위(otherNow) 내 직접 차감, 부활 문제 없음
+        if (fromOther > 0) bal.해외주식 -= fromOther;
+
+        // O 지분 실제 매도 — shares 비례 차감. bal.해외주식은 여기서 직접 건드리지 않고
+        // 파일 하단 "newRealtyKRW - priorRealtyKRW" 반영 로직이 감소분을 전파하게 둔다.
+        if (fromRealty > 0 && priorRealtyKRW > 0) {
+          const sellRatio = Math.min(1, fromRealty / priorRealtyKRW);
+          realty.shares *= (1 - sellRatio);
+        }
+
+        const saleYr = _year(ym);
+        if (saleYr !== wd.overseasSaleYear) {
+          wd.overseasSaleYear     = saleYr;
+          wd.overseasSaleGainYear = 0;
+        }
+        const os              = params.overseasSale || {};
+        const costBasisRatio  = os.costBasisRatio ?? 0.5;
+        const gain            = sellAmt * (1 - costBasisRatio);
+        const exemption       = os.annualExemption ?? 2500000;
+        const exemptRemaining = Math.max(0, exemption - wd.overseasSaleGainYear);
+        const taxableGain     = Math.max(0, gain - exemptRemaining);
+        const taxRate          = os.capitalGainsTaxRate ?? 0.22;
+
+        wd.overseasSaleGainYear += gain;
+        withdrawal.overseasSale     = sellAmt;
+        withdrawal.overseasSaleTax  = Math.round(taxableGain * taxRate);
+        withdrawal.overallShortfall = Math.max(0, withdrawal.overallShortfall - sellAmt);
+      }
+    }
+
+    // 연간 배당 총액(세전) 누계 — 건보료·종합과세 판정용(재투자 구간 포함 항상 기록)
+    const oDripYr = _year(ym);
+    if (oDripYr !== wd.oDripYear) {
+      wd.oDripYear        = oDripYr;
+      wd.oDripYearlyGross = 0;
+    }
+    wd.oDripYearlyGross += realtyDivKRW;
+
+    withdrawal.realtyGrossKRW      = Math.round(realtyDivKRW);
+    withdrawal.realtyShares        = Math.round(realty.shares * 10) / 10;
+    withdrawal.realtyMonthlyDivUSD = Math.round(realty.monthlyDivPerShare * 10000) / 10000;
+    withdrawal.oDripActive         = wd.oDripActive;
+    withdrawal.isaMaturityRiaRemaining = wd.isaMaturityRiaRemaining || 0;
+    withdrawal.isaPostMaturityVooRedirect = wd.isaPostMaturityVooRedirect || 0;
+
+    // 배당/주가 다음 달분 성장 반영
+    const mDivGrowthO   = Math.pow(1 + (params.realty?.divGrowthRate   || 0), 1 / 12) - 1;
+    const mPriceGrowthO = Math.pow(1 + (params.realty?.priceGrowthRate || 0), 1 / 12) - 1;
+    realty.monthlyDivPerShare *= (1 + mDivGrowthO);
+    realty.price              *= (1 + mPriceGrowthO);
+    bal.realty = realty;
+
+    // 해외주식 총액에 O(리얼티인컴) 이번 달 변동분(재매수·성장) 반영 (VOO와 동일 서브셋 패턴)
+    const newRealtyKRW = realty.shares * realty.price * realtyFxRate;
+    bal.해외주식 += (newRealtyKRW - priorRealtyKRW);
+
+    setState({ yearlyPension, yearlyIRP1, paidToISA, prevTransfers, vooExhausted, wd });
+    return withdrawal;
   }
 
   // ─── 내부 헬퍼 ──────────────────────────────────────────────────────────────
 
+  // planTotal/actualTotal 등에 합산되는 계좌는 6개(연금저축·IRP1·IRP2·해외주식·
+  // RIA·ISA)로 고정. 상세는 ps-firebase.js 상단 주석 참고.
   function _sum(bal) {
-    return (bal.연금저축 || 0) + (bal.IRP1 || 0) + (bal.IRP2 || 0) +
+    return (bal.연금저축 || 0) + (bal.연금저축_비과세원금 || 0) + (bal.IRP1 || 0) + (bal.IRP2 || 0) +
            (bal.해외주식 || 0) + (bal.RIA || 0) + (bal.ISA || 0);
+  }
+
+  /**
+   * §13: 사적연금(연금저축 과세분+IRP1+IRP2) 연간 합계가 분리과세 기준(1,500만원)을
+   * 초과하면 해당 연도 "전체" 월에 excessTriggeredYear=true 소급 표시(문턱효과 —
+   * 초과 시점 이후만이 아니라 연 전체가 재분류되므로). withdrawalLog 항목을
+   * 캘린더 연도로 그룹화한 순수 후처리이며, 잔액(bal)에는 영향 없음.
+   */
+  function _markExcessYears(log, months, params) {
+    const threshold = params.tax?.separateTaxThreshold || 15000000;
+    const byYear = {};
+    for (let i = 0; i < log.length; i++) {
+      if (!log[i]) continue;
+      const yr = _year(months[i]);
+      (byYear[yr] || (byYear[yr] = [])).push(i);
+    }
+    Object.keys(byYear).forEach(yr => {
+      const idxs = byYear[yr];
+      const total = idxs.reduce((s, i) => s + (log[i].taxed || 0) + (log[i].irp1 || 0) + (log[i].irp2 || 0), 0);
+      const triggered = total > threshold;
+      idxs.forEach(i => {
+        log[i].excessTriggeredYear = triggered;
+        log[i].excessAnnualTotal   = total;
+      });
+    });
+  }
+
+  /**
+   * O(리얼티인컴) 배당 연간 합계(세전) 소급 집계 — 재투자(Phase1) 구간 포함 항상 계산.
+   * 연 2,000만원(financialIncomeLimit) 초과 시 재투자 중이라도 금융소득종합과세
+   * 신고의무가 발생할 수 있음을 ps-withdrawal.js 경고에 사용 (§5, 근사 구현).
+   */
+  function _markRealtyAnnual(log, months, params) {
+    const threshold = params.realty?.financialIncomeLimit || 20000000;
+    const byYear = {};
+    for (let i = 0; i < log.length; i++) {
+      if (!log[i]) continue;
+      const yr = _year(months[i]);
+      (byYear[yr] || (byYear[yr] = [])).push(i);
+    }
+    Object.keys(byYear).forEach(yr => {
+      const idxs = byYear[yr];
+      const total = idxs.reduce((s, i) => s + (log[i].realtyGrossKRW || 0), 0);
+      const required = total > threshold;
+      idxs.forEach(i => {
+        log[i].realtyAnnualTotal        = total;
+        log[i].realtyComprehensiveRequired = required;
+      });
+    });
+  }
+
+  /**
+   * O(리얼티인컴) 배당 연 2,000만원(financialIncomeLimit) 초과분 — 다음해 5월
+   * 금융소득종합과세(비교과세) 정산액 소급 계산·기록 (소득세법 §62).
+   *
+   * ⚠️ 사적연금(연금저축+IRP) §13 excessMode 선택과 완전히 독립된 별도 제도.
+   * excessMode는 "선택"(사적연금 1,500만원 초과분을 종합과세로 할지 16.5%
+   * 분리과세로 할지), 이 함수는 "신고의무 자동발생"(금융소득 2,000만원 초과 시
+   * 비교과세 강제 적용) — 서로 건드리지 않는다.
+   *
+   * 다른 종합소득금액(otherComprehensiveIncome):
+   *   - 국민연금(공적연금): 항상 포함 (연금소득공제 후)
+   *   - 사적연금(taxed+irp1+irp2): 그 해 excessTriggeredYear && excessMode==='comprehensive'
+   *     로 이미 종합과세에 편입된 경우에만 포함. 그 외(cap15m/separate16_5)는 이미
+   *     분리과세로 완결되어 종합소득에 잡히지 않으므로 미포함.
+   *
+   * 비교과세(최종세액 = max(방식1, 방식2)):
+   *   방식1 = 2,000만원×14% + comprehensiveTax(other + max(0, realty-2,000만원))
+   *   방식2 = realty×원천징수율(15%) + comprehensiveTax(other)
+   *
+   * 근사 구현 — 인적공제·외국납부세액공제 미반영, 세무사 확인 필요.
+   */
+  function _markRealtyComprehensiveSettlement(log, months, params) {
+    const threshold  = params.realty?.financialIncomeLimit || 20000000;
+    // fallback 'cap15m'은 excessMode 미지정 시 안전한 하드캡 유지용 —
+    // PS_DEFAULT_PARAMS의 실제 기본값(cap15m_thenExpand)과는 별개.
+    const excessMode = params.withdrawal?.excessMode || 'cap15m';
+    const withholdingRate = params.realty?.withholdingRate || 0.15;
+    const withdrawStartYM = _ymMax(
+      psAgeToYM(params.withdrawal?.startAge ?? 61),
+      params.isaConversion?.maturityYM || '0000-00'
+    );
+
+    const byYear = {};
+    for (let i = 0; i < log.length; i++) {
+      if (!log[i]) continue;
+      const yr = _year(months[i]);
+      (byYear[yr] || (byYear[yr] = [])).push(i);
+    }
+
+    Object.keys(byYear).forEach(yr => {
+      const idxs = byYear[yr];
+      const yrNum = parseInt(yr, 10);
+      const realtyAnnualTotal = log[idxs[0]].realtyAnnualTotal || 0;
+      if (realtyAnnualTotal <= threshold) return;
+
+      // Y년 전체가 인출 시작 나이 이후인 경우만 (1월 기준으로 판단)
+      const janYM = _toYM(yrNum, 1);
+      if (janYM < withdrawStartYM) return;
+
+      const npAnnual = idxs.reduce((s, i) => s + (log[i].nationalPension || 0), 0);
+      const privateAnnual = idxs.reduce(
+        (s, i) => s + (log[i].taxed || 0) + (log[i].irp1 || 0) + (log[i].irp2 || 0), 0
+      );
+      const includePrivate = !!log[idxs[0]].excessTriggeredYear && excessMode === 'comprehensive';
+
+      // 다른 종합소득금액 (연금소득공제는 국민연금+사적연금 합계에 1회 적용, ps-withdrawal.js comprehensive 모드와 동일 방식)
+      const pensionCombined = npAnnual + (includePrivate ? privateAnnual : 0);
+      const otherComprehensiveIncome = Math.max(0, pensionCombined - psPensionIncomeDeduction(pensionCombined));
+
+      // 비교과세: 방식1(종합과세) vs 방식2(분리과세 유지) 중 큰 세액
+      const excessRealty = Math.max(0, realtyAnnualTotal - threshold);
+      const tax1 = threshold * 0.14 + psComprehensiveIncomeTax(otherComprehensiveIncome + excessRealty).total;
+      const tax2 = realtyAnnualTotal * withholdingRate + psComprehensiveIncomeTax(otherComprehensiveIncome).total;
+      const finalTax = Math.max(tax1, tax2);
+
+      // 기납부세액: O배당(원천징수) + 국민연금(연금소득세, 월별 나이구간 반영) + 사적연금(includePrivate인 경우만)
+      const realtyWithheld = realtyAnnualTotal * withholdingRate;
+      let pensionWithheld = 0;
+      idxs.forEach(i => {
+        const rate = _pensionTaxRateAt(params, months[i]);
+        pensionWithheld += (log[i].nationalPension || 0) * rate;
+        if (includePrivate) {
+          pensionWithheld += ((log[i].taxed || 0) + (log[i].irp1 || 0) + (log[i].irp2 || 0)) * rate;
+        }
+      });
+      const totalWithheld = realtyWithheld + pensionWithheld;
+
+      const additionalPayment = Math.max(0, finalTax - totalWithheld);
+      if (additionalPayment <= 0) return;
+
+      const settlementYM = _toYM(yrNum + 1, 5);
+      const settlementIdx = _ymToIdx(settlementYM);
+      if (settlementIdx < 0 || settlementIdx >= log.length || !log[settlementIdx]) {
+        console.warn(`[ps-engine] realtyComprehensiveSettlement: ${settlementYM} 정산월이 시뮬레이션 범위를 벗어나 스킵됨 (${yr}년 O배당 ${realtyAnnualTotal}원)`);
+        return;
+      }
+      log[settlementIdx].realtyComprehensiveSettlement = Math.round(additionalPayment);
+      log[settlementIdx].realtyComprehensiveSettlementYear = yrNum;
+    });
+  }
+
+  /** 인출(withdrawal) 트랙 상태 초기값 */
+  function _wdInitial() {
+    return {
+      isaConverted:       false,
+      pensionLimitYear:   0,
+      pensionLimitAmt:    0,
+      pensionWithdrawnYear: 0,
+      taxedWithdrawnYear: 0,
+      irp1LimitYear:      0,
+      irp1LimitAmt:       0,
+      irp1WithdrawnYear:  0,
+      irp2LimitYear:      0,
+      irp2LimitAmt:       0,
+      irp2WithdrawnYear:  0,
+      oDripActive:        true,  // O(리얼티인컴) DRIP 재투자 활성 여부 (§5), 기본 true — IRP1·IRP2 소진 후 false로 영구 전환
+      oDripYear:          0,
+      oDripYearlyGross:   0,
+      isaPostMaturityVooRedirect: 0,  // ISA 만기 이후 VOO 3순위 배분분이 해외주식 계좌로 대체 귀속된 누계
+      overseasSaleYear:     0,
+      overseasSaleGainYear: 0   // 연간 누적 양도차익(250만원 공제 소진 추적용)
+    };
+  }
+
+  /**
+   * 연금수령한도 (§9-9): 평가액 ÷ (11 - 연금수령연차) × 120%
+   * 연차 11년차부터 한도 없음(무제한)
+   * @param {number} balance      계좌 평가액
+   * @param {number} receiptYear  연금수령연차 (1부터 시작)
+   */
+  function _receiptLimit(balance, receiptYear) {
+    if (receiptYear >= 11) return Infinity;
+    if (receiptYear < 1)   return 0;
+    return (balance / (11 - receiptYear)) * 1.2;
   }
 
   /** 연금저축 남은 납입 한도 */
@@ -478,6 +1095,6 @@ const PensionEngine = (() => {
 
   // ─── 공개 API ────────────────────────────────────────────────────────────────
 
-  return { run, calcISATransfer, calcRiaAdjustedDeduction };
+  return { run, calcISATransfer, calcRiaAdjustedDeduction, calcRiaCapitalGainsTax };
 
 })();

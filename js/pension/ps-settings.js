@@ -19,21 +19,16 @@ const PensionSettings = (() => {
 
   function _updateISAAmounts() {
     const p = PensionState.params;
-    const transfers = p.isa?.transfers || [];
+    const el = document.getElementById('pension-isa-amount-0');
+    if (!el) return;
+    const startYM = p.isa?.transferStartYM;
+    if (!startYM) { el.textContent = '—'; return; }
 
-    // 각 이체 시점까지의 VOO→ISA 누적 납입액은 시뮬레이션 결과에서 가져오는 것이 정확하나,
-    // 설정 패널 실시간 표시 용도로 RIA 초기 잔액 기반 근사값 사용
+    // 최초 이체 시점까지의 VOO→ISA 누적 납입액은 시뮬레이션 결과에서 가져오는 것이 정확하나,
+    // 설정 패널 실시간 표시 용도로 RIA 초기 잔액 기반 근사값 사용 (이후 반복 이체는 시뮬레이션 결과 참조)
     const riaBalance = PensionState.actual?.initialBalances?.RIA || 0;
-    let prevTransfers = 0;
-
-    transfers.forEach((tx, idx) => {
-      const el = document.getElementById(`pension-isa-amount-${idx}`);
-      if (!el) return;
-      // paidToISA 근사: 이전 이체 합계만 사용 (정밀 계산은 엔진 담당)
-      const amt = PensionEngine.calcISATransfer(p, 0, prevTransfers, tx.ym || '2099-01', riaBalance - prevTransfers);
-      el.textContent = amt > 0 ? _fmtWon(amt) : '—';
-      prevTransfers += amt;
-    });
+    const amt = PensionEngine.calcISATransfer(p, 0, 0, startYM, riaBalance);
+    el.textContent = amt > 0 ? _fmtWon(amt) : '—';
   }
 
   /** 원/만/억 포맷 */
@@ -85,6 +80,31 @@ const PensionSettings = (() => {
       value="${value || ''}" disabled>`;
   }
 
+  function _selectInput(id, options, selected) {
+    return `<select class="ps-input ps-select" id="${id}">
+      ${options.map(o => `<option value="${o.value}"${o.value === selected ? ' selected' : ''}>${o.label}</option>`).join('')}
+    </select>`;
+  }
+
+  // ─── 사적연금 인출 설정 카드 (인출 시뮬레이터 옆 사이드바에 별도 렌더) ────
+
+  function _renderWithdrawalCard(p) {
+    return `
+    <div class="ps-card">
+      <div class="ps-card-title">사적연금 인출 설정</div>
+      ${_row('인출 시작 나이',       _numInput('ps-wd-start-age', p.withdrawal.startAge, 1, 50, 90), '세')}
+      ${_row('목표 월 인출액',       _numInput('ps-wd-monthly',   p.withdrawal.monthlyTarget, 10000), '원/월')}
+      ${_row('IRP 목표 월 인출액',   _numInput('ps-wd-irp-monthly', p.withdrawal.irp2MonthlyTarget, 10000), '원/월')}
+      ${_row('1,500만원 초과 처리방식', _selectInput('ps-wd-excess-mode', [
+        { value: 'cap15m',            label: 'cap15m (현행 하드캡)' },
+        { value: 'separate16_5',      label: 'separate16_5 (16.5% 분리과세)' },
+        { value: 'comprehensive',     label: 'comprehensive (종합과세)' },
+        { value: 'cap15m_thenExpand', label: 'cap15m_thenExpand (기본, IRP 소진 후 조건부 확장)' }
+      ], p.withdrawal.excessMode), '§13 문턱효과 — cap15m/cap15m_thenExpand는 지금과 동일, thenExpand는 IRP1·IRP2 소진 후에만 연금저축을 종합과세로 확장 인출')}
+      ${_row('IRP2 실제수령개시 나이', _numInput('ps-wd-irp2-start-age', p.irp2.withdrawalStartAge, 1, 55, 90), '세 (§9-4, 연차 시작과는 별개 개념)')}
+    </div>`;
+  }
+
   // ─── render() ────────────────────────────────────────────────────────────
 
   function render() {
@@ -106,6 +126,7 @@ const PensionSettings = (() => {
         ${_row('해외주식',    _numInput('ps-rate-overseas', _pct(p.rates.해외주식), 0.1, 0, 30), '%/년')}
         ${_row('RIA / ISA',   _numInput('ps-rate-ria',     _pct(p.rates.RIA),     0.1, 0, 30), '%/년')}
         ${_row('VOO',         _numInput('ps-rate-voo',     _pct(p.rates.VOO),     0.1, 0, 30), '%/년')}
+        ${_row('물가상승률',  _numInput('ps-inflation-rate', _pct(p.inflation.annualRate), 0.1, 0, 10), '%/년 (인출목표·국민연금 실질가치 고정)')}
       </div>
 
       <!-- 카드2: VOO 매도 설정 -->
@@ -122,19 +143,19 @@ const PensionSettings = (() => {
       <div class="ps-card">
         <div class="ps-card-title">ISA 이체 스케줄</div>
         ${_row('ISA 가입일', _textInput('ps-isa-join', p.isa.joinYM, 'YYYY-MM'))}
-        ${p.isa.transfers.map((tx, i) => `
         <div class="ps-isa-transfer-row">
           <div class="ps-setting-row">
-            <label class="ps-setting-label">${i + 1}차 이체 시점</label>
-            <div class="ps-setting-input">${_textInput(`ps-isa-tx-${i}`, tx.ym, 'YYYY-MM')}</div>
+            <label class="ps-setting-label">최초 이체 시점</label>
+            <div class="ps-setting-input">${_textInput('ps-isa-transfer-start', p.isa.transferStartYM, 'YYYY-MM')}</div>
           </div>
+          ${_row('반복 월(매년)', _numInput('ps-isa-transfer-month', p.isa.transferRepeatMonth, 1, 1, 12), '월 — RIA 잔액 0 될 때까지 매년 반복')}
           <div class="ps-setting-row ps-isa-amount-row">
-            <label class="ps-setting-label ps-text3">└ 이체 금액</label>
+            <label class="ps-setting-label ps-text3">└ 최초 이체 금액</label>
             <div class="ps-setting-input">
-              <span class="ps-isa-amount" id="pension-isa-amount-${i}">—</span>
+              <span class="ps-isa-amount" id="pension-isa-amount-0">—</span>
             </div>
           </div>
-        </div>`).join('')}
+        </div>
         ${_row('분리과세 기준선', _numInput('ps-tax-sep', p.tax.separateTaxThreshold, 100000), '원/년')}
       </div>
 
@@ -146,8 +167,9 @@ const PensionSettings = (() => {
         </button>
         <div class="ps-advanced-body" id="ps-body-tax">
           ${_row('세액공제율',         _numInput('ps-tax-deduct',    _pct(p.tax.deductRate),    0.1, 0, 50),   '%')}
-          ${_row('연금세율 (60~69세)', _numInput('ps-tax-rate6069',  _pct(p.tax.rate6069),      0.1, 0, 50),   '%')}
-          ${_row('연금세율 (70세~)',   _numInput('ps-tax-rate70',    _pct(p.tax.rate70),        0.1, 0, 50),   '%')}
+          ${_row('연금세율 (55~69세)', _numInput('ps-tax-rate5569',  _pct(p.tax.rate5569),      0.1, 0, 50),   '%')}
+          ${_row('연금세율 (70~79세)', _numInput('ps-tax-rate7079',  _pct(p.tax.rate7079),      0.1, 0, 50),   '%')}
+          ${_row('연금세율 (80세~)',   _numInput('ps-tax-rate80',    _pct(p.tax.rate80),        0.1, 0, 50),   '%')}
           ${_row('건보료율',           _numInput('ps-hi-rate',       _pct(p.healthInsurance.rate), 0.01, 0, 30), '%')}
           ${_row('건보료 연간상승률',  _numInput('ps-hi-raise',      _pct(p.healthInsurance.annualRaise), 0.1, 0, 20), '%/년')}
           ${_row('장기요양보험료율',   _numInput('ps-ltc-rate',      _pct(p.healthInsurance.ltcRate), 0.1, 0, 50), '% (건보료 대비)')}
@@ -166,6 +188,19 @@ const PensionSettings = (() => {
           ${_row('아파트 공시가격',  _numInput('ps-prop-price', p.property.publicPrice,  1000000), '원')}
           ${_row('연간 상승률',      _numInput('ps-prop-raise', _pct(p.property.annualRaise), 0.1, 0, 30), '%/년')}
           ${_row('소유 지분',        _numInput('ps-prop-ratio', (p.property.ownershipRatio * 100).toFixed(0), 1, 0, 100), '%')}
+        </div>
+      </div>
+
+      <!-- 고급 설정: 해외주식 매도 (부족분 충당) -->
+      <div class="ps-card ps-advanced-card">
+        <button class="ps-advanced-toggle" id="ps-toggle-overseas-sale">
+          <span>해외주식 매도 (부족분 충당)</span>
+          <span class="ps-toggle-arrow">▼</span>
+        </button>
+        <div class="ps-advanced-body" id="ps-body-overseas-sale">
+          ${_row('취득원가율', _numInput('ps-os-cost-ratio', (p.overseasSale.costBasisRatio * 100).toFixed(0), 1, 0, 100), '% (매도액 대비 원가)')}
+          ${_row('양도소득세율', _numInput('ps-os-tax-rate', _pct(p.overseasSale.capitalGainsTaxRate), 0.1, 0, 50), '%')}
+          ${_row('연간 기본공제', _numInput('ps-os-exempt', p.overseasSale.annualExemption, 100000), '원/년')}
         </div>
       </div>
 
@@ -194,6 +229,10 @@ const PensionSettings = (() => {
     </div>
     `;
 
+    // 사적연금 인출 설정 카드 (인출 시뮬레이터 옆 사이드바에 별도 렌더)
+    const wdContainer = document.getElementById('pension-wd-settings');
+    if (wdContainer) wdContainer.innerHTML = _renderWithdrawalCard(p);
+
     // 초기 ISA 금액 표시
     _updateISAAmounts();
   }
@@ -208,6 +247,7 @@ const PensionSettings = (() => {
     _bindNum('ps-rate-overseas',v => ({ rates: { 해외주식: v / 100 } }));
     _bindNum('ps-rate-ria',     v => ({ rates: { RIA: v / 100, ISA: v / 100 } }));
     _bindNum('ps-rate-voo',     v => ({ rates: { VOO: v / 100 } }));
+    _bindNum('ps-inflation-rate', v => ({ inflation: { annualRate: v / 100 } }));
 
     // ── VOO 매도 ──
     _bindText('ps-voo-start',    v => ({ voo: { startYM: v } }));
@@ -218,22 +258,25 @@ const PensionSettings = (() => {
 
     // ── ISA 이체 ──
     _bindText('ps-isa-join', v => ({ isa: { joinYM: v } }));
-    const transfers = PensionState.params.isa?.transfers || [];
-    transfers.forEach((_, i) => {
-      _bindText(`ps-isa-tx-${i}`, v => {
-        const txs = PensionState.params.isa.transfers.map((t, j) =>
-          j === i ? { ...t, ym: v } : { ...t }
-        );
-        setTimeout(_updateISAAmounts, 0);
-        return { isa: { transfers: txs } };
-      });
+    _bindText('ps-isa-transfer-start', v => {
+      setTimeout(_updateISAAmounts, 0);
+      return { isa: { transferStartYM: v } };
     });
+    _bindNum('ps-isa-transfer-month', v => ({ isa: { transferRepeatMonth: v } }));
     _bindNum('ps-tax-sep', v => ({ tax: { separateTaxThreshold: v } }));
+
+    // ── 인출 설정 (§13) ──
+    _bindNum('ps-wd-start-age',    v => ({ withdrawal: { startAge: v } }));
+    _bindNum('ps-wd-monthly',      v => ({ withdrawal: { monthlyTarget: v } }));
+    _bindNum('ps-wd-irp-monthly',  v => ({ withdrawal: { irp2MonthlyTarget: v } }));
+    _bindSelect('ps-wd-excess-mode', v => ({ withdrawal: { excessMode: v } }));
+    _bindNum('ps-wd-irp2-start-age', v => ({ irp2: { withdrawalStartAge: v } }));
 
     // ── 세율 & 건보료 ──
     _bindNum('ps-tax-deduct',    v => ({ tax: { deductRate: v / 100 } }));
-    _bindNum('ps-tax-rate6069',  v => ({ tax: { rate6069: v / 100 } }));
-    _bindNum('ps-tax-rate70',    v => ({ tax: { rate70: v / 100 } }));
+    _bindNum('ps-tax-rate5569',  v => ({ tax: { rate5569: v / 100 } }));
+    _bindNum('ps-tax-rate7079',  v => ({ tax: { rate7079: v / 100 } }));
+    _bindNum('ps-tax-rate80',    v => ({ tax: { rate80: v / 100 } }));
     _bindNum('ps-hi-rate',       v => ({ healthInsurance: { rate: v / 100 } }));
     _bindNum('ps-hi-raise',      v => ({ healthInsurance: { annualRaise: v / 100 } }));
     _bindNum('ps-ltc-rate',      v => ({ healthInsurance: { ltcRate: v / 100 } }));
@@ -245,6 +288,11 @@ const PensionSettings = (() => {
     _bindNum('ps-prop-raise', v => ({ property: { annualRaise: v / 100 } }));
     _bindNum('ps-prop-ratio', v => ({ property: { ownershipRatio: v / 100 } }));
 
+    // ── 해외주식 매도 (부족분 충당) ──
+    _bindNum('ps-os-cost-ratio', v => ({ overseasSale: { costBasisRatio: v / 100 } }));
+    _bindNum('ps-os-tax-rate',   v => ({ overseasSale: { capitalGainsTaxRate: v / 100 } }));
+    _bindNum('ps-os-exempt',     v => ({ overseasSale: { annualExemption: v } }));
+
     // ── 고정값 (퇴직/국민연금) ──
     _bindText('ps-retire-ym',    v => ({ retire: { ym: v } }));
     _bindNum('ps-retire-pay',    v => ({ retire: { severancePay: v } }));
@@ -254,6 +302,7 @@ const PensionSettings = (() => {
     // ── 고급 설정 토글 ──
     _bindToggle('ps-toggle-tax',      'ps-body-tax');
     _bindToggle('ps-toggle-property', 'ps-body-property');
+    _bindToggle('ps-toggle-overseas-sale', 'ps-body-overseas-sale');
     _bindToggle('ps-toggle-init',     'ps-body-init');
   }
 
@@ -269,6 +318,7 @@ const PensionSettings = (() => {
     _setVal('ps-rate-overseas',  _pct(p.rates.해외주식));
     _setVal('ps-rate-ria',       _pct(p.rates.RIA));
     _setVal('ps-rate-voo',       _pct(p.rates.VOO));
+    _setVal('ps-inflation-rate', _pct(p.inflation.annualRate));
 
     _setVal('ps-voo-start',      p.voo.startYM);
     _setVal('ps-voo-interval',   p.voo.intervalWeeks);
@@ -277,12 +327,20 @@ const PensionSettings = (() => {
     _setVal('ps-pension-base',   p.pension.baseMonthly);
 
     _setVal('ps-isa-join',       p.isa.joinYM);
-    (p.isa.transfers || []).forEach((tx, i) => _setVal(`ps-isa-tx-${i}`, tx.ym));
+    _setVal('ps-isa-transfer-start', p.isa.transferStartYM);
+    _setVal('ps-isa-transfer-month', p.isa.transferRepeatMonth);
     _setVal('ps-tax-sep',        p.tax.separateTaxThreshold);
 
+    _setVal('ps-wd-start-age',    p.withdrawal.startAge);
+    _setVal('ps-wd-monthly',      p.withdrawal.monthlyTarget);
+    _setVal('ps-wd-irp-monthly',  p.withdrawal.irp2MonthlyTarget);
+    _setVal('ps-wd-excess-mode',  p.withdrawal.excessMode);
+    _setVal('ps-wd-irp2-start-age', p.irp2.withdrawalStartAge);
+
     _setVal('ps-tax-deduct',     _pct(p.tax.deductRate));
-    _setVal('ps-tax-rate6069',   _pct(p.tax.rate6069));
-    _setVal('ps-tax-rate70',     _pct(p.tax.rate70));
+    _setVal('ps-tax-rate5569',   _pct(p.tax.rate5569));
+    _setVal('ps-tax-rate7079',   _pct(p.tax.rate7079));
+    _setVal('ps-tax-rate80',     _pct(p.tax.rate80));
     _setVal('ps-hi-rate',        _pct(p.healthInsurance.rate));
     _setVal('ps-hi-raise',       _pct(p.healthInsurance.annualRaise));
     _setVal('ps-ltc-rate',       _pct(p.healthInsurance.ltcRate));
@@ -292,6 +350,10 @@ const PensionSettings = (() => {
     _setVal('ps-prop-price',     p.property.publicPrice);
     _setVal('ps-prop-raise',     _pct(p.property.annualRaise));
     _setVal('ps-prop-ratio',     (p.property.ownershipRatio * 100).toFixed(0));
+
+    _setVal('ps-os-cost-ratio', (p.overseasSale.costBasisRatio * 100).toFixed(0));
+    _setVal('ps-os-tax-rate',   _pct(p.overseasSale.capitalGainsTaxRate));
+    _setVal('ps-os-exempt',     p.overseasSale.annualExemption);
 
     _setVal('ps-retire-ym',      p.retire.ym);
     _setVal('ps-retire-pay',     p.retire.severancePay);
@@ -328,6 +390,14 @@ const PensionSettings = (() => {
       const v = el.value.trim();
       if (!v) return;
       PensionState.update(toPatch(v));
+    });
+  }
+
+  function _bindSelect(id, toPatch) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('change', () => {
+      PensionState.update(toPatch(el.value));
     });
   }
 

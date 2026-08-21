@@ -59,6 +59,29 @@
 |---------|------|----------|---------|---------|
 | `tax.separateTaxThreshold` | 15,000,000원/년 | 종합과세 or 16.5% 분리과세 | 매년 세법 개정안 | 2025: 1,200만→1,500만 상향 |
 
+### 3-2-1. cap15m_thenExpand (조건부 확장 인출, 신규)
+
+**목적**: `cap15m`은 IRP1·IRP2 잔액이 남아 있어도 연금저축 과세분을 연 1,500만원(월
+125만원)으로 항상 고정해, IRP 소진 후 연금저축만으로는 목표 생활비를 못 채우는 문제가 있었다.
+`cap15m_thenExpand`(기본값)는 **IRP1·IRP2가 둘 다 소진된 이후에만** 그 하드캡을 넘겨 연금저축을
+추가로 인출하는 모드다 — IRP1·IRP2 중 하나라도 잔액이 남아있는 일반 구간에서는 `cap15m`을
+선택했을 때와 전혀 차이가 없다.
+
+| 항목 | 내용 |
+|------|------|
+| 파라미터 값 | `params.withdrawal.excessMode = 'cap15m_thenExpand'` |
+| 트리거 조건 | 해당 월에 `bal.IRP1 <= 0 && bal.IRP2 <= 0`(둘 다 실제 소진) **그리고** `overallShortfall > 0`(§7-4, 목표 월 인출액 세전 기준 부족분) |
+| 인출 결정 위치 | `js/pension/ps-engine.js` `_stepMonth()` §7-4b (§7-4 이후, §7-5 O DRIP 전환 이전 — 연금저축이 O DRIP 현금전환보다 우선 부족분을 메움) |
+| 인출 상한 | `Math.min(부족분, 연금저축 잔액, §9-9 연금수령한도 잔여분)` — 잔액 소진 시 자동으로 다시 부족 상태 표시(별도 하한 로직 불필요) |
+| 세금 계산 위치 | `js/pension/ps-withdrawal.js` `_expansionComprehensiveTax()` — 기존 §13 문턱효과(`_markExcessYears`, 연 전체 재분류)와 별개. 캡 이내 기본분(`taxedBase`)은 기존 연금소득세율(4.4%/3.3%) 유지, 캡 초과 확장분(`taxedExpansion`)만 종합소득세 누진표(6.6~49.5%, `PS_COMPREHENSIVE_TAX_BRACKETS`)로 한계세율 계산(전체 종합과세액 − 기본분 단독 종합과세액) |
+| 종합과세 합산 범위 | ⚠️ 1차 구현 단순 가정: **사적연금(연금저축) 소득만** 합산. 국민연금·O배당 등 다른 종합소득 항목과는 미합산 — 실제 신고 시 다른 소득과 합산되면 세율 구간이 달라지므로 세무사 확인 필요 |
+| §13-B(O배당 비교과세) 연동 | `_markRealtyComprehensiveSettlement`의 `includePrivate` 조건은 기존대로 `excessMode==='comprehensive'`일 때만 참 — `cap15m_thenExpand` 확장분은 O배당 비교과세의 "다른 종합소득"에 **포함하지 않음**(1차 구현 단순화, 기존 로직 무변경) |
+| 건보료(피부양자 소득) | 기존 `includePrivateInHI` 조건(`isExcessYear && excessMode==='comprehensive'`) 그대로 유지 — `cap15m_thenExpand`는 `isExcessYear` 자체가 false이므로 확장분이 건보 소득 산정에 미포함 |
+| UI | `js/pension/ps-settings.js` "1,500만원 초과 처리방식" 드롭다운 4번째 옵션. §13 안내 문구도 "cap15m/cap15m_thenExpand는 지금과 동일, thenExpand는 IRP 소진 후에만 확장"으로 조건부 표시 |
+
+**cap15m과의 결과 동일성**: IRP1·IRP2 중 하나라도 잔액이 남아있는 동안은 트리거 조건
+자체가 성립하지 않으므로, 그 구간까지는 `cap15m`과 월별 인출·세금·건보료 결과가 완전히 동일하다.
+
 ### 3-3. 금융소득 분리과세 기준 (소득세법 제62조)
 
 | 파라미터 | 현행값 | 초과 시 | 확인 시점 | 변경 이력 |
@@ -151,6 +174,108 @@
 > **80세 이후 DRIP 속도 조절 필요**: 배당소득이 2,000만원에 근접하면  
 > DRIP 중단 또는 일부 매도로 수량 조절 검토.
 
+### O DRIP ↔ 조건부 현금인출 전환 (구현: `ps-engine.js` `_stepMonth()` §7-5)
+
+기존에는 `_calcODrip()`(ps-withdrawal.js)이 기준월→목표월 전체를 항상 DRIP 재투자로
+가정하는 순수 표시용 함수였다. O DRIP 조건부 전환 구현 이후 O는 연금저축/IRP처럼
+매달 상태를 추적하는 정식 항목(`bal.realty = { shares, monthlyDivPerShare, price }`,
+해외주식 계좌 내 VOO와 동일한 서브셋 패턴)으로 승격됐다.
+
+- **Phase 1 (재투자, `wd.oDripActive === true`, 기본값)**: 매달 세후 배당(원천징수 15%)으로
+  shares 추가 매수. 생활비 인출액(withdrawal)에 미포함, 화면에도 미노출.
+- **Phase 2 (현금인출, `wd.oDripActive === false`)**: shares 고정(재매수 없음),
+  `monthlyDivPerShare`는 `divGrowthRate`로 계속 성장. 세후 배당을 `withdrawal.realty`로
+  인출 결과에 포함, 생활비 부족분(`overallShortfall`)에 반영. `financialIncomeLimit`
+  2,000만원 캡 미적용(실제 배당액 전액 사용).
+- **전환 판정**: `bal.IRP1 <= 0 && bal.IRP2 <= 0`(IRP1·IRP2 둘 다 실제 소진) **그리고**
+  `overallShortfall > 0`일 때 그 달부터 영구 전환(되돌리지 않음). `overallShortfall > 0`
+  단독으로는 61세(인출 시작)~64세 구간에서 연금저축 §9-6 연 1,500만원 캡만으로도
+  상시 양수가 되어 조기 오발동하므로, IRP 잔액 실제 소진 여부를 반드시 함께 확인해야 한다.
+- **종합소득세 반영**: Phase 1이라도 연간 배당 누계(`wd.realtyAnnualTotal`, 세전)가
+  2,000만원을 초과하면 다음해 5월 금융소득종합과세(비교과세) 자동 정산 대상이 된다
+  (아래 "§13-B 금융소득종합과세(비교과세) 자동 정산" 참고). Phase 2(현금인출 전환)에서는
+  O 배당 전액을 사적연금·국민연금 연 합계와 합산해 `PS_COMPREHENSIVE_TAX_BRACKETS`
+  누진세율을 근사 적용(`ps-withdrawal.js` `calc()`)해 매월 원천징수분을 표시하며,
+  Phase1/2 무관하게 연 2,000만원 초과분에 대해서는 §13-B 정산이 별도로 적용된다.
+  ⚠️ 인적공제·외국납부세액공제 미반영 — 근사 구현, 실제 세무 신고 시점엔 세무사 확인 필요.
+
+### §13-B. O배당 금융소득종합과세(비교과세) 자동 정산 (소득세법 제62조)
+
+**§13(사적연금 1,500만원 초과, `withdrawal.excessMode`)과 완전히 독립된 별도 제도다.**
+두 제도를 섞어 설계하면 안 된다 — 아래 표로 구분한다.
+
+| 구분 | §13 사적연금 1,500만원 초과 | §13-B O배당(금융소득) 2,000만원 초과 |
+|------|---------------------------|-------------------------------------|
+| 근거 법령 | 소득세법 제14조 | 소득세법 제62조 |
+| 성격 | **선택** — 종합과세 vs 16.5% 분리과세 중 납세자가 고름 | **신고의무 자동발생** — 선택 불가 |
+| 계산 방식 | `excessMode`에 따라 전액 재분류(문턱효과) | 비교과세(2천만원 이하분 원천세율 + 초과분만 종합과세 vs 전액 분리과세 유지, 둘 중 큰 세액) |
+| 파라미터 | `params.withdrawal.excessMode`: `cap15m`\|`separate16_5`\|`comprehensive` | 파라미터 없음 (threshold 초과 시 항상 적용) |
+| 구현 위치 | `ps-engine.js` `_markExcessYears()`, `ps-withdrawal.js` `calc()` ③-2 | `ps-engine.js` `_markRealtyComprehensiveSettlement()`, `ps-withdrawal.js` `calc()` ③-3 |
+| 최소 세부담 | 16.5%(분리과세 선택 시) 또는 종합과세 누진세율 | 원천징수세율(15%) **미만으로 절대 낮아지지 않음** (비교과세 구조상 max 적용) |
+
+**계산 로직** (`ps-engine.js` `_markRealtyComprehensiveSettlement()`, `run()` 후처리 단계):
+
+1. 연도별로 `realtyAnnualTotal`(O배당 세전 연간합계)이 `financialIncomeLimit`(2,000만원)을
+   초과하고, 해당 연도 전체가 인출 시작 나이(`withdrawal.startAge`) 이후인 경우만 대상.
+2. **다른 종합소득금액**(`otherComprehensiveIncome`) = 연금소득공제 후 (국민연금 연 합계 +
+   사적연금 연 합계). 국민연금은 공적연금이라 항상 포함. **사적연금은 그 해
+   `excessTriggeredYear && excessMode === 'comprehensive'`로 §13에서 이미 종합과세를
+   선택한 경우에만 포함** — `cap15m`/`separate16_5`로 분리과세가 이미 완결된 경우는
+   미포함(§13 선택이 §13-B의 종합소득 산입 여부에 유일하게 영향을 주는 접점이며, 반대
+   방향 영향은 없음 — §13-B가 §13의 세액·excessMode 자체를 바꾸지 않는다).
+3. 비교과세 = `max(방식1, 방식2)`:
+   - 방식1(2,000만원 이하 원천세율 유지 + 초과분만 종합과세): `2,000만원×14% + comprehensiveTax(other + max(0, realty−2,000만원))`
+   - 방식2(전액 분리과세 유지, 비교용): `realty×15% + comprehensiveTax(other)`
+4. 기납부세액(이미 원천징수된 금액) = O배당분(`realty×15%`) + 국민연금분(월별 나이구간
+   연금소득세율 적용) + 사적연금분(②에서 포함시킨 경우만, 동일 세율 적용).
+5. 추가납부액 = `max(0, 최종세액 − 기납부세액)` → **Y+1년 5월** `log[idx].realtyComprehensiveSettlement`에
+   기록. 시뮬레이션 범위를 벗어나면 스킵 + 콘솔 경고. 환급 케이스(이론상 음수)는 0 처리
+   (비교과세 구조상 실제로는 거의 발생하지 않음 — 안전장치).
+6. `ps-withdrawal.js` `calc()`가 해당 5월 표시 시 소득원 표에 `전년도
+   금융소득종합과세(비교과세) 정산` 마이너스 항목으로 표시(`totalNet`에 반영).
+
+⚠️ 인적공제·외국납부세액공제 미반영 — 근사 구현. 실제 세무 신고 시점엔 세무사 확인 필요.
+- **기본 파라미터 검증 결과(2026-07-09)**: `PS_DEFAULT_PARAMS` 기준으로는 IRP1이
+  2051년경 소진되지만, IRP2는 퇴직금(1.4억) + 연 9% 성장이 인출목표(§9-2 갭필링)보다
+  훨씬 빨라 시뮬레이션 종료(2074-12, 만 100세)까지 소진되지 않는다. 따라서 현재
+  기본값으로는 Phase 2(현금인출 전환)가 전체 시뮬레이션 기간 내에 발생하지 않는다
+  — 코드 경로 자체는 강제 소진 시나리오(IRP 수익률 0%, 목표 생활비 상향)로 별도 검증
+  완료. `rates.IRP2`나 `withdrawal.irp2MonthlyTarget` 등 파라미터 재검토 필요 여부는
+  전략 세션에서 논의 필요.
+
+### 5-2. 해외주식 계좌 잔액 매도 (부족분 충당, 구현: `ps-engine.js` `_stepMonth()` §7-6)
+
+Phase2(IRP1·IRP2 소진, `wd.oDripActive===false`) 진입 이후 O 배당 세후 반영까지 마친
+시점에도 `withdrawal.overallShortfall > 0`이면, 해외주식 계좌(`bal.해외주식`, O 포함
+— VOO는 §4에서 별도 관리하므로 매도 대상에서 제외)에서 부족분만큼(잔액 한도 내) 추가
+매도해 인출액(`withdrawal.overseasSale`)에 포함한다.
+
+- **매도 순서**: ①"기타(non-VOO/non-O)" 잔액(`otherNow = bal.해외주식 - bal.VOO -
+  O가치`)을 먼저 소진 → ②그래도 부족하면 O(`bal.realty.shares`)를 비례 차감해 실제로
+  매도. `sellCeiling = otherNow + O가치`(VOO 제외)가 이번 달 매도 가능 상한.
+- **⚠️ 구현상 반드시 지켜야 할 제약(2026-07-17 확인)**: `bal.해외주식`은 VOO·O를 뺀
+  나머지가 매달 파생 재계산되는 구조(§1 `nonVoo = Math.max(0, bal.해외주식 - bal.VOO -
+  priorRealtyKRW)`)라, O(`bal.realty.shares`)를 건드리지 않고 `bal.해외주식`에서
+  매도액을 직접 통째로 빼면 다음 달 파생 계산에서 `nonVoo`가 0으로 클램프되며 차감분이
+  "부활"하는 결함이 있다 — **정적 코드 리뷰로는 발견되지 않고, 여러 달치 상태 전이를
+  실제로 시뮬레이션해야만 드러남**(1차 지시서의 "별도 보정 불필요" 가정이 틀렸음을
+  동적 시뮬레이션으로 확인). 따라서 O 매도분은 `bal.해외주식`을 직접 차감하지 않고
+  `bal.realty.shares`를 줄여 §7-5 하단의 `newRealtyKRW - priorRealtyKRW` 전파 로직이
+  자연스럽게 감소분을 반영하게 한다.
+- **양도소득세 근사**: 신규 파라미터 `overseasSale{costBasisRatio(취득원가율, 기본
+  50%), capitalGainsTaxRate(22%), annualExemption(연 250만원)}`(`ps-config.js`)를
+  사용해 매도차익·과세대상·세금을 근사 계산(`ps-withdrawal.js`에서 표시 전용, 인출액
+  자체는 세전 기준 — 다른 소득원과 동일 패턴). 취득원가율은 실제 평균 매입단가가
+  아닌 근사치이므로 설정 패널에서 사용자가 조정 가능.
+- **검증(node vm, 동적 시뮬레이션)**: `_stepMonth()` 실제 로직을 그대로 재현한 축소
+  스크립트로 6개월 연속 매도 시나리오 확인 — 수정 전(구 §7-6, `bal.해외주식 -=
+  sellAmt` 직접 차감) 코드는 3개월째부터 잔액이 반등(23,781,527→18,803,313→
+  18,864,970원으로 감소 후 증가)하는 결함 재현. 수정판(기타 우선 소진 → O shares
+  비례 차감)은 동일 시나리오에서 잔액이 단조 감소하다 정확히 0에서 멈추고(반등 없음),
+  `otherNow` 소진 이후 `realty.shares`가 매달 실제로 줄어드는 것(272.83→200.32→
+  127.98→55.82→0)을 확인 — O 배당액(`shares×monthlyDivPerShare`)도 구조적으로 다음
+  달마다 자동 감소.
+
 ---
 
 ## 6. 국민연금 파라미터
@@ -158,8 +283,10 @@
 | 파라미터 | 현행값 | 비고 |
 |---------|------|------|
 | 수령 시작 | 2039-03 (만 65세) | 생년월일 1974-02 기준 |
-| 월 수령액 | 1,800,000원 | 명목가치 고정 가정 (실질가치 조정 미반영) |
+| 월 수령액 | 1,800,000원 | 실질가치 고정 (매년 물가상승률만큼 명목액 증액, `inflation.annualRate` 기본 2.5%/년, `PS_START_YM`(2026) 기준 복리) |
 | 수령 나이 | 만 65세 | `nationalPension.startYM` |
+
+> **물가연동(실질가치 고정)**: 국민연금·사적연금 인출목표(`withdrawal.monthlyTarget`, `withdrawal.irp2MonthlyTarget`) 모두 위 표의 금액을 "2026년 기준 실질가치"로 보고, 지급/인출 시점(`ym`)의 연도가 `PS_START_YM`(2026) 대비 몇 년 경과했는지에 따라 `(1 + inflation.annualRate)^경과연수`만큼 명목액을 복리 증액한다(`ps-engine.js` `_stepMonth()` `inflationMultiplier`). `tax.separateTaxThreshold`(1,500만원 분리과세 캡) 등 세법상 고정 문턱값은 물가연동 대상이 아니다 — 법 개정 시에만 별도 갱신.
 
 > **⚠️ 수급 연령 상향 리스크**: 국민연금 재정 문제로 수급 개시 연령이  
 > 67세로 상향될 가능성 있음.  
@@ -230,14 +357,20 @@ PS_DEFAULT_PARAMS
   │     └── ownershipRatio            ← §1 지분 비율
   ├── nationalPension
   │     ├── startYM                   ← §6 수급 개시월
-  │     └── monthly                   ← §6 월 수령액
-  └── realty  (신규 추가 예정)
-        ├── shares                    ← §5 보유 수량
-        ├── currentPrice              ← §5 현재가 ($)
-        ├── monthlyDivPerShare        ← §5 월 배당/주
+  │     └── monthly                   ← §6 월 수령액 (물가연동 배율 적용 전 기준값)
+  ├── inflation
+  │     └── annualRate                ← §6 물가상승률(연, 기본 2.5%) — nationalPension.monthly·
+  │                                       withdrawal.monthlyTarget·withdrawal.irp2MonthlyTarget에
+  │                                       PS_START_YM(2026) 기준 복리 적용 (ps-engine.js _stepMonth())
+  └── realty  (O DRIP 조건부 전환, ps-engine.js _stepMonth() §7-5가 매달 상태 추적)
+        ├── shares                    ← §5 보유 수량 (bal.realty.shares 초기값, 매달 갱신)
+        ├── currentPrice              ← §5 현재가 ($, bal.realty.price 초기값)
+        ├── monthlyDivPerShare        ← §5 월 배당/주 (bal.realty.monthlyDivPerShare 초기값)
         ├── divGrowthRate             ← §5 배당 성장률
         ├── priceGrowthRate           ← §5 주가 성장률
-        └── fxRate                    ← §5 기준 환율
+        ├── fxRate                    ← §5 기준 환율
+        ├── withholdingRate           ← §3-4 미국 원천징수율 (15%, W-8BEN)
+        └── financialIncomeLimit      ← §5 금융소득 상한 (2,000만원, Phase2 전환 후 캡 미적용)
 ```
 
 ---
@@ -247,4 +380,9 @@ PS_DEFAULT_PARAMS
 | 날짜 | 변경 내용 | 법령/근거 | 영향 파라미터 |
 |------|---------|---------|------------|
 | 2026-06-29 | 최초 설계 문서 작성. 엑셀 시뮬레이션(v2.7) 분석 반영 | — | 전체 |
+| 2026-07-09 | O(리얼티인컴) DRIP 조건부 전환(IRP1·IRP2 소진 시 재투자→현금인출) 구현. O를 `bal.realty` 서브셋으로 승격, ps-withdrawal.js `_calcODrip` 제거 | 소득세법 제62조(금융소득종합과세) | `realty.*`, §5 신설 |
+| 2026-07-09 | O배당 2,000만원 초과 시 금융소득종합과세(비교과세) 자동 정산 구현(§13-B 신설, §13 excessMode와 독립). `_pensionIncomeDeduction`/`_comprehensiveIncomeTax`를 `ps-withdrawal.js` 전용 함수에서 `ps-config.js`의 `psPensionIncomeDeduction`/`psComprehensiveIncomeTax` 전역 헬퍼로 이동(양쪽 모듈 재사용, 로직 변경 없음). IRP2 실제수령개시 나이 기본값 70→65세 변경. `.ps-select` 오버플로우 CSS 수정 | 소득세법 제62조 | `irp2.withdrawalStartAge`, §13-B 신설, `ps-select`/`ps-setting-row` |
+| 2026-07-10 | `cap15m_thenExpand` excessMode 신규 옵션 구현(§3-2-1 신설) — IRP1·IRP2 둘 다 소진 + 목표 생활비 부족 시에만 연금저축 과세분을 §9-6 하드캡(연 1,500만) 너머로 자동 확장 인출, 확장분만 종합과세 근사(`_expansionComprehensiveTax`, ps-withdrawal.js 신규). 인출액 결정은 `ps-engine.js` `_stepMonth()` §7-4b(§7-4 이후·§7-5 O DRIP 전환 이전), 세금 계산은 `ps-withdrawal.js`가 분리 전담. 기존 §13 문턱효과 `isExcessYear` 판정을 `excessMode!=='cap15m'`에서 `separate16_5`\|`comprehensive` 명시 조건으로 정정(4번째 옵션 추가에 따른 필수 버그 수정, 회귀 아님) | 소득세법 제14조 | `withdrawal.excessMode`(신규값), `withdrawal.taxedExpansion`, §3-2-1 신설 |
+| 2026-07-10 | ISA 만기(§7-6, `wd.isaConverted`) 이후에도 §7-4 VOO 매도 3순위 분배("나머지 ISA")가 가드 없이 계속 실행되어 ISA 잔액이 영구 잔존·복리성장하던 버그 수정. 만기 이후 3순위 배분분은 해외주식(일반 과세) 계좌로 대체 귀속(`bal.해외주식 += remaining`, VOO와 동일하게 해외주식 계좌 서브셋 취급) + `wd.isaPostMaturityVooRedirect` 누계 추적. 발생 시 `ps-withdrawal.js` 경고("ISA 만기 이후 VOO 배분 XXX만원이 해외주식 계좌로 대체 귀속되었습니다") 표시. 계좌 간 재배치일 뿐 총자산 총합은 버그 수정 전후 동일 | — (자산 배분 로직 버그) | `ps-engine.js` §7-4 두 분배 분기(정상/급락), `_wdInitial()`, `wd.isaPostMaturityVooRedirect`(신규) |
+| 2026-07-17 | Phase2(IRP1·IRP2 소진) 이후 O 배당만으로 생활비 부족분을 못 메우는 문제 수정 — 해외주식 계좌 잔액(O 포함, VOO 제외)에서 부족분만큼 추가 매도(§5-2 신설). 취득원가율(기본 50%)·세율(22%)·연 250만원 공제로 양도소득세 근사(`overseasSale` 파라미터 신규). 구현 중 동적 시뮬레이션(정적 리뷰로는 미발견)으로 `bal.해외주식`을 직접 차감하면 다음 달 `nonVoo` 파생 재계산이 차감분을 "부활"시키는 결함을 발견 — "기타 잔액 우선 소진 → O(`bal.realty.shares`) 비례 차감" 방식으로 우회(`bal.해외주식`은 §7-5 하단 `newRealtyKRW-priorRealtyKRW` 전파로만 반영) | 소득세법 제118조의5·제118조의7(해외주식 양도소득세·기본공제) | `ps-config.js` `overseasSale`(신규), `ps-engine.js` §7-6 신설·`_wdInitial()`, `ps-withdrawal.js` 소득원/경고, `ps-settings.js` 설정 카드, §5-2 신설 |
 | _(추후 기록)_ | | | |
