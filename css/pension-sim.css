@@ -145,6 +145,7 @@
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 16px;
+  overflow: hidden;
 }
 
 .ps-card-title {
@@ -159,10 +160,10 @@
 /* ── 설정 행 ──────────────────────────────────────────────────────────── */
 
 .ps-setting-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 4px 8px;
   margin-bottom: 8px;
 }
 
@@ -196,6 +197,7 @@
   font-size: 12px;
   padding: 4px 7px;
   width: 90px;
+  max-width: 100%;
   text-align: right;
   transition: border-color 0.15s;
   -moz-appearance: textfield;
@@ -213,6 +215,13 @@
   color: var(--text3);
   cursor: default;
   opacity: 0.7;
+}
+
+.ps-select {
+  width: 140px;
+  min-width: 0;
+  max-width: 100%;
+  text-align: left;
 }
 
 /* ── ISA 이체 행 ──────────────────────────────────────────────────────── */
@@ -475,7 +484,8 @@
   .ps-chart-wrap-sm  { height: 140px; }
 
   .ps-setting-row {
-    grid-template-columns: 1fr;
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .ps-input {
@@ -515,6 +525,28 @@
   font-size: 13px;
   color: var(--text3);
   margin: 0;
+}
+
+/* ── 인출 시뮬레이터 레이아웃 (설정 카드 + 결과) ─────────────────────────── */
+
+.ps-wd-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .ps-wd-layout { grid-template-columns: 1fr; }
+}
+
+.ps-wd-sidebar {
+  position: sticky;
+  top: 16px;
+}
+
+@media (max-width: 480px) {
+  .ps-wd-sidebar { position: static; }
 }
 
 /* ── 나이 슬라이더 바 ─────────────────────────────────────────────────────── */
@@ -1001,6 +1033,12 @@
 
 .ps-table-card {
   overflow: hidden;
+}
+
+.ps-table-scope-note {
+  font-size: 12px;
+  color: var(--text3);
+  margin: 0 0 12px;
 }
 
 .ps-table-wrap {
