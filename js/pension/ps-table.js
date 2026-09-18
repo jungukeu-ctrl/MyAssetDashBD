@@ -22,13 +22,13 @@ const PensionTable = (() => {
 
   function _fmtInput(n) {
     const v = Number(n || 0);
-    return v ? String(Math.round(v)) : '';
+    return v ? v.toLocaleString('ko-KR') : '';
   }
 
   // riaExternalPurchase 전용: 0(확정 무매수)과 undefined(미입력)를 구분 표시
   function _fmtRiaInput(v) {
     if (v === undefined || v === null) return '';
-    return String(Math.round(Number(v) || 0));
+    return Math.round(Number(v) || 0).toLocaleString('ko-KR');
   }
 
   function _parseWon(id) {
@@ -231,12 +231,12 @@ const PensionTable = (() => {
             ${CONTRIBUTION_ACCOUNTS.map(k => `
               <label class="ps-contrib-field">
                 <span>${k}</span>
-                <input class="ps-input ps-contrib-input" id="pension-contrib-${k}" type="number" min="0" step="10000" value="${_fmtInput(current[k])}" placeholder="0">
+                <input class="ps-input ps-contrib-input" id="pension-contrib-${k}" type="text" inputmode="numeric" value="${_fmtInput(current[k])}" placeholder="0">
               </label>
             `).join('')}
             <label class="ps-contrib-field">
               <span>해외지수ETF 순매수액</span>
-              <input class="ps-input ps-contrib-input" id="pension-contrib-ria" type="number" min="0" step="10000" value="${_fmtRiaInput(current.riaExternalPurchase)}" placeholder="미입력">
+              <input class="ps-input ps-contrib-input" id="pension-contrib-ria" type="text" inputmode="numeric" value="${_fmtRiaInput(current.riaExternalPurchase)}" placeholder="미입력">
               <small style="display:block;font-size:0.8em;opacity:0.7;margin-top:2px;">연금저축/IRP/ISA 등에서 이번 달 매수한 S&amp;P500·나스닥100류 해외지수 추종 ETF 금액만 입력. TRF3070 등 혼합형 채권형은 제외. 확인 안 됐으면 비워두세요(0원 확정과 구분).</small>
             </label>
             <label class="ps-contrib-field ps-contrib-memo-field">
@@ -386,11 +386,17 @@ const PensionTable = (() => {
       status.textContent = validation.message;
     };
 
-    [ymEl, ...CONTRIBUTION_ACCOUNTS.map(k => document.getElementById(`pension-contrib-${k}`))]
+    const contribInputEls = CONTRIBUTION_ACCOUNTS.map(k => document.getElementById(`pension-contrib-${k}`));
+
+    [ymEl, ...contribInputEls]
       .filter(Boolean)
       .forEach(el => el.addEventListener('input', refreshStatus));
 
+    // 타이핑 중 천단위 콤마 실시간 포맷 (저장/검증 파싱은 _parseWon/_readFormPatch가 콤마 제거 처리)
+    contribInputEls.filter(Boolean).forEach(psAttachWonInputFormatter);
+
     const riaEl = document.getElementById('pension-contrib-ria');
+    psAttachWonInputFormatter(riaEl);
 
     // RIA 조정 공제율 실시간 미리보기 — 아직 저장 안 된 현재 입력값을 반영해 계산
     const refreshRiaPreview = () => {
