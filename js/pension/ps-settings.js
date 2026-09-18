@@ -70,6 +70,12 @@ const PensionSettings = (() => {
       ${max !== undefined ? `max="${max}"` : ''}>`;
   }
 
+  /** 원 단위 금액 입력창 — 콤마 실시간 포맷 (type=number는 콤마 표시 불가라 text+inputmode 사용) */
+  function _wonInput(id, value) {
+    return `<input class="ps-input" type="text" inputmode="numeric" id="${id}"
+      value="${psFormatWonInput(value)}">`;
+  }
+
   function _textInput(id, value, placeholder) {
     return `<input class="ps-input" type="text" id="${id}"
       value="${value || ''}" placeholder="${placeholder || ''}">`;
@@ -93,8 +99,8 @@ const PensionSettings = (() => {
     <div class="ps-card">
       <div class="ps-card-title">사적연금 인출 설정</div>
       ${_row('인출 시작 나이',       _numInput('ps-wd-start-age', p.withdrawal.startAge, 1, 50, 90), '세')}
-      ${_row('목표 월 인출액',       _numInput('ps-wd-monthly',   p.withdrawal.monthlyTarget, 10000), '원/월')}
-      ${_row('IRP 목표 월 인출액',   _numInput('ps-wd-irp-monthly', p.withdrawal.irp2MonthlyTarget, 10000), '원/월')}
+      ${_row('목표 월 인출액',       _wonInput('ps-wd-monthly',   p.withdrawal.monthlyTarget), '원/월')}
+      ${_row('IRP 목표 월 인출액',   _wonInput('ps-wd-irp-monthly', p.withdrawal.irp2MonthlyTarget), '원/월')}
       ${_row('1,500만원 초과 처리방식', _selectInput('ps-wd-excess-mode', [
         { value: 'cap15m',            label: 'cap15m (현행 하드캡)' },
         { value: 'separate16_5',      label: 'separate16_5 (16.5% 분리과세)' },
@@ -135,8 +141,8 @@ const PensionSettings = (() => {
         ${_row('매도 시작',       _textInput('ps-voo-start',    p.voo.startYM,       'YYYY-MM'))}
         ${_row('매도 주기',       _numInput('ps-voo-interval',  p.voo.intervalWeeks, 1, 1, 52), '주마다 1주')}
         ${_row('보유 수량',       _numInput('ps-voo-quantity',  p.voo.quantity,      0.0001, 0), '주')}
-        ${_row('1주당 가격',      _numInput('ps-voo-price',     p.voo.priceKRW,      1000),     '원 (현재가×환율)')}
-        ${_row('연금저축 기본납입', _numInput('ps-pension-base', p.pension.baseMonthly, 10000),  '원/월')}
+        ${_row('1주당 가격',      _wonInput('ps-voo-price',     p.voo.priceKRW),     '원 (현재가×환율)')}
+        ${_row('연금저축 기본납입', _wonInput('ps-pension-base', p.pension.baseMonthly),  '원/월')}
       </div>
 
       <!-- 카드3: ISA 이체 스케줄 -->
@@ -156,7 +162,7 @@ const PensionSettings = (() => {
             </div>
           </div>
         </div>
-        ${_row('분리과세 기준선', _numInput('ps-tax-sep', p.tax.separateTaxThreshold, 100000), '원/년')}
+        ${_row('분리과세 기준선', _wonInput('ps-tax-sep', p.tax.separateTaxThreshold), '원/년')}
       </div>
 
       <!-- 고급 설정: 세율 & 건강보험료 -->
@@ -173,8 +179,8 @@ const PensionSettings = (() => {
           ${_row('건보료율',           _numInput('ps-hi-rate',       _pct(p.healthInsurance.rate), 0.01, 0, 30), '%')}
           ${_row('건보료 연간상승률',  _numInput('ps-hi-raise',      _pct(p.healthInsurance.annualRaise), 0.1, 0, 20), '%/년')}
           ${_row('장기요양보험료율',   _numInput('ps-ltc-rate',      _pct(p.healthInsurance.ltcRate), 0.1, 0, 50), '% (건보료 대비)')}
-          ${_row('피부양자 소득기준',  _numInput('ps-dep-income',    p.healthInsurance.dependentIncomeLimit, 100000), '원/년')}
-          ${_row('사적연금 면제 하한', _numInput('ps-pension-exempt', p.healthInsurance.pensionExemptLimit, 100000), '원/년')}
+          ${_row('피부양자 소득기준',  _wonInput('ps-dep-income',    p.healthInsurance.dependentIncomeLimit), '원/년')}
+          ${_row('사적연금 면제 하한', _wonInput('ps-pension-exempt', p.healthInsurance.pensionExemptLimit), '원/년')}
         </div>
       </div>
 
@@ -185,7 +191,7 @@ const PensionSettings = (() => {
           <span class="ps-toggle-arrow">▼</span>
         </button>
         <div class="ps-advanced-body" id="ps-body-property">
-          ${_row('아파트 공시가격',  _numInput('ps-prop-price', p.property.publicPrice,  1000000), '원')}
+          ${_row('아파트 공시가격',  _wonInput('ps-prop-price', p.property.publicPrice), '원')}
           ${_row('연간 상승률',      _numInput('ps-prop-raise', _pct(p.property.annualRaise), 0.1, 0, 30), '%/년')}
           ${_row('소유 지분',        _numInput('ps-prop-ratio', (p.property.ownershipRatio * 100).toFixed(0), 1, 0, 100), '%')}
         </div>
@@ -200,7 +206,7 @@ const PensionSettings = (() => {
         <div class="ps-advanced-body" id="ps-body-overseas-sale">
           ${_row('취득원가율', _numInput('ps-os-cost-ratio', (p.overseasSale.costBasisRatio * 100).toFixed(0), 1, 0, 100), '% (매도액 대비 원가)')}
           ${_row('양도소득세율', _numInput('ps-os-tax-rate', _pct(p.overseasSale.capitalGainsTaxRate), 0.1, 0, 50), '%')}
-          ${_row('연간 기본공제', _numInput('ps-os-exempt', p.overseasSale.annualExemption, 100000), '원/년')}
+          ${_row('연간 기본공제', _wonInput('ps-os-exempt', p.overseasSale.annualExemption), '원/년')}
         </div>
       </div>
 
@@ -220,9 +226,9 @@ const PensionSettings = (() => {
           ${_row('해외주식 잔액',    _readOnly('ps-init-overseas', _fmtWon(ib.해외주식 || 0)))}
           <div class="ps-divider"></div>
           ${_row('퇴직 시점',   _textInput('ps-retire-ym',     p.retire.ym,              'YYYY-MM'))}
-          ${_row('퇴직금',      _numInput('ps-retire-pay',     p.retire.severancePay,    1000000), '원')}
+          ${_row('퇴직금',      _wonInput('ps-retire-pay',     p.retire.severancePay), '원')}
           ${_row('국민연금 시작', _textInput('ps-natl-start',  p.nationalPension.startYM, 'YYYY-MM'))}
-          ${_row('국민연금 월액', _numInput('ps-natl-monthly', p.nationalPension.monthly, 10000), '원/월')}
+          ${_row('국민연금 월액', _wonInput('ps-natl-monthly', p.nationalPension.monthly), '원/월')}
         </div>
       </div>
 
@@ -253,8 +259,8 @@ const PensionSettings = (() => {
     _bindText('ps-voo-start',    v => ({ voo: { startYM: v } }));
     _bindNum('ps-voo-interval',  v => ({ voo: { intervalWeeks: v } }));
     _bindNum('ps-voo-quantity',  v => ({ voo: { quantity: v } }));
-    _bindNum('ps-voo-price',     v => ({ voo: { priceKRW: v } }));
-    _bindNum('ps-pension-base',  v => ({ pension: { baseMonthly: v } }));
+    _bindWon('ps-voo-price',     v => ({ voo: { priceKRW: v } }));
+    _bindWon('ps-pension-base',  v => ({ pension: { baseMonthly: v } }));
 
     // ── ISA 이체 ──
     _bindText('ps-isa-join', v => ({ isa: { joinYM: v } }));
@@ -263,12 +269,12 @@ const PensionSettings = (() => {
       return { isa: { transferStartYM: v } };
     });
     _bindNum('ps-isa-transfer-month', v => ({ isa: { transferRepeatMonth: v } }));
-    _bindNum('ps-tax-sep', v => ({ tax: { separateTaxThreshold: v } }));
+    _bindWon('ps-tax-sep', v => ({ tax: { separateTaxThreshold: v } }));
 
     // ── 인출 설정 (§13) ──
     _bindNum('ps-wd-start-age',    v => ({ withdrawal: { startAge: v } }));
-    _bindNum('ps-wd-monthly',      v => ({ withdrawal: { monthlyTarget: v } }));
-    _bindNum('ps-wd-irp-monthly',  v => ({ withdrawal: { irp2MonthlyTarget: v } }));
+    _bindWon('ps-wd-monthly',      v => ({ withdrawal: { monthlyTarget: v } }));
+    _bindWon('ps-wd-irp-monthly',  v => ({ withdrawal: { irp2MonthlyTarget: v } }));
     _bindSelect('ps-wd-excess-mode', v => ({ withdrawal: { excessMode: v } }));
     _bindNum('ps-wd-irp2-start-age', v => ({ irp2: { withdrawalStartAge: v } }));
 
@@ -280,24 +286,24 @@ const PensionSettings = (() => {
     _bindNum('ps-hi-rate',       v => ({ healthInsurance: { rate: v / 100 } }));
     _bindNum('ps-hi-raise',      v => ({ healthInsurance: { annualRaise: v / 100 } }));
     _bindNum('ps-ltc-rate',      v => ({ healthInsurance: { ltcRate: v / 100 } }));
-    _bindNum('ps-dep-income',    v => ({ healthInsurance: { dependentIncomeLimit: v } }));
-    _bindNum('ps-pension-exempt',v => ({ healthInsurance: { pensionExemptLimit: v } }));
+    _bindWon('ps-dep-income',    v => ({ healthInsurance: { dependentIncomeLimit: v } }));
+    _bindWon('ps-pension-exempt',v => ({ healthInsurance: { pensionExemptLimit: v } }));
 
     // ── 부동산 ──
-    _bindNum('ps-prop-price', v => ({ property: { publicPrice: v } }));
+    _bindWon('ps-prop-price', v => ({ property: { publicPrice: v } }));
     _bindNum('ps-prop-raise', v => ({ property: { annualRaise: v / 100 } }));
     _bindNum('ps-prop-ratio', v => ({ property: { ownershipRatio: v / 100 } }));
 
     // ── 해외주식 매도 (부족분 충당) ──
     _bindNum('ps-os-cost-ratio', v => ({ overseasSale: { costBasisRatio: v / 100 } }));
     _bindNum('ps-os-tax-rate',   v => ({ overseasSale: { capitalGainsTaxRate: v / 100 } }));
-    _bindNum('ps-os-exempt',     v => ({ overseasSale: { annualExemption: v } }));
+    _bindWon('ps-os-exempt',     v => ({ overseasSale: { annualExemption: v } }));
 
     // ── 고정값 (퇴직/국민연금) ──
     _bindText('ps-retire-ym',    v => ({ retire: { ym: v } }));
-    _bindNum('ps-retire-pay',    v => ({ retire: { severancePay: v } }));
+    _bindWon('ps-retire-pay',    v => ({ retire: { severancePay: v } }));
     _bindText('ps-natl-start',   v => ({ nationalPension: { startYM: v } }));
-    _bindNum('ps-natl-monthly',  v => ({ nationalPension: { monthly: v } }));
+    _bindWon('ps-natl-monthly',  v => ({ nationalPension: { monthly: v } }));
 
     // ── 고급 설정 토글 ──
     _bindToggle('ps-toggle-tax',      'ps-body-tax');
@@ -323,17 +329,17 @@ const PensionSettings = (() => {
     _setVal('ps-voo-start',      p.voo.startYM);
     _setVal('ps-voo-interval',   p.voo.intervalWeeks);
     _setVal('ps-voo-quantity',   p.voo.quantity);
-    _setVal('ps-voo-price',      p.voo.priceKRW);
-    _setVal('ps-pension-base',   p.pension.baseMonthly);
+    _setVal('ps-voo-price',      psFormatWonInput(p.voo.priceKRW));
+    _setVal('ps-pension-base',   psFormatWonInput(p.pension.baseMonthly));
 
     _setVal('ps-isa-join',       p.isa.joinYM);
     _setVal('ps-isa-transfer-start', p.isa.transferStartYM);
     _setVal('ps-isa-transfer-month', p.isa.transferRepeatMonth);
-    _setVal('ps-tax-sep',        p.tax.separateTaxThreshold);
+    _setVal('ps-tax-sep',        psFormatWonInput(p.tax.separateTaxThreshold));
 
     _setVal('ps-wd-start-age',    p.withdrawal.startAge);
-    _setVal('ps-wd-monthly',      p.withdrawal.monthlyTarget);
-    _setVal('ps-wd-irp-monthly',  p.withdrawal.irp2MonthlyTarget);
+    _setVal('ps-wd-monthly',      psFormatWonInput(p.withdrawal.monthlyTarget));
+    _setVal('ps-wd-irp-monthly',  psFormatWonInput(p.withdrawal.irp2MonthlyTarget));
     _setVal('ps-wd-excess-mode',  p.withdrawal.excessMode);
     _setVal('ps-wd-irp2-start-age', p.irp2.withdrawalStartAge);
 
@@ -344,21 +350,21 @@ const PensionSettings = (() => {
     _setVal('ps-hi-rate',        _pct(p.healthInsurance.rate));
     _setVal('ps-hi-raise',       _pct(p.healthInsurance.annualRaise));
     _setVal('ps-ltc-rate',       _pct(p.healthInsurance.ltcRate));
-    _setVal('ps-dep-income',     p.healthInsurance.dependentIncomeLimit);
-    _setVal('ps-pension-exempt', p.healthInsurance.pensionExemptLimit);
+    _setVal('ps-dep-income',     psFormatWonInput(p.healthInsurance.dependentIncomeLimit));
+    _setVal('ps-pension-exempt', psFormatWonInput(p.healthInsurance.pensionExemptLimit));
 
-    _setVal('ps-prop-price',     p.property.publicPrice);
+    _setVal('ps-prop-price',     psFormatWonInput(p.property.publicPrice));
     _setVal('ps-prop-raise',     _pct(p.property.annualRaise));
     _setVal('ps-prop-ratio',     (p.property.ownershipRatio * 100).toFixed(0));
 
     _setVal('ps-os-cost-ratio', (p.overseasSale.costBasisRatio * 100).toFixed(0));
     _setVal('ps-os-tax-rate',   _pct(p.overseasSale.capitalGainsTaxRate));
-    _setVal('ps-os-exempt',     p.overseasSale.annualExemption);
+    _setVal('ps-os-exempt',     psFormatWonInput(p.overseasSale.annualExemption));
 
     _setVal('ps-retire-ym',      p.retire.ym);
-    _setVal('ps-retire-pay',     p.retire.severancePay);
+    _setVal('ps-retire-pay',     psFormatWonInput(p.retire.severancePay));
     _setVal('ps-natl-start',     p.nationalPension.startYM);
-    _setVal('ps-natl-monthly',   p.nationalPension.monthly);
+    _setVal('ps-natl-monthly',   psFormatWonInput(p.nationalPension.monthly));
 
     // 초기 잔액 (읽기전용)
     _setVal('ps-init-pension',  _fmtWon(ib.연금저축 || 0));
@@ -378,6 +384,18 @@ const PensionSettings = (() => {
     if (!el) return;
     el.addEventListener('change', () => {
       const v = parseFloat(el.value);
+      if (isNaN(v)) return;
+      PensionState.update(toPatch(v));
+    });
+  }
+
+  /** 원 단위 금액 입력창 바인딩 — 타이핑 중 콤마 실시간 포맷 + 저장 시 콤마 제거 후 파싱 */
+  function _bindWon(id, toPatch) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    psAttachWonInputFormatter(el);
+    el.addEventListener('change', () => {
+      const v = parseFloat(String(el.value || '').replace(/,/g, ''));
       if (isNaN(v)) return;
       PensionState.update(toPatch(v));
     });

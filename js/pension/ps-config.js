@@ -31,6 +31,34 @@ function psAgeToYM(age) {
   return `${PS_BIRTH.year + age}-${String(PS_BIRTH.month).padStart(2, '0')}`;
 }
 
+// ─── 금액 입력창 천단위 콤마 포맷 (원 단위 입력창 공용) ─────────────────────────
+
+/**
+ * 숫자 → 콤마 포함 입력값 문자열 (0도 '0'으로 표시, 음수/NaN은 처리하지 않음)
+ * @param {number} n
+ * @returns {string}
+ */
+function psFormatWonInput(n) {
+  return Math.round(Number(n) || 0).toLocaleString('ko-KR');
+}
+
+/**
+ * 금액 입력창(type="text" inputmode="numeric")에 타이핑 중 실시간 천단위 콤마 포맷을 붙임.
+ * 저장값 파싱(콤마 제거 후 Number 변환)은 각 모듈의 change/blur 핸들러에서 별도로 처리.
+ * @param {HTMLInputElement} el
+ */
+function psAttachWonInputFormatter(el) {
+  if (!el) return;
+  el.addEventListener('input', () => {
+    const cursorFromEnd = el.value.length - el.selectionStart;
+    const raw = el.value.replace(/[^\d]/g, '');
+    const formatted = raw ? Number(raw).toLocaleString('ko-KR') : '';
+    el.value = formatted;
+    const pos = Math.max(0, formatted.length - cursorFromEnd);
+    el.setSelectionRange(pos, pos);
+  });
+}
+
 // ─── 기본 파라미터 ────────────────────────────────────────────────────────────
 const PS_DEFAULT_PARAMS = {
   rates: {
