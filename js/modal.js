@@ -696,13 +696,13 @@ function parseTransferData() {
       if (!typeStr.includes('입금') || !t.date) return;
       const cp = String(t.counterpart || '').trim();
       const ym = t.date.slice(0, 7);
-      if (isIrp2 && IRP_DEPOSIT_KEYS.some(k => cp.includes(k))) {
+      if (isIrp2 && IRP_DEPOSIT_KEYS.some(k => cp.includes(k) || typeStr.includes(k))) {
         irp2Sum[ym] = (irp2Sum[ym] || 0) + t.amount;
-      } else if (isIrp1 && IRP_DEPOSIT_KEYS.some(k => cp.includes(k))) {
+      } else if (isIrp1 && IRP_DEPOSIT_KEYS.some(k => cp.includes(k) || typeStr.includes(k))) {
         irp1Sum[ym] = (irp1Sum[ym] || 0) + t.amount;
-      } else if (!isIrp1 && !isIrp2 && (cp.includes('이체입금') || cp.includes('유정욱'))) {
+      } else if (!isIrp1 && !isIrp2 && (cp.includes('이체입금') || cp.includes('유정욱') || typeStr.includes('이체입금'))) {
         pensionSum[ym] = (pensionSum[ym] || 0) + t.amount;
-      } else if (!KNOWN_FILTERED.some(k => cp.includes(k))) {
+      } else if (!KNOWN_FILTERED.some(k => cp.includes(k) || typeStr.includes(k))) {
         unmatched.push(`${t.date} [${cp}] ${Number(t.amount).toLocaleString()}원`);
       }
     });
