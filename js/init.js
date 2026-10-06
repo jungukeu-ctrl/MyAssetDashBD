@@ -27,6 +27,7 @@ function saveEdit(key) {
   if (mi) state[key].memo = mi.value;
   const ji = document.getElementById('inp-' + key + '-jeonse');
   if (ji) state[key].jeonse = parseFloat(ji.value) || 0;
+  state[key].date = new Date().toISOString();
   save();
   renderAll();
   closeEdit(key);
