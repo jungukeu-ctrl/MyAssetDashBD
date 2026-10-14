@@ -38,9 +38,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/sync-plan.sh 2>/dev/null || true",
+            "command": "bash .claude/sync-plan.sh || true",
             "timeout": 60,
-            "statusMessage": "PLAN.md → main 동기화 중..."
+            "statusMessage": "PLAN.md 세션 브랜치 커밋 중..."
           }
         ]
       }
