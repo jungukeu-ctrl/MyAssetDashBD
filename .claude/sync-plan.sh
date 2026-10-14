@@ -1,6 +1,7 @@
 #!/bin/bash
-# PLAN.md 자동 동기화
-# Stop 훅에서 호출: PLAN.md 변경 시 현재 브랜치 커밋 → main 동기화
+# PLAN.md 자동 커밋
+# Stop 훅에서 호출: PLAN.md에 미커밋 변경이 있으면 현재 세션 브랜치에만 커밋·push
+# main으로의 push/checkout/merge/rebase는 하지 않는다. main 반영은 PR 머지로만 이루어진다.
 
 REPO=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
 cd "$REPO" || exit 0
@@ -13,30 +14,15 @@ BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
 # PLAN.md 미수정 시 조기 종료
 git diff --quiet PLAN.md 2>/dev/null && git diff --cached --quiet PLAN.md 2>/dev/null && exit 0
 
-# 현재 브랜치에 PLAN.md 커밋
-git add PLAN.md
-git commit -m "docs: PLAN.md 업데이트" || exit 0
-
-# 현재 브랜치 push
-git push -u origin "$BRANCH" 2>/dev/null || true
-
-# main 브랜치 PLAN.md 동기화 (feature 브랜치인 경우)
-if [ "$BRANCH" != "main" ]; then
-  git stash -q 2>/dev/null || true
-  git fetch origin main -q 2>/dev/null || true
-
-  if git checkout main -q 2>/dev/null; then
-    git pull origin main -q 2>/dev/null || true
-    # feature 브랜치의 PLAN.md를 main에 적용
-    git checkout "$BRANCH" -- PLAN.md 2>/dev/null
-
-    if ! git diff --cached --quiet PLAN.md 2>/dev/null; then
-      git commit -m "docs: main PLAN.md 동기화 (from $BRANCH)" || true
-      git push origin main 2>/dev/null || true
-    fi
-
-    git checkout "$BRANCH" -q 2>/dev/null
-  fi
-
-  git stash pop -q 2>/dev/null || true
+# main 브랜치에서는 아무 것도 하지 않고 경고만 출력
+if [ "$BRANCH" = "main" ]; then
+  echo "⚠️ main 브랜치: PLAN.md 자동 커밋 생략 (세션 브랜치에서 작업 후 PR로 머지)" >&2
+  exit 0
 fi
+
+# 현재 세션 브랜치에 PLAN.md만 커밋 (다른 staged 파일은 포함하지 않음)
+git add PLAN.md
+git commit -q -m "docs: PLAN.md 업데이트" -- PLAN.md || exit 0
+
+# 현재 브랜치에만 push
+git push -u origin "$BRANCH" 2>/dev/null || echo "⚠️ $BRANCH push 실패 (PLAN.md는 로컬 커밋됨)" >&2
