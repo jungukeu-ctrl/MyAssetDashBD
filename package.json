@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "test:regression": "node tools/regression/run.js"
+  },
   "devDependencies": {
     "xlsx": "^0.18.5"
   }
