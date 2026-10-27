@@ -11,7 +11,7 @@
 2. 인증 없이 DB를 호출하는 클라이언트는 레포 안에서 **발견되지 않았다**(런타임·콘솔 스크립트·Pension-tracer 모두 토큰 사용). Apps Script는 레포에 없다. `pushToGAS_`·`scheduleGasSync_` 등 "GAS" 이름은 과거 명칭이 남은 것이고 실제로는 Firebase REST를 호출한다.
 3. **규칙은 `asset-data`뿐 아니라 최상위 형제 노드 `asset-data-backups`도 허용해야 한다.** 일일 백업·30일 정리가 이 경로를 읽고 쓰고 지운다. 규칙에서 빠뜨리면 백업이 조용히 실패한다(저장은 계속됨).
 4. **"신규 가입 허용" 여부가 가장 큰 변수다.** 웹 API 키는 공개값이라 Identity Toolkit `signUp`이 열려 있으면 누구나 계정을 만들어 `auth != null`을 통과한다. 규칙은 반드시 `auth.uid === '<본인UID>'`로 써야 하고, 가입 비활성화도 같이 하는 것이 안전하다.
-5. **별건(규칙과 무관한 노출)**: 이 레포는 **public + GitHub Pages**다. 루트의 `data.json`, `migration-payload.json`, `asset_monthly_2026-04-01.xlsx`, `데이터원본_2602.xlsx`, `데이터원본_2603.xlsx`에 실제 자산 수치가 들어 있다(`data.json`은 `toss-obil` 14,300,488원 등 확인). DB 규칙을 잠가도 이 파일들은 누구나 받을 수 있다. 후속 조치 필요(§7-5).
+5. **별건(규칙과 무관한 노출)**: 이 레포는 **public + GitHub Pages**다. 루트의 `data.json`, `migration-payload.json`, `asset_monthly_2026-04-01.xlsx`, `데이터원본_2602.xlsx`, `데이터원본_2603.xlsx`에 실제 자산 수치가 들어 있다. DB 규칙을 잠가도 이 파일들은 누구나 받을 수 있다. 후속 조치 필요(§7-5).
 
 ## 1. Firebase SDK / Auth 사용 방식
 
