@@ -117,7 +117,7 @@ const PensionSettings = (() => {
     const container = document.getElementById('pension-settings');
     if (!container) return;
 
-    const p = PS_DEFAULT_PARAMS;
+    const p = PensionState.params;   // 저장된 overrides가 반영된 현재 값 (PS-PARAMS-PERSIST-001)
     const ib = PensionState.actual?.initialBalances || {};
 
     container.innerHTML = `
@@ -217,7 +217,7 @@ const PensionSettings = (() => {
           <span class="ps-toggle-arrow">▼</span>
         </button>
         <div class="ps-advanced-body" id="ps-body-init">
-          <p class="ps-setting-note ps-note-info">Firebase 자동 연동 — 수동 변경 불가</p>
+          <p class="ps-setting-note ps-note-info">잔액 6종은 Firebase 실적에서 자동 계산 — 수동 변경 불가 (퇴직·국민연금 항목은 저장됨)</p>
           ${_row('개인연금저축 잔액', _readOnly('ps-init-pension', _fmtWon(ib.연금저축 || 0)))}
           ${_row('IRP 1 잔액',       _readOnly('ps-init-irp1',    _fmtWon(ib.IRP1     || 0)))}
           ${_row('IRP 2 잔액',       _readOnly('ps-init-irp2',    _fmtWon(ib.IRP2     || 0)))}
@@ -232,6 +232,14 @@ const PensionSettings = (() => {
         </div>
       </div>
 
+      <!-- 설정 초기화 (PS-PARAMS-PERSIST-001) -->
+      <div class="ps-card">
+        <button class="ps-advanced-toggle" id="ps-params-reset" type="button">
+          <span>설정 초기화</span>
+        </button>
+        <span class="ps-setting-note" id="ps-params-status" style="display:none;font-size:11px">이 기기에만 저장됨</span>
+      </div>
+
     </div>
     `;
 
@@ -241,6 +249,8 @@ const PensionSettings = (() => {
 
     // 초기 ISA 금액 표시
     _updateISAAmounts();
+
+    if (typeof PensionParamsStore !== 'undefined') PensionParamsStore.syncStatus();
   }
 
   // ─── bind() ──────────────────────────────────────────────────────────────
@@ -310,6 +320,34 @@ const PensionSettings = (() => {
     _bindToggle('ps-toggle-property', 'ps-body-property');
     _bindToggle('ps-toggle-overseas-sale', 'ps-body-overseas-sale');
     _bindToggle('ps-toggle-init',     'ps-body-init');
+
+    // ── 설정 초기화 ──
+    const resetBtn = document.getElementById('ps-params-reset');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', async () => {
+        if (!confirm('저장된 설정을 모두 지우고 기본값으로 되돌릴까요?')) return;
+        if (typeof PensionParamsStore === 'undefined') return;
+        await PensionParamsStore.reset();
+        PensionState.update({});
+        refreshViews();
+      });
+    }
+  }
+
+  /** 설정 입력창·차트·테이블을 현재 state 기준으로 다시 그림 (원격 적용/초기화 경로 전용) */
+  function refreshViews() {
+    syncFromState();
+    try {
+      if (typeof PensionChart !== 'undefined' && PensionState.result) {
+        const slider = document.getElementById('pension-period-slider');
+        const steps = [1, 2, 3, 5, 8, 10, 15, 20, 30, 48];
+        const years = slider ? (steps[parseInt(slider.value)] ?? 3) : 3;
+        PensionChart.updateAll(PensionState.result, years);
+      }
+      if (typeof PensionTable !== 'undefined') PensionTable.render(PensionState.result);
+    } catch (e) {
+      console.warn('[PensionSettings] refreshViews 실패:', e);
+    }
   }
 
   // ─── syncFromState() ─────────────────────────────────────────────────────
@@ -379,13 +417,21 @@ const PensionSettings = (() => {
 
   // ─── 내부: 이벤트 바인딩 헬퍼 ────────────────────────────────────────────
 
+  /** state 갱신 + 영속화 (PS-PARAMS-PERSIST-001) */
+  function _commit(patch) {
+    PensionState.update(patch);
+    if (typeof PensionParamsStore !== 'undefined') {
+      PensionParamsStore.record(patch).catch(e => console.warn('[PensionSettings] 저장 실패:', e));
+    }
+  }
+
   function _bindNum(id, toPatch) {
     const el = document.getElementById(id);
     if (!el) return;
     el.addEventListener('change', () => {
       const v = parseFloat(el.value);
       if (isNaN(v)) return;
-      PensionState.update(toPatch(v));
+      _commit(toPatch(v));
     });
   }
 
@@ -397,17 +443,43 @@ const PensionSettings = (() => {
     el.addEventListener('change', () => {
       const v = parseFloat(String(el.value || '').replace(/,/g, ''));
       if (isNaN(v)) return;
-      PensionState.update(toPatch(v));
+      _commit(toPatch(v));
     });
+  }
+
+  // YYYY-MM 검증 대상 입력 (PS-PARAMS-PERSIST-001)
+  const _YM_IDS = ['ps-retire-ym', 'ps-natl-start', 'ps-isa-join', 'ps-isa-transfer-start', 'ps-voo-start'];
+  const _YM_RE  = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+  function _setYmError(el, msg) {
+    let err = document.getElementById(el.id + '-err');
+    if (!msg) { if (err) err.remove(); return; }
+    if (!err) {
+      err = document.createElement('span');
+      err.id = el.id + '-err';
+      err.className = 'ps-setting-note';
+      err.style.cssText = 'color:#f87171;font-size:11px';
+      el.insertAdjacentElement('afterend', err);
+    }
+    err.textContent = msg;
   }
 
   function _bindText(id, toPatch) {
     const el = document.getElementById(id);
     if (!el) return;
+    const checkYM = _YM_IDS.includes(id);
     el.addEventListener('change', () => {
       const v = el.value.trim();
       if (!v) return;
-      PensionState.update(toPatch(v));
+      if (checkYM) {
+        if (!_YM_RE.test(v)) {
+          syncFromState();   // 값은 직전 유효값으로 복원 (저장·계산 없음)
+          _setYmError(el, 'YYYY-MM 형식이어야 합니다 (예: 2028-12)');
+          return;
+        }
+        _setYmError(el, null);
+      }
+      _commit(toPatch(v));
     });
   }
 
@@ -415,7 +487,7 @@ const PensionSettings = (() => {
     const el = document.getElementById(id);
     if (!el) return;
     el.addEventListener('change', () => {
-      PensionState.update(toPatch(el.value));
+      _commit(toPatch(el.value));
     });
   }
 
@@ -426,6 +498,6 @@ const PensionSettings = (() => {
 
   // ─── 공개 API ────────────────────────────────────────────────────────────
 
-  return { render, bind, syncFromState };
+  return { render, bind, syncFromState, refreshViews };
 
 })();
