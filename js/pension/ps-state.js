@@ -49,6 +49,17 @@ const PensionState = (() => {
   }
 
   /**
+   * 저장된 overrides 적용 (PS-PARAMS-PERSIST-001)
+   * _params를 PS_DEFAULT_PARAMS 복사본으로 초기화한 뒤 overrides를 병합한다.
+   * 계산·알림은 하지 않음 — 호출 후 update({})로 재계산할 것.
+   * @param {object} overrides  PS_DEFAULT_PARAMS 구조의 부분 객체
+   */
+  function applyOverrides(overrides) {
+    _params = JSON.parse(JSON.stringify(PS_DEFAULT_PARAMS));
+    _deepMerge(_params, overrides || {});
+  }
+
+  /**
    * Firebase 실데이터 주입 → 재계산 → 리스너 알림
    * @param {object} data  PensionFirebase.load() 반환값
    */
@@ -96,6 +107,7 @@ const PensionState = (() => {
     get actual()  { return _actual; },
     get result()  { return _result; },
     update,
+    applyOverrides,
     setActual,
     subscribe,
     getParams

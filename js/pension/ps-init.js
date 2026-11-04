@@ -86,6 +86,9 @@
       _show('pension-loading');
       _hide('pension-error');
 
+      // 0. 저장된 설정 overrides 적용 (첫 렌더 전, PS-PARAMS-PERSIST-001)
+      if (typeof PensionParamsStore !== 'undefined') PensionParamsStore.loadLocal();
+
       // 1. 설정 패널 렌더 (데이터 독립적으로 먼저 표시)
       _initSettings();
 
@@ -117,6 +120,16 @@
           PensionState.setActual(freshData);  // → 리스너로 차트 자동 갱신
         }
       }).catch(() => { /* Firebase 실패는 무시 — local 데이터로 유지 */ });
+
+      // 7. 설정 overrides 원격 갱신 (last-write-wins, PS-PARAMS-PERSIST-001)
+      //    _bindListeners()는 호출되지 않으므로 원격 적용 시에만 입력창·차트·테이블을 직접 갱신
+      if (typeof PensionParamsStore !== 'undefined') {
+        PensionParamsStore.loadRemote().then((applied) => {
+          if (!applied) return;
+          PensionState.update({});   // 재계산 (구독자: 인출 UI)
+          if (typeof PensionSettings !== 'undefined') PensionSettings.refreshViews();
+        }).catch(() => { /* 실패는 무시 — 로컬 유지 */ });
+      }
 
     } catch (e) {
       console.error('[ps-init] 초기화 오류:', e);
