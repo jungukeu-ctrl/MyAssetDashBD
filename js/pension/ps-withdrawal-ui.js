@@ -95,10 +95,18 @@ const PensionWithdrawalUI = (() => {
   function _buildIncomeCard(result) {
     const { targetAge, targetYM, sources, totalGross, totalTax, totalNet, healthInsurance, netAfterHI } = result;
 
-    if (targetAge < 61) {
+    // 실제 인출 시작 시점 = max(시작 나이 YM, ISA 만기) — ps-withdrawal.js 경고 로직과 동일 기준
+    const _p = (typeof PensionState !== 'undefined') ? PensionState.params : PS_DEFAULT_PARAMS;
+    const _ageYM = psAgeToYM(_p.withdrawal?.startAge ?? 61);
+    const _isaYM = _p.isaConversion?.maturityYM || '0000-00';
+    const withdrawStartYM = _ageYM > _isaYM ? _ageYM : _isaYM;
+    if (targetYM < withdrawStartYM) {
+      const _b = psAgeToYM(0);
+      const startAgeEff = parseInt(withdrawStartYM.slice(0, 4), 10) - parseInt(_b.slice(0, 4), 10)
+        - (parseInt(withdrawStartYM.slice(5, 7), 10) < parseInt(_b.slice(5, 7), 10) ? 1 : 0);
       return `
 <div class="ps-wd-card ps-wd-pre-note">
-  <p class="ps-wd-notice">⏳ ${targetAge}세는 연금 인출 시작(61세) 전입니다. 자산 적립 기간입니다.</p>
+  <p class="ps-wd-notice">⏳ ${targetAge}세는 연금 인출 시작(${startAgeEff}세, ${withdrawStartYM}) 전입니다. 자산 적립 기간입니다.</p>
 </div>`;
     }
 
