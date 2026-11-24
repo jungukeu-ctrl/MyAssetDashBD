@@ -71,9 +71,10 @@ const PensionSettings = (() => {
   }
 
   /** 원 단위 금액 입력창 — 콤마 실시간 포맷 (type=number는 콤마 표시 불가라 text+inputmode 사용) */
-  function _wonInput(id, value) {
+  function _wonInput(id, value, nullable) {
+    const shown = (nullable && value == null) ? '' : psFormatWonInput(value);
     return `<input class="ps-input" type="text" inputmode="numeric" id="${id}"
-      value="${psFormatWonInput(value)}">`;
+      value="${shown}">`;
   }
 
   function _textInput(id, value, placeholder) {
@@ -100,6 +101,8 @@ const PensionSettings = (() => {
       <div class="ps-card-title">사적연금 인출 설정</div>
       ${_row('인출 시작 나이',       _numInput('ps-wd-start-age', p.withdrawal.startAge, 1, 50, 90), '세')}
       ${_row('목표 월 인출액',       _wonInput('ps-wd-monthly',   p.withdrawal.monthlyTarget), '원/월')}
+      ${_row('공백기(1단계) 목표 월 인출액', _wonInput('ps-wd-phase1', p.withdrawal.phase1Target, true), '원/월 (비우면 사용 안 함 — 단일 목표)')}
+      ${_row('본 목표 시작 나이',    _numInput('ps-wd-phase2-age', p.withdrawal.phase2StartAge ?? 61, 1, 50, 90), '세 (1단계 사용 시 이 나이부터 목표 월 인출액 적용)')}
       ${_row('IRP 목표 월 인출액',   _wonInput('ps-wd-irp-monthly', p.withdrawal.irp2MonthlyTarget), '원/월')}
       ${_row('1,500만원 초과 처리방식', _selectInput('ps-wd-excess-mode', [
         { value: 'cap15m',            label: 'cap15m (현행 하드캡)' },
@@ -284,6 +287,8 @@ const PensionSettings = (() => {
     // ── 인출 설정 (§13) ──
     _bindNum('ps-wd-start-age',    v => ({ withdrawal: { startAge: v } }));
     _bindWon('ps-wd-monthly',      v => ({ withdrawal: { monthlyTarget: v } }));
+    _bindNullableWon('ps-wd-phase1', v => ({ withdrawal: { phase1Target: v } }));
+    _bindNum('ps-wd-phase2-age',   v => ({ withdrawal: { phase2StartAge: v } }));
     _bindWon('ps-wd-irp-monthly',  v => ({ withdrawal: { irp2MonthlyTarget: v } }));
     _bindSelect('ps-wd-excess-mode', v => ({ withdrawal: { excessMode: v } }));
     _bindNum('ps-wd-irp2-start-age', v => ({ irp2: { withdrawalStartAge: v } }));
@@ -377,6 +382,8 @@ const PensionSettings = (() => {
 
     _setVal('ps-wd-start-age',    p.withdrawal.startAge);
     _setVal('ps-wd-monthly',      psFormatWonInput(p.withdrawal.monthlyTarget));
+    _setVal('ps-wd-phase1',       p.withdrawal.phase1Target == null ? '' : psFormatWonInput(p.withdrawal.phase1Target));
+    _setVal('ps-wd-phase2-age',   p.withdrawal.phase2StartAge ?? 61);
     _setVal('ps-wd-irp-monthly',  psFormatWonInput(p.withdrawal.irp2MonthlyTarget));
     _setVal('ps-wd-excess-mode',  p.withdrawal.excessMode);
     _setVal('ps-wd-irp2-start-age', p.irp2.withdrawalStartAge);
@@ -443,6 +450,20 @@ const PensionSettings = (() => {
     el.addEventListener('change', () => {
       const v = parseFloat(String(el.value || '').replace(/,/g, ''));
       if (isNaN(v)) return;
+      _commit(toPatch(v));
+    });
+  }
+
+  /** 빈 입력 = null(비활성) 허용 금액 입력창 바인딩 (PS-TWOSTAGE-001) */
+  function _bindNullableWon(id, toPatch) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    psAttachWonInputFormatter(el);
+    el.addEventListener('change', () => {
+      const raw = String(el.value || '').replace(/,/g, '').trim();
+      if (raw === '') { _commit(toPatch(null)); return; }
+      const v = parseFloat(raw);
+      if (isNaN(v) || v < 0) return;
       _commit(toPatch(v));
     });
   }

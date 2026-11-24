@@ -35,6 +35,20 @@ const PensionEngine = (() => {
 
   /** 'YYYY-MM' 비교: a < b */
   function _ymLt(a, b) { return a < b; }
+  /**
+   * 해당 월에 적용되는 목표 월 인출액 (물가연동 포함, PS-TWOSTAGE-001)
+   * phase1Target == null → 기존 monthlyTarget * inflationMultiplier 와 동일.
+   * 숫자면 phase2StartAge 해당 월 직전까지 phase1Target, 이후 monthlyTarget.
+   */
+  function _monthlyTargetAt(ym, params, inflationMultiplier) {
+    const w  = params.withdrawal;
+    const p1 = w?.phase1Target;
+    if (p1 == null) return (w?.monthlyTarget || 0) * inflationMultiplier;
+    const phase2YM = psAgeToYM(w.phase2StartAge ?? 61);
+    const base = _ymLt(ym, phase2YM) ? p1 : (w.monthlyTarget || 0);
+    return base * inflationMultiplier;
+  }
+
   /** 'YYYY-MM' 비교: a <= b */
   function _ymLte(a, b) { return a <= b; }
   /** 'YYYY-MM' 문자열 중 더 늦은 값 */
@@ -665,7 +679,7 @@ const PensionEngine = (() => {
         wd.taxedWithdrawnYear   = 0;
       }
 
-      const target = (params.withdrawal?.monthlyTarget || 0) * inflationMultiplier;
+      const target = _monthlyTargetAt(ym, params, inflationMultiplier);
       const room9_9 = Math.max(0, wd.pensionLimitAmt - wd.pensionWithdrawnYear);
 
       if (bal.연금저축_비과세원금 > 0) {
@@ -712,7 +726,7 @@ const PensionEngine = (() => {
     // 계좌별로 독립 판단한다.
     const IRP_MONTHLY_TARGET = (params.withdrawal?.irp2MonthlyTarget ?? 1500000) * inflationMultiplier;  // 파라미터화 (§13), 기본값은 기존 하드코딩과 동일, 물가연동 적용(§6)
     const irpUnlockYear = params.withdrawal?.irpUnlockYear ?? 11;
-    const pensionGap = Math.max(0, (params.withdrawal?.monthlyTarget || 0) * inflationMultiplier - (withdrawal.taxFree + withdrawal.taxed));
+    const pensionGap = Math.max(0, _monthlyTargetAt(ym, params, inflationMultiplier) - (withdrawal.taxFree + withdrawal.taxed));
     if (_ymLte(npStartYM, ym)) {
       const yr = _year(ym);
 
@@ -764,7 +778,7 @@ const PensionEngine = (() => {
     // 연금저축 단독 계산이라 뒤이은 IRP 갭필링(§7-2)을 반영 못 함. 화면 경고는 이 값을 써야 함.
     withdrawal.overallShortfall = Math.max(
       0,
-      (params.withdrawal?.monthlyTarget || 0) * inflationMultiplier - (withdrawal.taxFree + withdrawal.taxed + withdrawal.irp1 + withdrawal.irp2)
+      _monthlyTargetAt(ym, params, inflationMultiplier) - (withdrawal.taxFree + withdrawal.taxed + withdrawal.irp1 + withdrawal.irp2)
     );
 
     // 7-4b. cap15m_thenExpand: IRP1·IRP2 둘 다 소진 + 목표 생활비 부족 시 연금저축
