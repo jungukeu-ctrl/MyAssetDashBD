@@ -93,6 +93,30 @@ PLAN.md 최상단 `## 🔔 전략 세션 반영 필요` 섹션에 날짜와 함�
    문제가 생기면 `git revert {해시}`로 되돌릴 수 있도록 해시를 보고한다.
 7. 회귀 검증: `npm run test:regression`. 고위험 변경은 머지 전 보고에 결과를 포함한다. 기준값 갱신은 의도된 로직 변경일 때만, 지시서에 '기준값 갱신' 사유를 명시하고 사용자 push 승인 후 `node tools/regression/run.js --record --reason "<사유>"`로 갱신하며 별도 커밋으로 한다. `tools/regression/` 작업을 허용한다.
 
+## 10. 협업 운영 (OPS-HANDOFF-001)
+
+주 작업 환경은 Claude Code, claude.ai는 Code가 못 하는 작업(스크린샷 판독, 모바일 대화, Code 환경에서 안 되는 커넥터·브라우저 작업)에 쓰는 부 환경이다.
+연속성은 Notion HISTORY, 레포(CLAUDE.md·PLAN.md), Firebase 세 원장으로 확보한다. 이 절은 기존 §1~§9를 대체하지 않고 덧붙인다.
+**코드작성 승인 절차(최우선 규칙, §1의 변경 범위 보고 → OK → "코드작성")는 그대로 유지한다.**
+
+### 10-1. 세션 시작 (자동 수행)
+1. Notion "공통 규칙 버전" 페이지(https://app.notion.com/p/3f368e1fa04c81b4b5a9f9e85c79cf69)에서 현재 해시를 읽는다. 해시 값은 이 파일에 적지 않는다(해시는 그 페이지에만 둔다).
+2. `https://raw.githubusercontent.com/jungukeu-ctrl/claude-ops-rules/{해시}/system-and-workflow.md`를 쿼리 파라미터 없이 읽고 따른다. 읽지 못하면 실패 사실과 사유를 보고하고 이 파일의 규칙만 적용한다.
+3. PLAN.md 신선도 확인: 완료 작업 표의 마지막 작업 ID와 Notion HISTORY의 최근 "PR 병합" 항목을 비교한다. 어긋나면 사용자에게 알린다.
+4. HISTORY(§6 메인 페이지의 HISTORY DB)에서 상태 🔔 보류 항목 전부와 최근 5건을 조회해 미결을 브리핑한다.
+
+### 10-2. 구현 · 보고
+- 구현은 Code가 직접 한다. 작업 ID, 커밋 첫 줄 `{작업ID}: {요약}`, 고위험 파일(ps-engine.js, ps-withdrawal.js, ps-config.js, 세율·공제·건보료·납입 한도, Firebase 스키마)의 머지 전 보고, 세션 브랜치 push, 사용자의 PR 머지는 §5·§9 그대로 유지한다.
+- PR 병합 알림을 받으면 병합 커밋 해시를 확인해 HISTORY에 유형 "PR 병합"으로 기록한다.
+
+### 10-3. 정책 변경 · 기록
+- 정책이 바뀌면 Notion 로직 문서·마스터플랜을 코드보다 먼저 갱신한다(사용자 한 줄 확인 후).
+- 결정·전략 변경·미결 생성/해소는 Notion HISTORY에 기록하고 보고에 "HISTORY 기록: 제목 (링크)"를 넣는다. 속성은 제목/날짜/유형/상태이며 기존 항목 형식을 따른다. 미결 해소는 새 항목이 아니라 기존 🔔 항목의 상태를 ✅로 바꾼다.
+- Notion 쓰기가 안 되면 PLAN.md "🔔 전략 세션 반영 필요"에 적고 사용자에게 알린다(§8과 같은 방식).
+
+### 10-4. 수치
+- 금액·날짜 수치는 Notion·PLAN.md·HISTORY에서 가져오고, 사용자가 정정한 값은 즉시 받아들인다.
+
 ## pension-simulation 모듈
 
 > 상세 지침: `.claude/PENSION_SIM.md`
