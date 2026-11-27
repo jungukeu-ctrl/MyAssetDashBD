@@ -15,6 +15,19 @@ const PensionSettings = (() => {
   function _pct(val) { return ((val || 0) * 100).toFixed(1); }
   function _won(val) { return Math.round(val || 0); }
 
+  // ─── 내부: O 배당 연 환산 표시 (SELFREL-000) ────────────────────────────
+
+  /** 월 배당/주($) × 12 → 연 환산 문자열 */
+  function _realtyAnnualText(p) {
+    const m = p?.realty?.monthlyDivPerShare;
+    return (typeof m === 'number' && isFinite(m)) ? (m * 12).toFixed(3) : '—';
+  }
+
+  function _updateRealtyAnnual() {
+    const el = document.getElementById('ps-realty-div-annual');
+    if (el) el.value = _realtyAnnualText(PensionState.params);
+  }
+
   // ─── 내부: ISA 이체 금액 자동 계산 표시 ─────────────────────────────────
 
   function _updateISAAmounts() {
@@ -200,6 +213,20 @@ const PensionSettings = (() => {
         </div>
       </div>
 
+      <!-- 고급 설정: O(리얼티인컴) 배당 (SELFREL-000) -->
+      <div class="ps-card ps-advanced-card">
+        <button class="ps-advanced-toggle" id="ps-toggle-realty">
+          <span>O(리얼티인컴) 배당</span>
+          <span class="ps-toggle-arrow">▼</span>
+        </button>
+        <div class="ps-advanced-body" id="ps-body-realty">
+          ${_row('월 배당/주',   _numInput('ps-realty-div',        p.realty.monthlyDivPerShare, 0.0001, 0), '$/월 (분기 공시 후 갱신)')}
+          ${_row('└ 연 환산',   _readOnly('ps-realty-div-annual', _realtyAnnualText(p)), '$/주·년 (월 값 × 12)')}
+          ${_row('배당 성장률',  _numInput('ps-realty-div-growth', _pct(p.realty.divGrowthRate), 0.1, 0, 20), '%/년')}
+          ${_row('환율',         _numInput('ps-realty-fx',         p.realty.fxRate, 0.1, 1), '원/$ (고정 가정)')}
+        </div>
+      </div>
+
       <!-- 고급 설정: 해외주식 매도 (부족분 충당) -->
       <div class="ps-card ps-advanced-card">
         <button class="ps-advanced-toggle" id="ps-toggle-overseas-sale">
@@ -314,6 +341,14 @@ const PensionSettings = (() => {
     _bindNum('ps-os-tax-rate',   v => ({ overseasSale: { capitalGainsTaxRate: v / 100 } }));
     _bindWon('ps-os-exempt',     v => ({ overseasSale: { annualExemption: v } }));
 
+    // ── O(리얼티인컴) 배당 (SELFREL-000) ──
+    _bindNum('ps-realty-div', v => {
+      setTimeout(_updateRealtyAnnual, 0);
+      return { realty: { monthlyDivPerShare: Math.max(0, v) } };
+    });
+    _bindNum('ps-realty-div-growth', v => ({ realty: { divGrowthRate: v / 100 } }));
+    _bindNum('ps-realty-fx',         v => ({ realty: { fxRate: Math.max(1, v) } }));
+
     // ── 고정값 (퇴직/국민연금) ──
     _bindText('ps-retire-ym',    v => ({ retire: { ym: v } }));
     _bindWon('ps-retire-pay',    v => ({ retire: { severancePay: v } }));
@@ -323,6 +358,7 @@ const PensionSettings = (() => {
     // ── 고급 설정 토글 ──
     _bindToggle('ps-toggle-tax',      'ps-body-tax');
     _bindToggle('ps-toggle-property', 'ps-body-property');
+    _bindToggle('ps-toggle-realty',   'ps-body-realty');
     _bindToggle('ps-toggle-overseas-sale', 'ps-body-overseas-sale');
     _bindToggle('ps-toggle-init',     'ps-body-init');
 
@@ -401,6 +437,11 @@ const PensionSettings = (() => {
     _setVal('ps-prop-price',     psFormatWonInput(p.property.publicPrice));
     _setVal('ps-prop-raise',     _pct(p.property.annualRaise));
     _setVal('ps-prop-ratio',     (p.property.ownershipRatio * 100).toFixed(0));
+
+    _setVal('ps-realty-div',        p.realty.monthlyDivPerShare);
+    _setVal('ps-realty-div-growth', _pct(p.realty.divGrowthRate));
+    _setVal('ps-realty-fx',         p.realty.fxRate);
+    _updateRealtyAnnual();
 
     _setVal('ps-os-cost-ratio', (p.overseasSale.costBasisRatio * 100).toFixed(0));
     _setVal('ps-os-tax-rate',   _pct(p.overseasSale.capitalGainsTaxRate));
