@@ -1,6 +1,7 @@
 ## 🔔 전략 세션 반영 필요
 > Claude Code 세션 중 발생한 정책성 변경을 여기 기록. 전략 세션(Claude.ai)이 매 대화 시작 시 확인 후 Notion 반영 → 체크 처리.
 
+- [ ] (2026-11-27) SELFREL-001 결과 — 전략 세션 확인 필요. 6-A 설정(퇴직 2031-01·인출 시작 57세·공백기 목표 120만원)으로 자립률 카드를 계산하면 공백기 대표값(2031-02, 57세)이 엔진 O 보유 주수(약 684주, 재투자만 반영)로는 71.1%(🔴), 계획대로 O 약 1,000주를 보정 입력하면 76.2%(🟡), 보수 시나리오(수익률 −3%p·물가 3.0%)는 각각 70.8%·75.8%. 연금저축만으로는 60.0%. 보수 시나리오에서 연금저축 소진이 기본 2063-08(89세)에서 2046-09(72세)로 약 17년 앞당겨짐(IRP1 2048-03→2048-02, IRP2 2064-04→2049-07). 엔진은 O 신규 매수(계획상 약 305주)를 모델링하지 않아 SELFREL-003과 묶어 엔진 반영 여부 결정 필요. 코드 기본값(retire.ym 2028-12, startAge 61 등)이 6-A와 달라 카드 기본 화면은 61세 단일목표 기준(152.5%)으로 보임 — SELFREL-006 필요.
 - [ ] (2026-11-27) 코드 기본값(`ps-config.js` `realty`: 월 배당 0.2685달러=연 3.222달러, 주가 63달러, 환율 1,380원)이 Notion 마스터플랜 값(연 3.25달러, 58.59달러, 1,346.6원)과 불일치. 또한 엔진은 IRP1·IRP2 소진 전까지 O 배당을 재투자(DRIP)로만 계산해 공백기 O 배당 현금 사용(2026-11-27 확정)과 다름 — 자립률 카드(SELFREL-001)는 계산층에서 별도 추정. 전략 세션에서 기본값 동기화 지시서(SELFREL-006) 작성 및 엔진 O 배당 현금화 반영 방식(엔진 수정 vs 계산층 근사) 결정 필요.
 - [ ] (2026-11-24) PS-TWOSTAGE-001 관찰 결과(코드 수정 없이 보고만) — 전략 세션 확인 필요. 조건: 기본 파라미터 + retire.ym=2031-01, startAge=57, phase1Target=120만. (a) 공백기(2031-02~2035-01) IRP1·IRP2 인출은 0원(인출 시작 이후 IRP 인출 없음, 65세 보존 계획과 일치). (b) ISA 만기 전환(`ps-engine.js` §6)은 `bal.ISA` 전액을 `연금저축_비과세원금` 버킷에 가산할 뿐 세액공제(전환액 10%, 최대 300만원)를 받은 전환 원금을 과세분으로 분리하지 않음 — 전환 원금 중 최대 3,000만원은 실제론 과세 대상일 수 있어 비과세 인출 가능액이 과대 추정될 수 있음(2029-03 전환, 2029-04 버킷 약 7,658만원, 2031-01 약 9,048만원). (c) `baseMonthly` 100만원은 `retire.ym`(2031-01)까지만 유지되나 VOO 매도 기간(2027-01~)에는 VOO 분배(연금저축 25만+IRP1 25만)가 대신 작동하고 baseMonthly는 VOO 시작 전/소진 후에만 적용됨. VOO 분배 종료 후 IRP1 단독 납입(연 300만원)은 모델링돼 있지 않음(IRP1 납입은 VOO 분배 경로에서만 발생). 추가 발견: 손계산 조건(수익률 0·물가 0)에선 2034-12가 연금수령한도(§9-9)에 걸려 982,149원만 인출되고 비과세원금 버킷(5,858만원)이 2035-02에 소진돼 2035-02는 3,050,000원이 아닌 1,201,461원(부족 약 185만원)이며 2035-03부터 과세분 125만원으로 이어짐 — 48개월 비과세 인출 합 57,382,149원(요구값 5,760만원과 218k원 차이는 §9-9 한도 때문). 물가 2.5%에선 2035-01에 버킷이 소진돼 공백기 마지막 달 부족분 발생. 전략 세션에서 Notion 로직 문서 §9-6에 2단계 목표 반영 필요(코드보다 선행).
 - [x] (2026-07-02) RIA 세제혜택 가중치 제도 pension-simulation에 반영. RIA 매도금액 49,511,610원(2026-03-31 확정, 외화매도 47,950,533원+환전정산입금 1,561,077원, 키움 거래내역 근거) 고정값 사용, 기초공제율 100%(1분기 내 매도). RIA 외 계좌 해외지수ETF 순매수액에 매수월 가중치(1~5월100%/6~7월80%/8~12월50%) 적용해 최종 양도소득 공제율 산출. 순매수액은 자동추적 불가(연금저축/IRP 내 종목별 매수 구분 불가)로 월별 수동 입력 방식 채택 — 2026년 1~6월분 소급 입력 필요.
@@ -74,7 +75,7 @@ asset-data/
   pensionSimulation/
     contributions/   ← pension-simulation 월별 납입 실적(연금저축+IRP 한도 검증용)
                         + riaExternalPurchase(원, RIA 외 계좌 해외지수ETF 순매수액 수동입력, 미입력=undefined/0=확정무매수 구분)
-    params/          ← 설정 패널 입력값 overrides (PS-PARAMS-PERSIST-001). { v:1, updatedAt:ISO, overrides:{PS_DEFAULT_PARAMS 구조의 부분 객체} }
+    params/          ← 설정 패널 입력값 overrides (PS-PARAMS-PERSIST-001). { v:1, updatedAt:ISO, overrides:{PS_DEFAULT_PARAMS 구조의 부분 객체} } (SELFREL-000/001로 `realty.monthlyDivPerShare·divGrowthRate·fxRate`, `selfReliance.oSharesAtGap` 키가 추가될 수 있음 — 스키마 변경 없음)
                         기본값과 다른 키만 저장, 쓰기는 PUT(전체 교체). 초기화=삭제 아닌 tombstone(overrides:{}+새 updatedAt). RTDB는 빈 객체를 저장하지 않으므로 읽을 때 overrides ?? {}.
                         로컬 캐시: localStorage `pension-simulation-params`. last-write-wins(updatedAt 비교).
                         공유 DB 영향: Pension-tracer는 asset-data 루트를 통째로 읽지만 pension-tracker/** 외 경로를 해석·쓰기하지 않아 영향 없음(SEC-FIREBASE-001 §4 기준). 메인 앱 pushToGAS_ PATCH는 이 노드를 건드리지 않음(백업에는 포함).
@@ -293,6 +294,7 @@ asset-data/
 | OPS-HANDOFF-002 | `CLAUDE.md` §10-3 미결 해소 기록 문구 정정 — 기존 "새 항목이 아니라 기존 🔔 항목 상태를 ✅로"를 HISTORY 확정 방식(유형 "미결 해소" 새 항목 + 원 🔔 항목 ✅ + 상호 링크)으로 교체. 문서만 변경, 코드 동작 변화 없음. 공통 규칙 레포(claude-ops-rules) §3 표의 옛 문구는 별도 레포라 미수정 — 별도 작업 필요. |
 | OPS-NOTION-PERM-001 | Notion 편집 MCP 도구 10개(`notion-update-page`, `notion-create-pages`, `notion-update-data-source`, `notion-create-database`, `notion-create-comment`, `notion-update-comment`, `notion-move-pages`, `notion-duplicate-page`, `notion-create-view`, `notion-update-view`)를 프로젝트 설정 `permissions.allow`에 추가해 권한 확인 창 없이 실행되게 함. 삭제 도구(`notion-delete-*`)는 복구가 어려워 제외(확인 유지). 기존 hooks 블록은 그대로 병합. 설정만 변경, 앱 코드·Firebase 변경 없음 | `.claude/settings.json`, `PLAN.md` | 2026-11-27 |
 | SELFREL-000 | O(리얼티인컴) 배당 설정 입력란 추가 — 설정 패널 고급 카드 "O(리얼티인컴) 배당"에 월 배당/주($)·연 환산(읽기전용, 월×12)·배당 성장률(%/년)·환율(원/$) 입력란 3+1개 신설, 기존 overrides 저장(PS-PARAMS-PERSIST-001)으로 `realty.monthlyDivPerShare/divGrowthRate/fxRate`가 `pensionSimulation/params`에 저장·복원·초기화됨(키 추가뿐, 스키마 변경 없음, 기본값 불변). 월 배당은 월 단위로 저장하고 연 환산만 표시(12배 오입력 방지), 음수·0 이하 환율은 0/1로 보정. 검증: `npm run test:regression` 기준값 일치(3개 시나리오), 브라우저에서 입력→반영→새로고침 복원→초기화 확인. 공유 DB 영향: Pension-tracer는 해당 노드를 해석하지 않아 영향 없음 | `js/pension/ps-settings.js`, `PLAN.md` | 2026-11-27 |
+| SELFREL-001 | 자립률 카드(신호등) 1차 구현 — `pension-simulation.html` 최상단 `#pension-selfreliance`에 카드 신설. 자립률 = 세후 금융소득(월, 명목) ÷ (생활비 현재가 × 엔진과 동일한 물가배수 `(1+물가)^(연도−2026)`), 바닥선 200만·목표선 350만, 신호등(바닥선 기준) 🟢≥85% / 🟡≥75% / 🔴<75%(`PS_SELF_RELIANCE`). 대표값 = 인출 시작월(생일월) 스냅샷, 공백기 연령별(시작 나이~`phase2StartAge−1`) 병기(`PensionWithdrawal.calc`가 나이 기준 생일월 스냅샷만 계산하므로 12개월 평균 아님). 분자 = `calc().sources[].net` 합(국민연금 포함, 전년도 정산 제외) + 공백기 O 배당 현금 추정(엔진이 재투자 중일 때만, 보유 주수 고정 × 해당월 배당 × 환율 × (1−원천징수)). O 보유 주수는 `params.selfReliance.oSharesAtGap`(설정 패널 "공백기 시작 보유 주수", 빈 값=엔진 값) 보정 가능. 보수 시나리오(A안) = 수익률 −3%p·물가 3.0%로 `PensionEngine.run` 재실행(엔진 수정 없음)해 자립률과 연금계좌(연금저축 합계·IRP1·IRP2) 소진 시점을 기본과 병기. 별도 줄: 세금·건보료·대출 상환(미반영). 신규 `ps-selfreliance.js`(순수)·`ps-selfreliance-ui.js`(렌더, 지시서 범위에 없던 파일 분리), `ps-config.js`는 상수 `PS_SELF_RELIANCE`와 `PS_DEFAULT_PARAMS.selfReliance.oSharesAtGap:null` 추가만(기존 값 불변). 검증: `npm run test:regression` 기준값 일치(3개 시나리오), 퇴직 2031-01·인출 시작 57세·공백기 목표 120만 설정 시 2031-02 자립률 71.1%(분모 226.3만, 엔진 순소득 135.8만, O 추정 25.1만) / O 1,000주 보정 시 76.2%, 보수 70.8%, 연금저축 소진 기본 2063-08 대 보수 2046-09. 공유 DB 영향: overrides에 `selfReliance.oSharesAtGap` 키만 추가, Pension-tracer 영향 없음 | `js/pension/ps-selfreliance.js`, `js/pension/ps-selfreliance-ui.js`, `js/pension/ps-config.js`, `js/pension/ps-settings.js`, `js/pension/ps-init.js`, `pension-simulation.html`, `css/pension-sim.css`, `PLAN.md` | 2026-11-27 |
 
 ---
 
@@ -316,7 +318,7 @@ asset-data/
 
 | ID | 작업 | 상태 |
 |----|------|------|
-| SELFREL-001 | 자립률 카드(신호등 🟢85%↑/🟡75~85%/🔴75%↓, 바닥선 200만·목표선 350만, 공백기 첫 12개월 평균, 보수 시나리오 A안 병기) — `ps-selfreliance.js` 신규 + `ps-config.js` 상수 추가(고위험) + html/init/css. O 배당 공백기 현금 사용·국민연금 분자 포함 확정 | 다음 작업 (SELFREL-000 머지 후) |
+| SELFREL-001 | 자립률 카드(신호등) 1차 구현 — ✅ 구현 완료(2026-11-27, 세션 브랜치 push, 머지 대기). 대표값은 12개월 평균이 아니라 인출 시작월 스냅샷으로 확정 | ✅ 완료(머지 대기) |
 | SELFREL-002 | 자립 가능일 계산(휴직 개시 후보 순회, 퇴직 가능일 최대 2032-02-08 전후) | 대기 |
 | SELFREL-003 | -30% 충격 시나리오·현금 완충 칸 (`ps-engine.js` 수정 필요, 고위험) | 대기 |
 | SELFREL-004 | 가계 현금흐름 칸(아내 급여 보조, 자립률 제외 참고용) | 대기 |

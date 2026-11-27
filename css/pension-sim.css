@@ -1148,3 +1148,128 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── 자립률 카드 (SELFREL-001) ────────────────────────────────────────── */
+
+.ps-sr-section {
+  margin-bottom: 20px;
+}
+
+.ps-sr-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ps-sr-green  { --ps-sr-color: var(--green); }
+.ps-sr-yellow { --ps-sr-color: #f5c542; }
+.ps-sr-red    { --ps-sr-color: var(--red); }
+
+.ps-sr-main {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.ps-sr-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1 1 240px;
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--ps-sr-color, var(--border));
+  border-radius: 10px;
+  background: var(--bg3);
+}
+
+.ps-sr-hero-icon { font-size: 34px; line-height: 1; }
+
+.ps-sr-hero-rate {
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--ps-sr-color, var(--text));
+}
+
+.ps-sr-hero-label { font-size: 13px; color: var(--text); margin-top: 2px; }
+.ps-sr-hero-sub   { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+.ps-sr-kv {
+  flex: 2 1 280px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ps-sr-kv-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text2);
+  border-bottom: 1px dashed var(--border);
+  padding-bottom: 4px;
+}
+.ps-sr-kv-row b { color: var(--text); white-space: nowrap; }
+.ps-sr-kv-sub  { font-size: 12px; color: var(--text3); }
+.ps-sr-dim     { color: var(--text3); font-size: 11px; }
+
+.ps-sr-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text3);
+  letter-spacing: 0.04em;
+  margin: 14px 0 6px;
+}
+
+.ps-sr-chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  gap: 8px;
+}
+
+.ps-sr-chip {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  min-width: 0;
+}
+.ps-sr-chip-age { font-size: 12px; color: var(--text2); }
+.ps-sr-chip-ym  { color: var(--text3); font-size: 10px; }
+.ps-sr-chip-val { font-size: 15px; font-weight: 700; margin-top: 2px; color: var(--ps-sr-color, var(--text)); }
+.ps-sr-chip-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+.ps-sr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  table-layout: fixed;
+}
+.ps-sr-table th, .ps-sr-table td {
+  text-align: left;
+  padding: 5px 6px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text2);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.ps-sr-table th { color: var(--text3); font-weight: 600; font-size: 11px; }
+
+.ps-sr-notes {
+  margin: 12px 0 0;
+  padding-left: 16px;
+  font-size: 11px;
+  color: var(--text3);
+  line-height: 1.5;
+}
+
+.ps-sr-empty { font-size: 13px; color: var(--text3); padding: 8px 0; }
+
+@media (max-width: 480px) {
+  .ps-sr-hero-rate { font-size: 28px; }
+  .ps-sr-kv-row { font-size: 12px; }
+}

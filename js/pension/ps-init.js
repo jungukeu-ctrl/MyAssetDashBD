@@ -104,6 +104,11 @@
         PensionTable.render(PensionState.result);
       }
 
+      // 4-1. 자립률 카드 초기화 (SELFREL-001, PensionState 구독으로 자동 갱신)
+      if (typeof PensionSelfRelianceUI !== 'undefined') {
+        PensionSelfRelianceUI.init();
+      }
+
       // 5. 인출 시뮬레이터 초기화
       if (typeof PensionWithdrawalUI !== 'undefined') {
         PensionWithdrawalUI.init();
