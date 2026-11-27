@@ -7,20 +7,20 @@
     "info": {
       "default": {
         "monthsLength": 588,
-        "warnings": 2
+        "warnings": 0
       },
       "excessmode-comprehensive": {
         "monthsLength": 588,
-        "warnings": 2
+        "warnings": 0
       },
       "excessmode-separate16_5": {
         "monthsLength": 588,
-        "warnings": 2
+        "warnings": 0
       }
     },
     "lastRecord": {
-      "at": "2026-10-15T05:03:31.690Z",
-      "reason": "재기록 동일성 확인"
+      "at": "2026-11-27T04:56:16.492Z",
+      "reason": "SELFREL-006: 기본값을 마스터플랜 6-A에 동기화(퇴직 2031-01, 인출 시작 57세, 공백기 120만원, ISA 이체 2027-04, 퇴직금 1.6억, O 배당 단가·주가·환율, O 현금 사용 57세)"
     },
     "rounding": "모든 금액은 Math.round 로 정수 원 단위 저장·비교 (연령별 값은 생일월 스냅샷의 월값×12 연 환산 후 반올림)",
     "scenarioDescriptions": {
@@ -35,23 +35,23 @@
     "default": {
       "ages": {
         "100": {
-          "excessAnnualTotal": 99213891,
-          "excessTriggeredYear": true,
-          "healthIns": 34913988,
+          "excessAnnualTotal": 0,
+          "excessTriggeredYear": false,
+          "healthIns": 25291164,
           "hiType": "지역가입자",
-          "pensionTax": 27908868,
+          "pensionTax": 16584792,
           "sources": {
+            "O(리얼티인컴) 배당": {
+              "gross": 12665232,
+              "tax": 2266068
+            },
             "국민연금": {
               "gross": 70664175,
               "tax": 2331912
             },
-            "연금저축 (과세)": {
-              "gross": 15000000,
-              "tax": 495000
-            },
-            "연금저축 (확장 인출)": {
-              "gross": 104736518,
-              "tax": 25081956
+            "해외주식 매도": {
+              "gross": 108971066,
+              "tax": 11986812
             }
           }
         },
@@ -76,40 +76,80 @@
           "excessTriggeredYear": false,
           "healthIns": 0,
           "hiType": "피부양자",
-          "pensionTax": 0,
-          "sources": {}
+          "pensionTax": 532968,
+          "sources": {
+            "O(리얼티인컴) 배당": {
+              "gross": 3553140,
+              "tax": 532968
+            },
+            "연금저축 (비과세원금)": {
+              "gross": 16292278,
+              "tax": 0
+            }
+          }
         },
         "058": {
           "excessAnnualTotal": 0,
           "excessTriggeredYear": false,
           "healthIns": 0,
           "hiType": "피부양자",
-          "pensionTax": 0,
-          "sources": {}
+          "pensionTax": 548964,
+          "sources": {
+            "O(리얼티인컴) 배당": {
+              "gross": 3659736,
+              "tax": 548964
+            },
+            "연금저축 (비과세원금)": {
+              "gross": 16699585,
+              "tax": 0
+            }
+          }
         },
         "059": {
           "excessAnnualTotal": 0,
           "excessTriggeredYear": false,
           "healthIns": 0,
           "hiType": "피부양자",
-          "pensionTax": 0,
-          "sources": {}
+          "pensionTax": 565428,
+          "sources": {
+            "O(리얼티인컴) 배당": {
+              "gross": 3769524,
+              "tax": 565428
+            },
+            "연금저축 (비과세원금)": {
+              "gross": 17117075,
+              "tax": 0
+            }
+          }
         },
         "060": {
           "excessAnnualTotal": 0,
           "excessTriggeredYear": false,
           "healthIns": 0,
           "hiType": "피부양자",
-          "pensionTax": 0,
-          "sources": {}
+          "pensionTax": 582396,
+          "sources": {
+            "O(리얼티인컴) 배당": {
+              "gross": 3882612,
+              "tax": 582396
+            },
+            "연금저축 (비과세원금)": {
+              "gross": 17545002,
+              "tax": 0
+            }
+          }
         },
         "061": {
           "excessAnnualTotal": 0,
           "excessTriggeredYear": false,
           "healthIns": 0,
           "hiType": "피부양자",
-          "pensionTax": 0,
+          "pensionTax": 599868,
           "sources": {
+            "O(리얼티인컴) 배당": {
+              "gross": 3999096,
+              "tax": 599868
+            },
             "연금저축 (비과세원금)": {
               "gross": 45708385,
               "tax": 0
@@ -117,12 +157,16 @@
           }
         },
         "062": {
-          "excessAnnualTotal": 0,
+          "excessAnnualTotal": 8750000,
           "excessTriggeredYear": false,
           "healthIns": 0,
           "hiType": "피부양자",
-          "pensionTax": 0,
+          "pensionTax": 617856,
           "sources": {
+            "O(리얼티인컴) 배당": {
+              "gross": 4119060,
+              "tax": 617856
+            },
             "연금저축 (비과세원금)": {
               "gross": 46851094,
               "tax": 0
@@ -130,58 +174,70 @@
           }
         },
         "063": {
-          "excessAnnualTotal": 0,
+          "excessAnnualTotal": 15000000,
           "excessTriggeredYear": false,
           "healthIns": 0,
           "hiType": "피부양자",
-          "pensionTax": 0,
+          "pensionTax": 1461396,
           "sources": {
-            "연금저축 (비과세원금)": {
-              "gross": 48022372,
-              "tax": 0
+            "O(리얼티인컴) 배당": {
+              "gross": 4242636,
+              "tax": 636396
+            },
+            "연금저축 (과세)": {
+              "gross": 15000000,
+              "tax": 825000
             }
           }
         },
         "064": {
-          "excessAnnualTotal": 0,
+          "excessAnnualTotal": 15000000,
           "excessTriggeredYear": false,
           "healthIns": 0,
           "hiType": "피부양자",
-          "pensionTax": 0,
+          "pensionTax": 1480488,
           "sources": {
-            "연금저축 (비과세원금)": {
-              "gross": 49222931,
-              "tax": 0
+            "O(리얼티인컴) 배당": {
+              "gross": 4369920,
+              "tax": 655488
+            },
+            "연금저축 (과세)": {
+              "gross": 15000000,
+              "tax": 825000
             }
           }
         },
         "065": {
-          "excessAnnualTotal": 26927666,
+          "excessAnnualTotal": 35677666,
           "excessTriggeredYear": true,
           "healthIns": 0,
           "hiType": "피부양자",
-          "pensionTax": 0,
+          "pensionTax": 1500156,
           "sources": {
-            "연금저축 (비과세원금)": {
-              "gross": 50453504,
-              "tax": 0
+            "O(리얼티인컴) 배당": {
+              "gross": 4501008,
+              "tax": 675156
+            },
+            "연금저축 (과세)": {
+              "gross": 15000000,
+              "tax": 825000
             }
           }
         },
         "066": {
-          "excessAnnualTotal": 51714842,
+          "excessAnnualTotal": 40433529,
           "excessTriggeredYear": true,
           "healthIns": 3495060,
           "hiType": "지역가입자",
-          "pensionTax": 4522920,
+          "pensionTax": 4685592,
           "sources": {
             "IRP1 연금": {
               "gross": 25433529,
               "tax": 1398840
             },
-            "IRP2 연금": {
-              "gross": 11281313,
-              "tax": 620472
+            "O(리얼티인컴) 배당": {
+              "gross": 4636044,
+              "tax": 783144
             },
             "국민연금": {
               "gross": 30520235,
@@ -194,19 +250,19 @@
           }
         },
         "067": {
-          "excessAnnualTotal": 53007713,
+          "excessAnnualTotal": 41069367,
           "excessTriggeredYear": true,
           "healthIns": 3705804,
           "hiType": "지역가입자",
-          "pensionTax": 4636008,
+          "pensionTax": 4796292,
           "sources": {
             "IRP1 연금": {
               "gross": 26069367,
               "tax": 1433820
             },
-            "IRP2 연금": {
-              "gross": 11938346,
-              "tax": 656604
+            "O(리얼티인컴) 배당": {
+              "gross": 4775124,
+              "tax": 816888
             },
             "국민연금": {
               "gross": 31283240,
@@ -219,19 +275,19 @@
           }
         },
         "068": {
-          "excessAnnualTotal": 54332906,
+          "excessAnnualTotal": 41721101,
           "excessTriggeredYear": true,
           "healthIns": 3928452,
           "hiType": "지역가입자",
-          "pensionTax": 4751904,
+          "pensionTax": 4909992,
           "sources": {
             "IRP1 연금": {
               "gross": 26721101,
               "tax": 1469664
             },
-            "IRP2 연금": {
-              "gross": 12611805,
-              "tax": 693648
+            "O(리얼티인컴) 배당": {
+              "gross": 4918380,
+              "tax": 851736
             },
             "국민연금": {
               "gross": 32065321,
@@ -248,7 +304,7 @@
           "excessTriggeredYear": true,
           "healthIns": 4163724,
           "hiType": "지역가입자",
-          "pensionTax": 4870704,
+          "pensionTax": 5829060,
           "sources": {
             "IRP1 연금": {
               "gross": 27389129,
@@ -257,6 +313,10 @@
             "IRP2 연금": {
               "gross": 13302100,
               "tax": 731616
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 5065932,
+              "tax": 958356
             },
             "국민연금": {
               "gross": 32866954,
@@ -273,7 +333,7 @@
           "excessTriggeredYear": true,
           "healthIns": 4412352,
           "hiType": "지역가입자",
-          "pensionTax": 3993972,
+          "pensionTax": 4991700,
           "sources": {
             "IRP1 연금": {
               "gross": 28073857,
@@ -282,6 +342,10 @@
             "IRP2 연금": {
               "gross": 14009652,
               "tax": 616428
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 5217912,
+              "tax": 997728
             },
             "국민연금": {
               "gross": 33688628,
@@ -296,9 +360,9 @@
         "071": {
           "excessAnnualTotal": 58510597,
           "excessTriggeredYear": true,
-          "healthIns": 5749812,
+          "healthIns": 4675176,
           "hiType": "지역가입자",
-          "pensionTax": 4093824,
+          "pensionTax": 5142828,
           "sources": {
             "IRP1 연금": {
               "gross": 28775703,
@@ -307,6 +371,10 @@
             "IRP2 연금": {
               "gross": 14734893,
               "tax": 648336
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 5374440,
+              "tax": 1049004
             },
             "국민연금": {
               "gross": 34530844,
@@ -321,9 +389,9 @@
         "072": {
           "excessAnnualTotal": 59973362,
           "excessTriggeredYear": true,
-          "healthIns": 6126312,
+          "healthIns": 4953024,
           "hiType": "지역가입자",
-          "pensionTax": 4196172,
+          "pensionTax": 5305092,
           "sources": {
             "IRP1 연금": {
               "gross": 29495096,
@@ -332,6 +400,10 @@
             "IRP2 연금": {
               "gross": 15478266,
               "tax": 681048
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 5535684,
+              "tax": 1108920
             },
             "국민연금": {
               "gross": 35394115,
@@ -346,9 +418,9 @@
         "073": {
           "excessAnnualTotal": 61472696,
           "excessTriggeredYear": true,
-          "healthIns": 6527808,
+          "healthIns": 5246784,
           "hiType": "지역가입자",
-          "pensionTax": 4301064,
+          "pensionTax": 5471676,
           "sources": {
             "IRP1 연금": {
               "gross": 30232473,
@@ -357,6 +429,10 @@
             "IRP2 연금": {
               "gross": 16240222,
               "tax": 714564
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 5701752,
+              "tax": 1170612
             },
             "국민연금": {
               "gross": 36278968,
@@ -371,9 +447,9 @@
         "074": {
           "excessAnnualTotal": 63009513,
           "excessTriggeredYear": true,
-          "healthIns": 6956076,
+          "healthIns": 5557452,
           "hiType": "지역가입자",
-          "pensionTax": 4408596,
+          "pensionTax": 5642760,
           "sources": {
             "IRP1 연금": {
               "gross": 30988285,
@@ -382,6 +458,10 @@
             "IRP2 연금": {
               "gross": 17021228,
               "tax": 748932
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 5872800,
+              "tax": 1234164
             },
             "국민연금": {
               "gross": 37185942,
@@ -396,13 +476,17 @@
         "075": {
           "excessAnnualTotal": 64584751,
           "excessTriggeredYear": true,
-          "healthIns": 7413060,
+          "healthIns": 5886012,
           "hiType": "지역가입자",
-          "pensionTax": 4518816,
+          "pensionTax": 5818428,
           "sources": {
             "IRP2 연금": {
               "gross": 49584751,
               "tax": 2181732
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 6048984,
+              "tax": 1299612
             },
             "국민연금": {
               "gross": 38115591,
@@ -417,13 +501,17 @@
         "076": {
           "excessAnnualTotal": 66199370,
           "excessTriggeredYear": true,
-          "healthIns": 7900824,
+          "healthIns": 6233580,
           "hiType": "지역가입자",
-          "pensionTax": 4631784,
+          "pensionTax": 5998824,
           "sources": {
             "IRP2 연금": {
               "gross": 51199370,
               "tax": 2252772
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 6230460,
+              "tax": 1367040
             },
             "국민연금": {
               "gross": 39068481,
@@ -438,13 +526,17 @@
         "077": {
           "excessAnnualTotal": 67854354,
           "excessTriggeredYear": true,
-          "healthIns": 8421648,
+          "healthIns": 6601308,
           "hiType": "지역가입자",
-          "pensionTax": 4747572,
+          "pensionTax": 6184068,
           "sources": {
             "IRP2 연금": {
               "gross": 52854354,
               "tax": 2325588
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 6417372,
+              "tax": 1436496
             },
             "국민연금": {
               "gross": 40045193,
@@ -459,13 +551,17 @@
         "078": {
           "excessAnnualTotal": 69550713,
           "excessTriggeredYear": true,
-          "healthIns": 8978436,
+          "healthIns": 6990972,
           "hiType": "지역가입자",
-          "pensionTax": 4866264,
+          "pensionTax": 6374304,
           "sources": {
             "IRP2 연금": {
               "gross": 54550713,
               "tax": 2400228
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 6609888,
+              "tax": 1508040
             },
             "국민연금": {
               "gross": 41046322,
@@ -480,13 +576,17 @@
         "079": {
           "excessAnnualTotal": 71289481,
           "excessTriggeredYear": true,
-          "healthIns": 9585024,
+          "healthIns": 7415100,
           "hiType": "지역가입자",
-          "pensionTax": 4987932,
+          "pensionTax": 6569676,
           "sources": {
             "IRP2 연금": {
               "gross": 56289481,
               "tax": 2476740
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 6808188,
+              "tax": 1581744
             },
             "국민연금": {
               "gross": 42072480,
@@ -501,13 +601,17 @@
         "080": {
           "excessAnnualTotal": 73071718,
           "excessTriggeredYear": true,
-          "healthIns": 10233132,
+          "healthIns": 7863972,
           "hiType": "지역가입자",
-          "pensionTax": 3834468,
+          "pensionTax": 5492148,
           "sources": {
             "IRP2 연금": {
               "gross": 58071718,
               "tax": 1916364
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 7012428,
+              "tax": 1657680
             },
             "국민연금": {
               "gross": 43124292,
@@ -522,13 +626,17 @@
         "081": {
           "excessAnnualTotal": 74898511,
           "excessTriggeredYear": true,
-          "healthIns": 10925820,
+          "healthIns": 8339136,
           "hiType": "지역가입자",
-          "pensionTax": 3930336,
+          "pensionTax": 5666244,
           "sources": {
             "IRP2 연금": {
               "gross": 59898511,
               "tax": 1976652
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 7222800,
+              "tax": 1735908
             },
             "국민연금": {
               "gross": 44202400,
@@ -543,13 +651,17 @@
         "082": {
           "excessAnnualTotal": 76770973,
           "excessTriggeredYear": true,
-          "healthIns": 11666388,
+          "healthIns": 8842212,
           "hiType": "지역가입자",
-          "pensionTax": 4028592,
+          "pensionTax": 5845104,
           "sources": {
             "IRP2 연금": {
               "gross": 61770973,
               "tax": 2038440
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 7439484,
+              "tax": 1816512
             },
             "국민연금": {
               "gross": 45307460,
@@ -564,13 +676,17 @@
         "083": {
           "excessAnnualTotal": 78690248,
           "excessTriggeredYear": true,
-          "healthIns": 12458352,
+          "healthIns": 9374880,
           "hiType": "지역가입자",
-          "pensionTax": 4129296,
+          "pensionTax": 6028860,
           "sources": {
             "IRP2 연금": {
               "gross": 63690248,
               "tax": 2101776
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 7662672,
+              "tax": 1899564
             },
             "국민연금": {
               "gross": 46440146,
@@ -585,13 +701,17 @@
         "084": {
           "excessAnnualTotal": 80657504,
           "excessTriggeredYear": true,
-          "healthIns": 13305564,
+          "healthIns": 9938988,
           "hiType": "지역가입자",
-          "pensionTax": 4232532,
+          "pensionTax": 6217668,
           "sources": {
             "IRP2 연금": {
               "gross": 65657504,
               "tax": 2166696
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 7892556,
+              "tax": 1985136
             },
             "국민연금": {
               "gross": 47601150,
@@ -606,13 +726,17 @@
         "085": {
           "excessAnnualTotal": 82673942,
           "excessTriggeredYear": true,
-          "healthIns": 14212140,
+          "healthIns": 10536456,
           "hiType": "지역가입자",
-          "pensionTax": 4338348,
+          "pensionTax": 6411648,
           "sources": {
             "IRP2 연금": {
               "gross": 67673942,
               "tax": 2233236
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 8129328,
+              "tax": 2073300
             },
             "국민연금": {
               "gross": 48791179,
@@ -627,13 +751,17 @@
         "086": {
           "excessAnnualTotal": 84740790,
           "excessTriggeredYear": true,
-          "healthIns": 15182544,
+          "healthIns": 11169372,
           "hiType": "지역가입자",
-          "pensionTax": 4446804,
+          "pensionTax": 6610944,
           "sources": {
             "IRP2 연금": {
               "gross": 69740790,
               "tax": 2301444
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 8373204,
+              "tax": 2164140
             },
             "국민연금": {
               "gross": 50010958,
@@ -648,13 +776,17 @@
         "087": {
           "excessAnnualTotal": 86859310,
           "excessTriggeredYear": true,
-          "healthIns": 16221576,
+          "healthIns": 11839944,
           "hiType": "지역가입자",
-          "pensionTax": 4557972,
+          "pensionTax": 6815724,
           "sources": {
             "IRP2 연금": {
               "gross": 71859310,
               "tax": 2371356
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 8624400,
+              "tax": 2257752
             },
             "국민연금": {
               "gross": 51261232,
@@ -669,13 +801,17 @@
         "088": {
           "excessAnnualTotal": 89030793,
           "excessTriggeredYear": true,
-          "healthIns": 17229972,
+          "healthIns": 12492564,
           "hiType": "지역가입자",
-          "pensionTax": 4671936,
+          "pensionTax": 7026144,
           "sources": {
             "IRP2 연금": {
               "gross": 74030793,
               "tax": 2443020
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 8883144,
+              "tax": 2354208
             },
             "국민연금": {
               "gross": 52542763,
@@ -690,13 +826,17 @@
         "089": {
           "excessAnnualTotal": 91256562,
           "excessTriggeredYear": true,
-          "healthIns": 18247656,
+          "healthIns": 13151712,
           "hiType": "지역가입자",
-          "pensionTax": 4788732,
+          "pensionTax": 7242324,
           "sources": {
             "IRP2 연금": {
               "gross": 76256562,
               "tax": 2516472
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 9149628,
+              "tax": 2453592
             },
             "국민연금": {
               "gross": 53856332,
@@ -711,247 +851,239 @@
         "090": {
           "excessAnnualTotal": 93537976,
           "excessTriggeredYear": true,
-          "healthIns": 19330596,
+          "healthIns": 13849008,
           "hiType": "지역가입자",
-          "pensionTax": 4908444,
+          "pensionTax": 7464456,
           "sources": {
             "IRP2 연금": {
-              "gross": 78537976,
-              "tax": 2591748
+              "gross": 93537976,
+              "tax": 3086748
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 9424116,
+              "tax": 2556012
             },
             "국민연금": {
               "gross": 55202740,
               "tax": 1821696
-            },
-            "연금저축 (과세)": {
-              "gross": 15000000,
-              "tax": 495000
             }
           }
         },
         "091": {
           "excessAnnualTotal": 95876426,
           "excessTriggeredYear": true,
-          "healthIns": 20483328,
+          "healthIns": 14586912,
           "hiType": "지역가입자",
-          "pensionTax": 5031156,
+          "pensionTax": 7699548,
           "sources": {
             "IRP2 연금": {
-              "gross": 80876426,
-              "tax": 2668920
+              "gross": 95876426,
+              "tax": 3163920
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 9706848,
+              "tax": 2668392
             },
             "국민연금": {
               "gross": 56582809,
               "tax": 1867236
-            },
-            "연금저축 (과세)": {
-              "gross": 15000000,
-              "tax": 495000
             }
           }
         },
         "092": {
           "excessAnnualTotal": 98273336,
           "excessTriggeredYear": true,
-          "healthIns": 21710688,
+          "healthIns": 16738320,
           "hiType": "지역가입자",
-          "pensionTax": 5156940,
+          "pensionTax": 7942704,
           "sources": {
             "IRP2 연금": {
-              "gross": 83273336,
-              "tax": 2748024
+              "gross": 98273336,
+              "tax": 3243024
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 9998052,
+              "tax": 2785764
             },
             "국민연금": {
               "gross": 57997379,
               "tax": 1913916
-            },
-            "연금저축 (과세)": {
-              "gross": 15000000,
-              "tax": 495000
             }
           }
         },
         "093": {
           "excessAnnualTotal": 100730170,
           "excessTriggeredYear": true,
-          "healthIns": 23017872,
+          "healthIns": 17606616,
           "hiType": "지역가입자",
-          "pensionTax": 5285856,
+          "pensionTax": 8192592,
           "sources": {
             "IRP2 연금": {
-              "gross": 85730170,
-              "tax": 2829096
+              "gross": 100730170,
+              "tax": 3324096
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 10297992,
+              "tax": 2906736
             },
             "국민연금": {
               "gross": 59447313,
               "tax": 1961760
-            },
-            "연금저축 (과세)": {
-              "gross": 15000000,
-              "tax": 495000
             }
           }
         },
         "094": {
-          "excessAnnualTotal": 103248424,
+          "excessAnnualTotal": 65770623,
           "excessTriggeredYear": true,
-          "healthIns": 24410460,
+          "healthIns": 18525204,
           "hiType": "지역가입자",
-          "pensionTax": 21239844,
+          "pensionTax": 8449392,
           "sources": {
+            "IRP2 연금": {
+              "gross": 103248424,
+              "tax": 3407196
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 10606932,
+              "tax": 3031392
+            },
             "국민연금": {
               "gross": 60933496,
               "tax": 2010804
-            },
-            "연금저축 (과세)": {
-              "gross": 15000000,
-              "tax": 495000
-            },
-            "연금저축 (확장 인출)": {
-              "gross": 88248424,
-              "tax": 18734040
             }
           }
         },
         "095": {
-          "excessAnnualTotal": 105829635,
-          "excessTriggeredYear": true,
-          "healthIns": 25894356,
+          "excessAnnualTotal": 0,
+          "excessTriggeredYear": false,
+          "healthIns": 19497324,
           "hiType": "지역가입자",
-          "pensionTax": 22283880,
+          "pensionTax": 14491932,
           "sources": {
+            "O(리얼티인컴) 배당": {
+              "gross": 10925136,
+              "tax": 1811100
+            },
             "국민연금": {
               "gross": 62456834,
               "tax": 2061072
             },
-            "연금저축 (과세)": {
-              "gross": 15000000,
-              "tax": 495000
-            },
-            "연금저축 (확장 인출)": {
-              "gross": 90829635,
-              "tax": 19727808
+            "해외주식 매도": {
+              "gross": 96543267,
+              "tax": 10619760
             }
           }
         },
         "096": {
-          "excessAnnualTotal": 108475376,
-          "excessTriggeredYear": true,
-          "healthIns": 27476028,
+          "excessAnnualTotal": 0,
+          "excessTriggeredYear": false,
+          "healthIns": 20526480,
           "hiType": "지역가입자",
-          "pensionTax": 23354016,
+          "pensionTax": 14889696,
           "sources": {
+            "O(리얼티인컴) 배당": {
+              "gross": 11252892,
+              "tax": 1896948
+            },
             "국민연금": {
               "gross": 64018254,
               "tax": 2112600
             },
-            "연금저축 (과세)": {
-              "gross": 15000000,
-              "tax": 495000
-            },
-            "연금저축 (확장 인출)": {
-              "gross": 93475376,
-              "tax": 20746416
+            "해외주식 매도": {
+              "gross": 98910416,
+              "tax": 10880148
             }
           }
         },
         "097": {
-          "excessAnnualTotal": 111187260,
-          "excessTriggeredYear": true,
-          "healthIns": 29162256,
+          "excessAnnualTotal": 0,
+          "excessTriggeredYear": false,
+          "healthIns": 21616320,
           "hiType": "지역가입자",
-          "pensionTax": 24450912,
+          "pensionTax": 15297576,
           "sources": {
+            "O(리얼티인컴) 배당": {
+              "gross": 11590476,
+              "tax": 1985280
+            },
             "국민연금": {
               "gross": 65618711,
               "tax": 2165412
             },
-            "연금저축 (과세)": {
-              "gross": 15000000,
-              "tax": 495000
-            },
-            "연금저축 (확장 인출)": {
-              "gross": 96187260,
-              "tax": 21790500
+            "해외주식 매도": {
+              "gross": 101335356,
+              "tax": 11146884
             }
           }
         },
         "098": {
-          "excessAnnualTotal": 113966942,
-          "excessTriggeredYear": true,
-          "healthIns": 30960432,
+          "excessAnnualTotal": 0,
+          "excessTriggeredYear": false,
+          "healthIns": 22770864,
           "hiType": "지역가입자",
-          "pensionTax": 25575228,
+          "pensionTax": 15715896,
           "sources": {
+            "O(리얼티인컴) 배당": {
+              "gross": 11938200,
+              "tax": 2076192
+            },
             "국민연금": {
               "gross": 67259179,
               "tax": 2219556
             },
-            "연금저축 (과세)": {
-              "gross": 15000000,
-              "tax": 495000
-            },
-            "연금저축 (확장 인출)": {
-              "gross": 98966942,
-              "tax": 22860672
+            "해외주식 매도": {
+              "gross": 103819478,
+              "tax": 11420148
             }
           }
         },
         "099": {
-          "excessAnnualTotal": 116816115,
-          "excessTriggeredYear": true,
-          "healthIns": 32878380,
+          "excessAnnualTotal": 0,
+          "excessTriggeredYear": false,
+          "healthIns": 23994312,
           "hiType": "지역가입자",
-          "pensionTax": 26727648,
+          "pensionTax": 16144860,
           "sources": {
+            "O(리얼티인컴) 배당": {
+              "gross": 12296340,
+              "tax": 2169756
+            },
             "국민연금": {
               "gross": 68940658,
               "tax": 2275044
             },
-            "연금저축 (과세)": {
-              "gross": 15000000,
-              "tax": 495000
-            },
-            "연금저축 (확장 인출)": {
-              "gross": 101816115,
-              "tax": 23957604
+            "해외주식 매도": {
+              "gross": 106364223,
+              "tax": 11700060
             }
           }
         }
       },
       "dependentLossAge": 66,
       "retireBalances": {
-        "IRP1": 15142112,
-        "IRP2": 186970702,
-        "ISA": 72693804,
-        "RIA": 503077,
-        "VOO": 16130563,
-        "연금저축": 62526360,
-        "연금저축_비과세원금": 0,
-        "해외주식": 85395758
+        "IRP1": 24342314,
+        "IRP2": 216208102,
+        "ISA": 0,
+        "RIA": 0,
+        "VOO": 0,
+        "연금저축": 87214832,
+        "연금저축_비과세원금": 90484538,
+        "해외주식": 89716692
       },
-      "total100": 2893272119
+      "total100": 1039368286
     },
     "excessmode-comprehensive": {
       "ages": {
         "100": {
           "excessAnnualTotal": 0,
           "excessTriggeredYear": false,
-          "healthIns": 31749912,
+          "healthIns": 23555328,
           "hiType": "지역가입자",
-          "pensionTax": 24616548,
+          "pensionTax": 2331912,
           "sources": {
-            "O(리얼티인컴) 배당": {
-              "gross": 59790096,
-              "tax": 14703996
-            },
             "국민연금": {
               "gross": 70664175,
               "tax": 2331912
-            },
-            "해외주식 매도": {
-              "gross": 68914934,
-              "tax": 7580640
             }
           }
         },
@@ -976,40 +1108,80 @@
           "excessTriggeredYear": false,
           "healthIns": 0,
           "hiType": "피부양자",
-          "pensionTax": 0,
-          "sources": {}
+          "pensionTax": 532968,
+          "sources": {
+            "O(리얼티인컴) 배당": {
+              "gross": 3553140,
+              "tax": 532968
+            },
+            "연금저축 (비과세원금)": {
+              "gross": 16292278,
+              "tax": 0
+            }
+          }
         },
         "058": {
           "excessAnnualTotal": 0,
           "excessTriggeredYear": false,
           "healthIns": 0,
           "hiType": "피부양자",
-          "pensionTax": 0,
-          "sources": {}
+          "pensionTax": 548964,
+          "sources": {
+            "O(리얼티인컴) 배당": {
+              "gross": 3659736,
+              "tax": 548964
+            },
+            "연금저축 (비과세원금)": {
+              "gross": 16699585,
+              "tax": 0
+            }
+          }
         },
         "059": {
           "excessAnnualTotal": 0,
           "excessTriggeredYear": false,
           "healthIns": 0,
           "hiType": "피부양자",
-          "pensionTax": 0,
-          "sources": {}
+          "pensionTax": 565428,
+          "sources": {
+            "O(리얼티인컴) 배당": {
+              "gross": 3769524,
+              "tax": 565428
+            },
+            "연금저축 (비과세원금)": {
+              "gross": 17117075,
+              "tax": 0
+            }
+          }
         },
         "060": {
           "excessAnnualTotal": 0,
           "excessTriggeredYear": false,
           "healthIns": 0,
           "hiType": "피부양자",
-          "pensionTax": 0,
-          "sources": {}
+          "pensionTax": 582396,
+          "sources": {
+            "O(리얼티인컴) 배당": {
+              "gross": 3882612,
+              "tax": 582396
+            },
+            "연금저축 (비과세원금)": {
+              "gross": 17545002,
+              "tax": 0
+            }
+          }
         },
         "061": {
           "excessAnnualTotal": 0,
           "excessTriggeredYear": false,
           "healthIns": 0,
           "hiType": "피부양자",
-          "pensionTax": 0,
+          "pensionTax": 599868,
           "sources": {
+            "O(리얼티인컴) 배당": {
+              "gross": 3999096,
+              "tax": 599868
+            },
             "연금저축 (비과세원금)": {
               "gross": 45708385,
               "tax": 0
@@ -1017,12 +1189,16 @@
           }
         },
         "062": {
-          "excessAnnualTotal": 0,
-          "excessTriggeredYear": false,
+          "excessAnnualTotal": 18842124,
+          "excessTriggeredYear": true,
           "healthIns": 0,
           "hiType": "피부양자",
-          "pensionTax": 0,
+          "pensionTax": 617856,
           "sources": {
+            "O(리얼티인컴) 배당": {
+              "gross": 4119060,
+              "tax": 617856
+            },
             "연금저축 (비과세원금)": {
               "gross": 46851094,
               "tax": 0
@@ -1030,155 +1206,179 @@
           }
         },
         "063": {
-          "excessAnnualTotal": 0,
-          "excessTriggeredYear": false,
-          "healthIns": 0,
-          "hiType": "피부양자",
-          "pensionTax": 0,
+          "excessAnnualTotal": 40466558,
+          "excessTriggeredYear": true,
+          "healthIns": 4801224,
+          "hiType": "지역가입자",
+          "pensionTax": 5163468,
           "sources": {
-            "연금저축 (비과세원금)": {
+            "O(리얼티인컴) 배당": {
+              "gross": 4242636,
+              "tax": 636396
+            },
+            "연금저축 (과세)": {
               "gross": 48022372,
-              "tax": 0
+              "tax": 4527072
             }
           }
         },
         "064": {
-          "excessAnnualTotal": 0,
-          "excessTriggeredYear": false,
-          "healthIns": 0,
-          "hiType": "피부양자",
-          "pensionTax": 0,
+          "excessAnnualTotal": 42174519,
+          "excessTriggeredYear": true,
+          "healthIns": 5110644,
+          "hiType": "지역가입자",
+          "pensionTax": 5426460,
           "sources": {
-            "연금저축 (비과세원금)": {
+            "O(리얼티인컴) 배당": {
+              "gross": 4369920,
+              "tax": 655488
+            },
+            "연금저축 (과세)": {
               "gross": 49222931,
-              "tax": 0
+              "tax": 4770972
             }
           }
         },
         "065": {
-          "excessAnnualTotal": 33916387,
+          "excessAnnualTotal": 63432389,
           "excessTriggeredYear": true,
-          "healthIns": 4463520,
+          "healthIns": 7331988,
           "hiType": "지역가입자",
-          "pensionTax": 0,
+          "pensionTax": 7065444,
           "sources": {
-            "연금저축 (비과세원금)": {
+            "O(리얼티인컴) 배당": {
+              "gross": 4501008,
+              "tax": 675156
+            },
+            "연금저축 (과세)": {
               "gross": 50453504,
-              "tax": 0
+              "tax": 6390288
             }
           }
         },
         "066": {
-          "excessAnnualTotal": 58457134,
+          "excessAnnualTotal": 59369239,
           "excessTriggeredYear": true,
-          "healthIns": 9261324,
+          "healthIns": 9351300,
           "hiType": "지역가입자",
-          "pensionTax": 17882412,
+          "pensionTax": 19012440,
           "sources": {
             "IRP1 연금": {
               "gross": 25433529,
-              "tax": 4224192
+              "tax": 4249464
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 4636044,
+              "tax": 1023060
             },
             "국민연금": {
               "gross": 30520235,
-              "tax": 5069028
+              "tax": 5099352
             },
             "연금저축 (과세)": {
               "gross": 51714842,
-              "tax": 8589192
+              "tax": 8640564
             }
           }
         },
         "067": {
-          "excessAnnualTotal": 60248590,
+          "excessAnnualTotal": 26069367,
           "excessTriggeredYear": true,
-          "healthIns": 9737928,
+          "healthIns": 6315876,
           "hiType": "지역가입자",
-          "pensionTax": 18631032,
+          "pensionTax": 7308456,
           "sources": {
             "IRP1 연금": {
               "gross": 26069367,
-              "tax": 4401036
+              "tax": 2996448
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 4775124,
+              "tax": 716268
             },
             "국민연금": {
               "gross": 31283240,
-              "tax": 5281236
-            },
-            "연금저축 (과세)": {
-              "gross": 53007713,
-              "tax": 8948760
+              "tax": 3595740
             }
           }
         },
         "068": {
-          "excessAnnualTotal": 62083210,
+          "excessAnnualTotal": 26721101,
           "excessTriggeredYear": true,
-          "healthIns": 10237500,
+          "healthIns": 6643908,
           "hiType": "지역가입자",
-          "pensionTax": 19396044,
+          "pensionTax": 7566516,
           "sources": {
             "IRP1 연금": {
               "gross": 26721101,
-              "tax": 4581744
+              "tax": 3103980
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 4918380,
+              "tax": 737760
             },
             "국민연금": {
               "gross": 32065321,
-              "tax": 5498088
-            },
-            "연금저축 (과세)": {
-              "gross": 54332906,
-              "tax": 9316212
+              "tax": 3724776
             }
           }
         },
         "069": {
-          "excessAnnualTotal": 63949524,
+          "excessAnnualTotal": 55691228,
           "excessTriggeredYear": true,
-          "healthIns": 10759896,
+          "healthIns": 9908088,
           "hiType": "지역가입자",
-          "pensionTax": 20176608,
+          "pensionTax": 15625728,
           "sources": {
             "IRP1 연금": {
               "gross": 27389129,
-              "tax": 4766124
+              "tax": 4536300
+            },
+            "IRP2 연금": {
+              "gross": 28302100,
+              "tax": 4687512
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 5065932,
+              "tax": 958356
             },
             "국민연금": {
               "gross": 32866954,
-              "tax": 5719356
-            },
-            "연금저축 (과세)": {
-              "gross": 55691228,
-              "tax": 9691128
+              "tax": 5443560
             }
           }
         },
         "070": {
-          "excessAnnualTotal": 65827303,
+          "excessAnnualTotal": 57083509,
           "excessTriggeredYear": true,
-          "healthIns": 11304072,
+          "healthIns": 10388652,
           "hiType": "지역가입자",
-          "pensionTax": 21334680,
+          "pensionTax": 16249584,
           "sources": {
             "IRP1 연금": {
               "gross": 28073857,
-              "tax": 5039688
+              "tax": 4717068
+            },
+            "IRP2 연금": {
+              "gross": 29009652,
+              "tax": 4874304
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 5217912,
+              "tax": 997728
             },
             "국민연금": {
               "gross": 33688628,
-              "tax": 6047628
-            },
-            "연금저축 (과세)": {
-              "gross": 57083509,
-              "tax": 10247364
+              "tax": 5660484
             }
           }
         },
         "071": {
           "excessAnnualTotal": 58510597,
           "excessTriggeredYear": true,
-          "healthIns": 11967396,
+          "healthIns": 10892772,
           "hiType": "지역가입자",
-          "pensionTax": 15850932,
+          "pensionTax": 16899936,
           "sources": {
             "IRP1 연금": {
               "gross": 28775703,
@@ -1187,6 +1387,10 @@
             "IRP2 연금": {
               "gross": 29734893,
               "tax": 5065764
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 5374440,
+              "tax": 1049004
             },
             "국민연금": {
               "gross": 34530844,
@@ -1197,9 +1401,9 @@
         "072": {
           "excessAnnualTotal": 59973362,
           "excessTriggeredYear": true,
-          "healthIns": 12594936,
+          "healthIns": 11421648,
           "hiType": "지역가입자",
-          "pensionTax": 16465008,
+          "pensionTax": 17573928,
           "sources": {
             "IRP1 연금": {
               "gross": 29495096,
@@ -1208,6 +1412,10 @@
             "IRP2 연금": {
               "gross": 30478266,
               "tax": 5262012
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 5535684,
+              "tax": 1108920
             },
             "국민연금": {
               "gross": 35394115,
@@ -1218,9 +1426,9 @@
         "073": {
           "excessAnnualTotal": 61472696,
           "excessTriggeredYear": true,
-          "healthIns": 13257600,
+          "healthIns": 11976576,
           "hiType": "지역가입자",
-          "pensionTax": 17185392,
+          "pensionTax": 18356004,
           "sources": {
             "IRP1 연금": {
               "gross": 30232473,
@@ -1229,6 +1437,10 @@
             "IRP2 연금": {
               "gross": 31240222,
               "tax": 5492244
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 5701752,
+              "tax": 1170612
             },
             "국민연금": {
               "gross": 36278968,
@@ -1239,9 +1451,9 @@
         "074": {
           "excessAnnualTotal": 63009513,
           "excessTriggeredYear": true,
-          "healthIns": 13957584,
+          "healthIns": 12558948,
           "hiType": "지역가입자",
-          "pensionTax": 18126252,
+          "pensionTax": 19360416,
           "sources": {
             "IRP1 연금": {
               "gross": 30988285,
@@ -1250,6 +1462,10 @@
             "IRP2 연금": {
               "gross": 32021228,
               "tax": 5792928
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 5872800,
+              "tax": 1234164
             },
             "국민연금": {
               "gross": 37185942,
@@ -1260,13 +1476,17 @@
         "075": {
           "excessAnnualTotal": 64584751,
           "excessTriggeredYear": true,
-          "healthIns": 14697252,
+          "healthIns": 13170204,
           "hiType": "지역가입자",
-          "pensionTax": 19090632,
+          "pensionTax": 20390244,
           "sources": {
             "IRP2 연금": {
               "gross": 64584751,
               "tax": 12005448
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 6048984,
+              "tax": 1299612
             },
             "국민연금": {
               "gross": 38115591,
@@ -1277,13 +1497,17 @@
         "076": {
           "excessAnnualTotal": 66199370,
           "excessTriggeredYear": true,
-          "healthIns": 15479124,
+          "healthIns": 13811880,
           "hiType": "지역가입자",
-          "pensionTax": 20079120,
+          "pensionTax": 21446160,
           "sources": {
             "IRP2 연금": {
               "gross": 66199370,
               "tax": 12627072
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 6230460,
+              "tax": 1367040
             },
             "국민연금": {
               "gross": 39068481,
@@ -1294,13 +1518,17 @@
         "077": {
           "excessAnnualTotal": 67854354,
           "excessTriggeredYear": true,
-          "healthIns": 16305900,
+          "healthIns": 14485584,
           "hiType": "지역가입자",
-          "pensionTax": 21092328,
+          "pensionTax": 22528824,
           "sources": {
             "IRP2 연금": {
               "gross": 67854354,
               "tax": 13264248
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 6417372,
+              "tax": 1436496
             },
             "국민연금": {
               "gross": 40045193,
@@ -1311,13 +1539,17 @@
         "078": {
           "excessAnnualTotal": 69550713,
           "excessTriggeredYear": true,
-          "healthIns": 17181036,
+          "healthIns": 15193572,
           "hiType": "지역가입자",
-          "pensionTax": 22130868,
+          "pensionTax": 23638908,
           "sources": {
             "IRP2 연금": {
               "gross": 69550713,
               "tax": 13917348
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 6609888,
+              "tax": 1508040
             },
             "국민연금": {
               "gross": 41046322,
@@ -1328,13 +1560,17 @@
         "079": {
           "excessAnnualTotal": 71289481,
           "excessTriggeredYear": true,
-          "healthIns": 18118800,
+          "healthIns": 15948864,
           "hiType": "지역가입자",
-          "pensionTax": 23195352,
+          "pensionTax": 24777096,
           "sources": {
             "IRP2 연금": {
               "gross": 71289481,
               "tax": 14586768
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 6808188,
+              "tax": 1581744
             },
             "국민연금": {
               "gross": 42072480,
@@ -1345,13 +1581,17 @@
         "080": {
           "excessAnnualTotal": 73071718,
           "excessTriggeredYear": true,
-          "healthIns": 19111464,
+          "healthIns": 16742292,
           "hiType": "지역가입자",
-          "pensionTax": 24286464,
+          "pensionTax": 25944144,
           "sources": {
             "IRP2 연금": {
               "gross": 73071718,
               "tax": 15272928
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 7012428,
+              "tax": 1657680
             },
             "국민연금": {
               "gross": 43124292,
@@ -1362,13 +1602,17 @@
         "081": {
           "excessAnnualTotal": 74898511,
           "excessTriggeredYear": true,
-          "healthIns": 20162604,
+          "healthIns": 17575920,
           "hiType": "지역가입자",
-          "pensionTax": 25404852,
+          "pensionTax": 27140760,
           "sources": {
             "IRP2 연금": {
               "gross": 74898511,
               "tax": 15976248
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 7222800,
+              "tax": 1735908
             },
             "국민연금": {
               "gross": 44202400,
@@ -1379,13 +1623,17 @@
         "082": {
           "excessAnnualTotal": 76770973,
           "excessTriggeredYear": true,
-          "healthIns": 21276108,
+          "healthIns": 18451932,
           "hiType": "지역가입자",
-          "pensionTax": 26551200,
+          "pensionTax": 28367712,
           "sources": {
             "IRP2 연금": {
               "gross": 76770973,
               "tax": 16697148
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 7439484,
+              "tax": 1816512
             },
             "국민연금": {
               "gross": 45307460,
@@ -1396,13 +1644,17 @@
         "083": {
           "excessAnnualTotal": 78690248,
           "excessTriggeredYear": true,
-          "healthIns": 22456068,
+          "healthIns": 19372596,
           "hiType": "지역가입자",
-          "pensionTax": 27726192,
+          "pensionTax": 29625756,
           "sources": {
             "IRP2 연금": {
               "gross": 78690248,
               "tax": 17436060
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 7662672,
+              "tax": 1899564
             },
             "국민연금": {
               "gross": 46440146,
@@ -1413,13 +1665,17 @@
         "084": {
           "excessAnnualTotal": 80657504,
           "excessTriggeredYear": true,
-          "healthIns": 23706948,
+          "healthIns": 20340360,
           "hiType": "지역가입자",
-          "pensionTax": 28930584,
+          "pensionTax": 30915720,
           "sources": {
             "IRP2 연금": {
               "gross": 80657504,
               "tax": 18193464
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 7892556,
+              "tax": 1985136
             },
             "국민연금": {
               "gross": 47601150,
@@ -1428,322 +1684,298 @@
           }
         },
         "085": {
-          "excessAnnualTotal": 82673942,
+          "excessAnnualTotal": 20337808,
           "excessTriggeredYear": true,
-          "healthIns": 25033464,
+          "healthIns": 13198524,
           "hiType": "지역가입자",
-          "pensionTax": 30165072,
+          "pensionTax": 20212164,
           "sources": {
             "IRP2 연금": {
               "gross": 82673942,
-              "tax": 18969792
+              "tax": 11406912
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 8129328,
+              "tax": 2073300
             },
             "국민연금": {
               "gross": 48791179,
-              "tax": 11195280
+              "tax": 6731952
             }
           }
         },
         "086": {
-          "excessAnnualTotal": 84740790,
-          "excessTriggeredYear": true,
-          "healthIns": 26440776,
+          "excessAnnualTotal": 0,
+          "excessTriggeredYear": false,
+          "healthIns": 11169372,
           "hiType": "지역가입자",
-          "pensionTax": 31430424,
+          "pensionTax": 11444928,
           "sources": {
-            "IRP2 연금": {
-              "gross": 84740790,
-              "tax": 19765524
+            "O(리얼티인컴) 배당": {
+              "gross": 8373204,
+              "tax": 1255980
             },
             "국민연금": {
               "gross": 50010958,
-              "tax": 11664900
+              "tax": 1650360
+            },
+            "해외주식 매도": {
+              "gross": 77623566,
+              "tax": 8538588
             }
           }
         },
         "087": {
-          "excessAnnualTotal": 86859310,
-          "excessTriggeredYear": true,
-          "healthIns": 27934356,
+          "excessAnnualTotal": 0,
+          "excessTriggeredYear": false,
+          "healthIns": 11839944,
           "hiType": "지역가입자",
-          "pensionTax": 32727408,
+          "pensionTax": 11733420,
           "sources": {
-            "IRP2 연금": {
-              "gross": 86859310,
-              "tax": 20581152
+            "O(리얼티인컴) 배당": {
+              "gross": 8624400,
+              "tax": 1293660
             },
             "국민연금": {
               "gross": 51261232,
-              "tax": 12146256
+              "tax": 1691616
+            },
+            "해외주식 매도": {
+              "gross": 79528570,
+              "tax": 8748144
             }
           }
         },
         "088": {
-          "excessAnnualTotal": 89030793,
-          "excessTriggeredYear": true,
-          "healthIns": 29297196,
+          "excessAnnualTotal": 0,
+          "excessTriggeredYear": false,
+          "healthIns": 12492564,
           "hiType": "지역가입자",
-          "pensionTax": 34056828,
+          "pensionTax": 12029196,
           "sources": {
-            "IRP2 연금": {
-              "gross": 89030793,
-              "tax": 21417180
+            "O(리얼티인컴) 배당": {
+              "gross": 8883144,
+              "tax": 1332468
             },
             "국민연금": {
               "gross": 52542763,
-              "tax": 12639648
+              "tax": 1733916
+            },
+            "해외주식 매도": {
+              "gross": 81480129,
+              "tax": 8962812
             }
           }
         },
         "089": {
-          "excessAnnualTotal": 91256562,
-          "excessTriggeredYear": true,
-          "healthIns": 30616560,
+          "excessAnnualTotal": 0,
+          "excessTriggeredYear": false,
+          "healthIns": 13151712,
           "hiType": "지역가입자",
-          "pensionTax": 35419464,
+          "pensionTax": 12332436,
           "sources": {
-            "IRP2 연금": {
-              "gross": 91256562,
-              "tax": 22274100
+            "O(리얼티인컴) 배당": {
+              "gross": 9149628,
+              "tax": 1372440
             },
             "국민연금": {
               "gross": 53856332,
-              "tax": 13145364
+              "tax": 1777260
+            },
+            "해외주식 매도": {
+              "gross": 83479374,
+              "tax": 9182736
             }
           }
         },
         "090": {
-          "excessAnnualTotal": 93537976,
-          "excessTriggeredYear": true,
-          "healthIns": 32008728,
+          "excessAnnualTotal": 0,
+          "excessTriggeredYear": false,
+          "healthIns": 13849008,
           "hiType": "지역가입자",
-          "pensionTax": 36816180,
+          "pensionTax": 12646296,
           "sources": {
-            "IRP2 연금": {
-              "gross": 93537976,
-              "tax": 23152440
+            "O(리얼티인컴) 배당": {
+              "gross": 9424116,
+              "tax": 1416576
             },
             "국민연금": {
               "gross": 55202740,
-              "tax": 13663740
+              "tax": 1821696
+            },
+            "해외주식 매도": {
+              "gross": 85527472,
+              "tax": 9408024
             }
           }
         },
         "091": {
-          "excessAnnualTotal": 95876426,
-          "excessTriggeredYear": true,
-          "healthIns": 33478416,
+          "excessAnnualTotal": 0,
+          "excessTriggeredYear": false,
+          "healthIns": 14586912,
           "hiType": "지역가입자",
-          "pensionTax": 38247804,
+          "pensionTax": 12985284,
           "sources": {
-            "IRP2 연금": {
-              "gross": 95876426,
-              "tax": 24052740
+            "O(리얼티인컴) 배당": {
+              "gross": 9706848,
+              "tax": 1479228
             },
             "국민연금": {
               "gross": 56582809,
-              "tax": 14195064
+              "tax": 1867236
+            },
+            "해외주식 매도": {
+              "gross": 87625610,
+              "tax": 9638820
             }
           }
         },
         "092": {
-          "excessAnnualTotal": 94206687,
-          "excessTriggeredYear": true,
-          "healthIns": 34479468,
+          "excessAnnualTotal": 0,
+          "excessTriggeredYear": false,
+          "healthIns": 15368040,
           "hiType": "지역가입자",
-          "pensionTax": 39168864,
+          "pensionTax": 13111116,
           "sources": {
-            "IRP2 연금": {
-              "gross": 98273336,
-              "tax": 24631968
+            "O(리얼티인컴) 배당": {
+              "gross": 6851916,
+              "tax": 1027788
             },
             "국민연금": {
               "gross": 57997379,
-              "tax": 14536896
+              "tax": 1913916
+            },
+            "해외주식 매도": {
+              "gross": 92449208,
+              "tax": 10169412
             }
           }
         },
         "093": {
           "excessAnnualTotal": 0,
           "excessTriggeredYear": false,
-          "healthIns": 22858152,
+          "healthIns": 16195212,
           "hiType": "지역가입자",
-          "pensionTax": 18869892,
+          "pensionTax": 13139568,
           "sources": {
             "O(리얼티인컴) 배당": {
-              "gross": 48614820,
-              "tax": 10427280
+              "gross": 1725444,
+              "tax": 258816
             },
             "국민연금": {
               "gross": 59447313,
               "tax": 1961760
             },
             "해외주식 매도": {
-              "gross": 59407570,
-              "tax": 6480852
+              "gross": 99263542,
+              "tax": 10918992
             }
           }
         },
         "094": {
           "excessAnnualTotal": 0,
           "excessTriggeredYear": false,
-          "healthIns": 23934288,
+          "healthIns": 17071464,
           "hiType": "지역가입자",
-          "pensionTax": 19672872,
+          "pensionTax": 2010804,
           "sources": {
-            "O(리얼티인컴) 배당": {
-              "gross": 50073264,
-              "tax": 10986588
-            },
             "국민연금": {
               "gross": 60933496,
               "tax": 2010804
-            },
-            "해외주식 매도": {
-              "gross": 60686152,
-              "tax": 6675480
             }
           }
         },
         "095": {
           "excessAnnualTotal": 0,
           "excessTriggeredYear": false,
-          "healthIns": 25068696,
+          "healthIns": 17999964,
           "hiType": "지역가입자",
-          "pensionTax": 20442240,
+          "pensionTax": 2061072,
           "sources": {
-            "O(리얼티인컴) 배당": {
-              "gross": 51575460,
-              "tax": 11562216
-            },
             "국민연금": {
               "gross": 62456834,
               "tax": 2061072
-            },
-            "해외주식 매도": {
-              "gross": 61990491,
-              "tax": 6818952
             }
           }
         },
         "096": {
           "excessAnnualTotal": 0,
           "excessTriggeredYear": false,
-          "healthIns": 26264964,
+          "healthIns": 18984204,
           "hiType": "지역가입자",
-          "pensionTax": 21232596,
+          "pensionTax": 2112600,
           "sources": {
-            "O(리얼티인컴) 배당": {
-              "gross": 53122728,
-              "tax": 12154680
-            },
             "국민연금": {
               "gross": 64018254,
               "tax": 2112600
-            },
-            "해외주식 매도": {
-              "gross": 63321056,
-              "tax": 6965316
             }
           }
         },
         "097": {
           "excessAnnualTotal": 0,
           "excessTriggeredYear": false,
-          "healthIns": 27526980,
+          "healthIns": 20027784,
           "hiType": "지역가입자",
-          "pensionTax": 22044564,
+          "pensionTax": 2165412,
           "sources": {
-            "O(리얼티인컴) 배당": {
-              "gross": 54716400,
-              "tax": 12764532
-            },
             "국민연금": {
               "gross": 65618711,
               "tax": 2165412
-            },
-            "해외주식 매도": {
-              "gross": 64678320,
-              "tax": 7114620
             }
           }
         },
         "098": {
           "excessAnnualTotal": 0,
           "excessTriggeredYear": false,
-          "healthIns": 28858836,
+          "healthIns": 21134676,
           "hiType": "지역가입자",
-          "pensionTax": 22878780,
+          "pensionTax": 2219556,
           "sources": {
-            "O(리얼티인컴) 배당": {
-              "gross": 56357892,
-              "tax": 13392324
-            },
             "국민연금": {
               "gross": 67259179,
               "tax": 2219556
-            },
-            "해외주식 매도": {
-              "gross": 66062726,
-              "tax": 7266900
             }
           }
         },
         "099": {
           "excessAnnualTotal": 0,
           "excessTriggeredYear": false,
-          "healthIns": 30264912,
+          "healthIns": 22309032,
           "hiType": "지역가입자",
-          "pensionTax": 23735892,
+          "pensionTax": 2275044,
           "sources": {
-            "O(리얼티인컴) 배당": {
-              "gross": 58048632,
-              "tax": 14038620
-            },
             "국민연금": {
               "gross": 68940658,
               "tax": 2275044
-            },
-            "해외주식 매도": {
-              "gross": 67474779,
-              "tax": 7422228
             }
           }
         }
       },
-      "dependentLossAge": 65,
+      "dependentLossAge": 63,
       "retireBalances": {
-        "IRP1": 15142112,
-        "IRP2": 186970702,
-        "ISA": 72693804,
-        "RIA": 503077,
-        "VOO": 16130563,
-        "연금저축": 62526360,
-        "연금저축_비과세원금": 0,
-        "해외주식": 85395758
+        "IRP1": 24342314,
+        "IRP2": 216208102,
+        "ISA": 0,
+        "RIA": 0,
+        "VOO": 0,
+        "연금저축": 87214832,
+        "연금저축_비과세원금": 90484538,
+        "해외주식": 89716692
       },
-      "total100": 1661720272
+      "total100": 0
     },
     "excessmode-separate16_5": {
       "ages": {
         "100": {
           "excessAnnualTotal": 0,
           "excessTriggeredYear": false,
-          "healthIns": 31749912,
+          "healthIns": 23555328,
           "hiType": "지역가입자",
-          "pensionTax": 24616548,
+          "pensionTax": 2331912,
           "sources": {
-            "O(리얼티인컴) 배당": {
-              "gross": 59790096,
-              "tax": 14703996
-            },
             "국민연금": {
               "gross": 70664175,
               "tax": 2331912
-            },
-            "해외주식 매도": {
-              "gross": 68914934,
-              "tax": 7580640
             }
           }
         },
@@ -1768,40 +2000,80 @@
           "excessTriggeredYear": false,
           "healthIns": 0,
           "hiType": "피부양자",
-          "pensionTax": 0,
-          "sources": {}
+          "pensionTax": 532968,
+          "sources": {
+            "O(리얼티인컴) 배당": {
+              "gross": 3553140,
+              "tax": 532968
+            },
+            "연금저축 (비과세원금)": {
+              "gross": 16292278,
+              "tax": 0
+            }
+          }
         },
         "058": {
           "excessAnnualTotal": 0,
           "excessTriggeredYear": false,
           "healthIns": 0,
           "hiType": "피부양자",
-          "pensionTax": 0,
-          "sources": {}
+          "pensionTax": 548964,
+          "sources": {
+            "O(리얼티인컴) 배당": {
+              "gross": 3659736,
+              "tax": 548964
+            },
+            "연금저축 (비과세원금)": {
+              "gross": 16699585,
+              "tax": 0
+            }
+          }
         },
         "059": {
           "excessAnnualTotal": 0,
           "excessTriggeredYear": false,
           "healthIns": 0,
           "hiType": "피부양자",
-          "pensionTax": 0,
-          "sources": {}
+          "pensionTax": 565428,
+          "sources": {
+            "O(리얼티인컴) 배당": {
+              "gross": 3769524,
+              "tax": 565428
+            },
+            "연금저축 (비과세원금)": {
+              "gross": 17117075,
+              "tax": 0
+            }
+          }
         },
         "060": {
           "excessAnnualTotal": 0,
           "excessTriggeredYear": false,
           "healthIns": 0,
           "hiType": "피부양자",
-          "pensionTax": 0,
-          "sources": {}
+          "pensionTax": 582396,
+          "sources": {
+            "O(리얼티인컴) 배당": {
+              "gross": 3882612,
+              "tax": 582396
+            },
+            "연금저축 (비과세원금)": {
+              "gross": 17545002,
+              "tax": 0
+            }
+          }
         },
         "061": {
           "excessAnnualTotal": 0,
           "excessTriggeredYear": false,
           "healthIns": 0,
           "hiType": "피부양자",
-          "pensionTax": 0,
+          "pensionTax": 599868,
           "sources": {
+            "O(리얼티인컴) 배당": {
+              "gross": 3999096,
+              "tax": 599868
+            },
             "연금저축 (비과세원금)": {
               "gross": 45708385,
               "tax": 0
@@ -1809,12 +2081,16 @@
           }
         },
         "062": {
-          "excessAnnualTotal": 0,
-          "excessTriggeredYear": false,
+          "excessAnnualTotal": 18842124,
+          "excessTriggeredYear": true,
           "healthIns": 0,
           "hiType": "피부양자",
-          "pensionTax": 0,
+          "pensionTax": 617856,
           "sources": {
+            "O(리얼티인컴) 배당": {
+              "gross": 4119060,
+              "tax": 617856
+            },
             "연금저축 (비과세원금)": {
               "gross": 46851094,
               "tax": 0
@@ -1822,54 +2098,70 @@
           }
         },
         "063": {
-          "excessAnnualTotal": 0,
-          "excessTriggeredYear": false,
+          "excessAnnualTotal": 40466558,
+          "excessTriggeredYear": true,
           "healthIns": 0,
           "hiType": "피부양자",
-          "pensionTax": 0,
+          "pensionTax": 8560092,
           "sources": {
-            "연금저축 (비과세원금)": {
+            "O(리얼티인컴) 배당": {
+              "gross": 4242636,
+              "tax": 636396
+            },
+            "연금저축 (과세)": {
               "gross": 48022372,
-              "tax": 0
+              "tax": 7923696
             }
           }
         },
         "064": {
-          "excessAnnualTotal": 0,
-          "excessTriggeredYear": false,
+          "excessAnnualTotal": 42174519,
+          "excessTriggeredYear": true,
           "healthIns": 0,
           "hiType": "피부양자",
-          "pensionTax": 0,
+          "pensionTax": 8777268,
           "sources": {
-            "연금저축 (비과세원금)": {
+            "O(리얼티인컴) 배당": {
+              "gross": 4369920,
+              "tax": 655488
+            },
+            "연금저축 (과세)": {
               "gross": 49222931,
-              "tax": 0
+              "tax": 8121780
             }
           }
         },
         "065": {
-          "excessAnnualTotal": 33916387,
+          "excessAnnualTotal": 63432389,
           "excessTriggeredYear": true,
           "healthIns": 0,
           "hiType": "피부양자",
-          "pensionTax": 0,
+          "pensionTax": 8999988,
           "sources": {
-            "연금저축 (비과세원금)": {
+            "O(리얼티인컴) 배당": {
+              "gross": 4501008,
+              "tax": 675156
+            },
+            "연금저축 (과세)": {
               "gross": 50453504,
-              "tax": 0
+              "tax": 8324832
             }
           }
         },
         "066": {
-          "excessAnnualTotal": 58457134,
+          "excessAnnualTotal": 59369239,
           "excessTriggeredYear": true,
           "healthIns": 3495060,
           "hiType": "지역가입자",
-          "pensionTax": 14408088,
+          "pensionTax": 15431148,
           "sources": {
             "IRP1 연금": {
               "gross": 25433529,
               "tax": 4196532
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 4636044,
+              "tax": 1023060
             },
             "국민연금": {
               "gross": 30520235,
@@ -1882,95 +2174,103 @@
           }
         },
         "067": {
-          "excessAnnualTotal": 60248590,
+          "excessAnnualTotal": 26069367,
           "excessTriggeredYear": true,
           "healthIns": 3705804,
           "hiType": "지역가입자",
-          "pensionTax": 14768304,
+          "pensionTax": 6738300,
           "sources": {
             "IRP1 연금": {
               "gross": 26069367,
               "tax": 4301448
             },
+            "O(리얼티인컴) 배당": {
+              "gross": 4775124,
+              "tax": 716268
+            },
             "국민연금": {
               "gross": 31283240,
               "tax": 1720584
-            },
-            "연금저축 (과세)": {
-              "gross": 53007713,
-              "tax": 8746272
             }
           }
         },
         "068": {
-          "excessAnnualTotal": 62083210,
+          "excessAnnualTotal": 26721101,
           "excessTriggeredYear": true,
           "healthIns": 3928452,
           "hiType": "지역가입자",
-          "pensionTax": 15137496,
+          "pensionTax": 6910332,
           "sources": {
             "IRP1 연금": {
               "gross": 26721101,
               "tax": 4408980
             },
+            "O(리얼티인컴) 배당": {
+              "gross": 4918380,
+              "tax": 737760
+            },
             "국민연금": {
               "gross": 32065321,
               "tax": 1763592
-            },
-            "연금저축 (과세)": {
-              "gross": 54332906,
-              "tax": 8964924
             }
           }
         },
         "069": {
-          "excessAnnualTotal": 63949524,
+          "excessAnnualTotal": 55691228,
           "excessTriggeredYear": true,
           "healthIns": 4163724,
           "hiType": "지역가입자",
-          "pensionTax": 15515940,
+          "pensionTax": 11955096,
           "sources": {
             "IRP1 연금": {
               "gross": 27389129,
               "tax": 4519212
             },
+            "IRP2 연금": {
+              "gross": 28302100,
+              "tax": 4669848
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 5065932,
+              "tax": 958356
+            },
             "국민연금": {
               "gross": 32866954,
               "tax": 1807680
-            },
-            "연금저축 (과세)": {
-              "gross": 55691228,
-              "tax": 9189048
             }
           }
         },
         "070": {
-          "excessAnnualTotal": 65827303,
+          "excessAnnualTotal": 57083509,
           "excessTriggeredYear": true,
           "healthIns": 4412352,
           "hiType": "지역가입자",
-          "pensionTax": 15533268,
+          "pensionTax": 11898816,
           "sources": {
             "IRP1 연금": {
               "gross": 28073857,
               "tax": 4632192
             },
+            "IRP2 연금": {
+              "gross": 29009652,
+              "tax": 4786596
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 5217912,
+              "tax": 997728
+            },
             "국민연금": {
               "gross": 33688628,
               "tax": 1482300
-            },
-            "연금저축 (과세)": {
-              "gross": 57083509,
-              "tax": 9418776
             }
           }
         },
         "071": {
           "excessAnnualTotal": 58510597,
           "excessTriggeredYear": true,
-          "healthIns": 5749812,
+          "healthIns": 4675176,
           "hiType": "지역가입자",
-          "pensionTax": 11173608,
+          "pensionTax": 12222612,
           "sources": {
             "IRP1 연금": {
               "gross": 28775703,
@@ -1979,6 +2279,10 @@
             "IRP2 연금": {
               "gross": 29734893,
               "tax": 4906260
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 5374440,
+              "tax": 1049004
             },
             "국민연금": {
               "gross": 34530844,
@@ -1989,9 +2293,9 @@
         "072": {
           "excessAnnualTotal": 59973362,
           "excessTriggeredYear": true,
-          "healthIns": 6126312,
+          "healthIns": 4953024,
           "hiType": "지역가입자",
-          "pensionTax": 11452944,
+          "pensionTax": 12561864,
           "sources": {
             "IRP1 연금": {
               "gross": 29495096,
@@ -2000,6 +2304,10 @@
             "IRP2 연금": {
               "gross": 30478266,
               "tax": 5028912
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 5535684,
+              "tax": 1108920
             },
             "국민연금": {
               "gross": 35394115,
@@ -2010,9 +2318,9 @@
         "073": {
           "excessAnnualTotal": 61472696,
           "excessTriggeredYear": true,
-          "healthIns": 6527808,
+          "healthIns": 5246784,
           "hiType": "지역가입자",
-          "pensionTax": 11739276,
+          "pensionTax": 12909888,
           "sources": {
             "IRP1 연금": {
               "gross": 30232473,
@@ -2021,6 +2329,10 @@
             "IRP2 연금": {
               "gross": 31240222,
               "tax": 5154636
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 5701752,
+              "tax": 1170612
             },
             "국민연금": {
               "gross": 36278968,
@@ -2031,9 +2343,9 @@
         "074": {
           "excessAnnualTotal": 63009513,
           "excessTriggeredYear": true,
-          "healthIns": 6956076,
+          "healthIns": 5557452,
           "hiType": "지역가입자",
-          "pensionTax": 12032748,
+          "pensionTax": 13266912,
           "sources": {
             "IRP1 연금": {
               "gross": 30988285,
@@ -2042,6 +2354,10 @@
             "IRP2 연금": {
               "gross": 32021228,
               "tax": 5283504
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 5872800,
+              "tax": 1234164
             },
             "국민연금": {
               "gross": 37185942,
@@ -2052,13 +2368,17 @@
         "075": {
           "excessAnnualTotal": 64584751,
           "excessTriggeredYear": true,
-          "healthIns": 7413060,
+          "healthIns": 5886012,
           "hiType": "지역가입자",
-          "pensionTax": 12333564,
+          "pensionTax": 13633176,
           "sources": {
             "IRP2 연금": {
               "gross": 64584751,
               "tax": 10656480
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 6048984,
+              "tax": 1299612
             },
             "국민연금": {
               "gross": 38115591,
@@ -2069,13 +2389,17 @@
         "076": {
           "excessAnnualTotal": 66199370,
           "excessTriggeredYear": true,
-          "healthIns": 7900824,
+          "healthIns": 6233580,
           "hiType": "지역가입자",
-          "pensionTax": 12641904,
+          "pensionTax": 14008944,
           "sources": {
             "IRP2 연금": {
               "gross": 66199370,
               "tax": 10922892
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 6230460,
+              "tax": 1367040
             },
             "국민연금": {
               "gross": 39068481,
@@ -2086,13 +2410,17 @@
         "077": {
           "excessAnnualTotal": 67854354,
           "excessTriggeredYear": true,
-          "healthIns": 8421648,
+          "healthIns": 6601308,
           "hiType": "지역가입자",
-          "pensionTax": 12957948,
+          "pensionTax": 14394444,
           "sources": {
             "IRP2 연금": {
               "gross": 67854354,
               "tax": 11195964
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 6417372,
+              "tax": 1436496
             },
             "국민연금": {
               "gross": 40045193,
@@ -2103,13 +2431,17 @@
         "078": {
           "excessAnnualTotal": 69550713,
           "excessTriggeredYear": true,
-          "healthIns": 8978436,
+          "healthIns": 6990972,
           "hiType": "지역가입자",
-          "pensionTax": 13281900,
+          "pensionTax": 14789940,
           "sources": {
             "IRP2 연금": {
               "gross": 69550713,
               "tax": 11475864
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 6609888,
+              "tax": 1508040
             },
             "국민연금": {
               "gross": 41046322,
@@ -2120,13 +2452,17 @@
         "079": {
           "excessAnnualTotal": 71289481,
           "excessTriggeredYear": true,
-          "healthIns": 9585024,
+          "healthIns": 7415100,
           "hiType": "지역가입자",
-          "pensionTax": 13613952,
+          "pensionTax": 15195696,
           "sources": {
             "IRP2 연금": {
               "gross": 71289481,
               "tax": 11762760
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 6808188,
+              "tax": 1581744
             },
             "국민연금": {
               "gross": 42072480,
@@ -2137,13 +2473,17 @@
         "080": {
           "excessAnnualTotal": 73071718,
           "excessTriggeredYear": true,
-          "healthIns": 10233132,
+          "healthIns": 7863972,
           "hiType": "지역가입자",
-          "pensionTax": 13479936,
+          "pensionTax": 15137616,
           "sources": {
             "IRP2 연금": {
               "gross": 73071718,
               "tax": 12056832
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 7012428,
+              "tax": 1657680
             },
             "국민연금": {
               "gross": 43124292,
@@ -2154,13 +2494,17 @@
         "081": {
           "excessAnnualTotal": 74898511,
           "excessTriggeredYear": true,
-          "healthIns": 10925820,
+          "healthIns": 8339136,
           "hiType": "지역가입자",
-          "pensionTax": 13816944,
+          "pensionTax": 15552852,
           "sources": {
             "IRP2 연금": {
               "gross": 74898511,
               "tax": 12358260
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 7222800,
+              "tax": 1735908
             },
             "국민연금": {
               "gross": 44202400,
@@ -2171,13 +2515,17 @@
         "082": {
           "excessAnnualTotal": 76770973,
           "excessTriggeredYear": true,
-          "healthIns": 11666388,
+          "healthIns": 8842212,
           "hiType": "지역가입자",
-          "pensionTax": 14162364,
+          "pensionTax": 15978876,
           "sources": {
             "IRP2 연금": {
               "gross": 76770973,
               "tax": 12667212
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 7439484,
+              "tax": 1816512
             },
             "국민연금": {
               "gross": 45307460,
@@ -2188,13 +2536,17 @@
         "083": {
           "excessAnnualTotal": 78690248,
           "excessTriggeredYear": true,
-          "healthIns": 12458352,
+          "healthIns": 9374880,
           "hiType": "지역가입자",
-          "pensionTax": 14516412,
+          "pensionTax": 16415976,
           "sources": {
             "IRP2 연금": {
               "gross": 78690248,
               "tax": 12983892
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 7662672,
+              "tax": 1899564
             },
             "국민연금": {
               "gross": 46440146,
@@ -2205,13 +2557,17 @@
         "084": {
           "excessAnnualTotal": 80657504,
           "excessTriggeredYear": true,
-          "healthIns": 13305564,
+          "healthIns": 9938988,
           "hiType": "지역가입자",
-          "pensionTax": 14879328,
+          "pensionTax": 16864464,
           "sources": {
             "IRP2 연금": {
               "gross": 80657504,
               "tax": 13308492
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 7892556,
+              "tax": 1985136
             },
             "국민연금": {
               "gross": 47601150,
@@ -2220,15 +2576,19 @@
           }
         },
         "085": {
-          "excessAnnualTotal": 82673942,
+          "excessAnnualTotal": 20337808,
           "excessTriggeredYear": true,
-          "healthIns": 14212140,
+          "healthIns": 10536456,
           "hiType": "지역가입자",
-          "pensionTax": 15251316,
+          "pensionTax": 17324616,
           "sources": {
             "IRP2 연금": {
               "gross": 82673942,
               "tax": 13641204
+            },
+            "O(리얼티인컴) 배당": {
+              "gross": 8129328,
+              "tax": 2073300
             },
             "국민연금": {
               "gross": 48791179,
@@ -2237,284 +2597,264 @@
           }
         },
         "086": {
-          "excessAnnualTotal": 84740790,
-          "excessTriggeredYear": true,
-          "healthIns": 15182544,
+          "excessAnnualTotal": 0,
+          "excessTriggeredYear": false,
+          "healthIns": 11169372,
           "hiType": "지역가입자",
-          "pensionTax": 15632592,
+          "pensionTax": 11444928,
           "sources": {
-            "IRP2 연금": {
-              "gross": 84740790,
-              "tax": 13982232
+            "O(리얼티인컴) 배당": {
+              "gross": 8373204,
+              "tax": 1255980
             },
             "국민연금": {
               "gross": 50010958,
               "tax": 1650360
+            },
+            "해외주식 매도": {
+              "gross": 77623566,
+              "tax": 8538588
             }
           }
         },
         "087": {
-          "excessAnnualTotal": 86859310,
-          "excessTriggeredYear": true,
-          "healthIns": 16221576,
+          "excessAnnualTotal": 0,
+          "excessTriggeredYear": false,
+          "healthIns": 11839944,
           "hiType": "지역가입자",
-          "pensionTax": 16023408,
+          "pensionTax": 11733420,
           "sources": {
-            "IRP2 연금": {
-              "gross": 86859310,
-              "tax": 14331792
+            "O(리얼티인컴) 배당": {
+              "gross": 8624400,
+              "tax": 1293660
             },
             "국민연금": {
               "gross": 51261232,
               "tax": 1691616
+            },
+            "해외주식 매도": {
+              "gross": 79528570,
+              "tax": 8748144
             }
           }
         },
         "088": {
-          "excessAnnualTotal": 89030793,
-          "excessTriggeredYear": true,
-          "healthIns": 17229972,
+          "excessAnnualTotal": 0,
+          "excessTriggeredYear": false,
+          "healthIns": 12492564,
           "hiType": "지역가입자",
-          "pensionTax": 16423992,
+          "pensionTax": 12029196,
           "sources": {
-            "IRP2 연금": {
-              "gross": 89030793,
-              "tax": 14690076
+            "O(리얼티인컴) 배당": {
+              "gross": 8883144,
+              "tax": 1332468
             },
             "국민연금": {
               "gross": 52542763,
               "tax": 1733916
+            },
+            "해외주식 매도": {
+              "gross": 81480129,
+              "tax": 8962812
             }
           }
         },
         "089": {
-          "excessAnnualTotal": 91256562,
-          "excessTriggeredYear": true,
-          "healthIns": 18247656,
+          "excessAnnualTotal": 0,
+          "excessTriggeredYear": false,
+          "healthIns": 13151712,
           "hiType": "지역가입자",
-          "pensionTax": 16834596,
+          "pensionTax": 12332436,
           "sources": {
-            "IRP2 연금": {
-              "gross": 91256562,
-              "tax": 15057336
+            "O(리얼티인컴) 배당": {
+              "gross": 9149628,
+              "tax": 1372440
             },
             "국민연금": {
               "gross": 53856332,
               "tax": 1777260
+            },
+            "해외주식 매도": {
+              "gross": 83479374,
+              "tax": 9182736
             }
           }
         },
         "090": {
-          "excessAnnualTotal": 93537976,
-          "excessTriggeredYear": true,
-          "healthIns": 19330596,
+          "excessAnnualTotal": 0,
+          "excessTriggeredYear": false,
+          "healthIns": 13849008,
           "hiType": "지역가입자",
-          "pensionTax": 17255460,
+          "pensionTax": 12646296,
           "sources": {
-            "IRP2 연금": {
-              "gross": 93537976,
-              "tax": 15433764
+            "O(리얼티인컴) 배당": {
+              "gross": 9424116,
+              "tax": 1416576
             },
             "국민연금": {
               "gross": 55202740,
               "tax": 1821696
+            },
+            "해외주식 매도": {
+              "gross": 85527472,
+              "tax": 9408024
             }
           }
         },
         "091": {
-          "excessAnnualTotal": 95876426,
-          "excessTriggeredYear": true,
-          "healthIns": 20483328,
+          "excessAnnualTotal": 0,
+          "excessTriggeredYear": false,
+          "healthIns": 14586912,
           "hiType": "지역가입자",
-          "pensionTax": 17686848,
+          "pensionTax": 12985284,
           "sources": {
-            "IRP2 연금": {
-              "gross": 95876426,
-              "tax": 15819612
+            "O(리얼티인컴) 배당": {
+              "gross": 9706848,
+              "tax": 1479228
             },
             "국민연금": {
               "gross": 56582809,
               "tax": 1867236
+            },
+            "해외주식 매도": {
+              "gross": 87625610,
+              "tax": 9638820
             }
           }
         },
         "092": {
-          "excessAnnualTotal": 94206687,
-          "excessTriggeredYear": true,
-          "healthIns": 21710688,
+          "excessAnnualTotal": 0,
+          "excessTriggeredYear": false,
+          "healthIns": 15368040,
           "hiType": "지역가입자",
-          "pensionTax": 18129012,
+          "pensionTax": 13111116,
           "sources": {
-            "IRP2 연금": {
-              "gross": 98273336,
-              "tax": 16215096
+            "O(리얼티인컴) 배당": {
+              "gross": 6851916,
+              "tax": 1027788
             },
             "국민연금": {
               "gross": 57997379,
               "tax": 1913916
+            },
+            "해외주식 매도": {
+              "gross": 92449208,
+              "tax": 10169412
             }
           }
         },
         "093": {
           "excessAnnualTotal": 0,
           "excessTriggeredYear": false,
-          "healthIns": 22858152,
+          "healthIns": 16195212,
           "hiType": "지역가입자",
-          "pensionTax": 18869892,
+          "pensionTax": 13139568,
           "sources": {
             "O(리얼티인컴) 배당": {
-              "gross": 48614820,
-              "tax": 10427280
+              "gross": 1725444,
+              "tax": 258816
             },
             "국민연금": {
               "gross": 59447313,
               "tax": 1961760
             },
             "해외주식 매도": {
-              "gross": 59407570,
-              "tax": 6480852
+              "gross": 99263542,
+              "tax": 10918992
             }
           }
         },
         "094": {
           "excessAnnualTotal": 0,
           "excessTriggeredYear": false,
-          "healthIns": 23934288,
+          "healthIns": 17071464,
           "hiType": "지역가입자",
-          "pensionTax": 19672872,
+          "pensionTax": 2010804,
           "sources": {
-            "O(리얼티인컴) 배당": {
-              "gross": 50073264,
-              "tax": 10986588
-            },
             "국민연금": {
               "gross": 60933496,
               "tax": 2010804
-            },
-            "해외주식 매도": {
-              "gross": 60686152,
-              "tax": 6675480
             }
           }
         },
         "095": {
           "excessAnnualTotal": 0,
           "excessTriggeredYear": false,
-          "healthIns": 25068696,
+          "healthIns": 17999964,
           "hiType": "지역가입자",
-          "pensionTax": 20442240,
+          "pensionTax": 2061072,
           "sources": {
-            "O(리얼티인컴) 배당": {
-              "gross": 51575460,
-              "tax": 11562216
-            },
             "국민연금": {
               "gross": 62456834,
               "tax": 2061072
-            },
-            "해외주식 매도": {
-              "gross": 61990491,
-              "tax": 6818952
             }
           }
         },
         "096": {
           "excessAnnualTotal": 0,
           "excessTriggeredYear": false,
-          "healthIns": 26264964,
+          "healthIns": 18984204,
           "hiType": "지역가입자",
-          "pensionTax": 21232596,
+          "pensionTax": 2112600,
           "sources": {
-            "O(리얼티인컴) 배당": {
-              "gross": 53122728,
-              "tax": 12154680
-            },
             "국민연금": {
               "gross": 64018254,
               "tax": 2112600
-            },
-            "해외주식 매도": {
-              "gross": 63321056,
-              "tax": 6965316
             }
           }
         },
         "097": {
           "excessAnnualTotal": 0,
           "excessTriggeredYear": false,
-          "healthIns": 27526980,
+          "healthIns": 20027784,
           "hiType": "지역가입자",
-          "pensionTax": 22044564,
+          "pensionTax": 2165412,
           "sources": {
-            "O(리얼티인컴) 배당": {
-              "gross": 54716400,
-              "tax": 12764532
-            },
             "국민연금": {
               "gross": 65618711,
               "tax": 2165412
-            },
-            "해외주식 매도": {
-              "gross": 64678320,
-              "tax": 7114620
             }
           }
         },
         "098": {
           "excessAnnualTotal": 0,
           "excessTriggeredYear": false,
-          "healthIns": 28858836,
+          "healthIns": 21134676,
           "hiType": "지역가입자",
-          "pensionTax": 22878780,
+          "pensionTax": 2219556,
           "sources": {
-            "O(리얼티인컴) 배당": {
-              "gross": 56357892,
-              "tax": 13392324
-            },
             "국민연금": {
               "gross": 67259179,
               "tax": 2219556
-            },
-            "해외주식 매도": {
-              "gross": 66062726,
-              "tax": 7266900
             }
           }
         },
         "099": {
           "excessAnnualTotal": 0,
           "excessTriggeredYear": false,
-          "healthIns": 30264912,
+          "healthIns": 22309032,
           "hiType": "지역가입자",
-          "pensionTax": 23735892,
+          "pensionTax": 2275044,
           "sources": {
-            "O(리얼티인컴) 배당": {
-              "gross": 58048632,
-              "tax": 14038620
-            },
             "국민연금": {
               "gross": 68940658,
               "tax": 2275044
-            },
-            "해외주식 매도": {
-              "gross": 67474779,
-              "tax": 7422228
             }
           }
         }
       },
       "dependentLossAge": 66,
       "retireBalances": {
-        "IRP1": 15142112,
-        "IRP2": 186970702,
-        "ISA": 72693804,
-        "RIA": 503077,
-        "VOO": 16130563,
-        "연금저축": 62526360,
-        "연금저축_비과세원금": 0,
-        "해외주식": 85395758
+        "IRP1": 24342314,
+        "IRP2": 216208102,
+        "ISA": 0,
+        "RIA": 0,
+        "VOO": 0,
+        "연금저축": 87214832,
+        "연금저축_비과세원금": 90484538,
+        "해외주식": 89716692
       },
-      "total100": 1661720272
+      "total100": 0
     }
   }
 }
