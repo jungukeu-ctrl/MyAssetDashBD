@@ -184,7 +184,7 @@ const PensionWithdrawal = (() => {
     let wd = {
       taxFree: 0, taxed: 0, taxedShortfall: 0, taxedExpansion: 0, irp1: 0, irp2: 0, nationalPension: 0,
       pensionLimitHit: false, irp1LimitHit: false, irp2LimitHit: false,
-      oDripActive: true, realty: 0, realtyGrossKRW: 0, realtyShares: 0, realtyMonthlyDivUSD: 0,
+      oDripActive: true, oCashUse: false, realty: 0, realtyGrossKRW: 0, realtyShares: 0, realtyMonthlyDivUSD: 0,
       realtyAnnualTotal: 0, realtyComprehensiveRequired: false, realtyComprehensiveSettlement: 0,
       isaMaturityRiaRemaining: 0, isaPostMaturityVooRedirect: 0,
       overseasSale: 0, overseasSaleTax: 0
@@ -213,6 +213,8 @@ const PensionWithdrawal = (() => {
 
     // ② O DRIP 상태 — ps-engine.js _stepMonth() §7-5가 이미 계산해 둔 값 그대로 사용 (재계산 금지)
     const oDripActive = wd.oDripActive !== false;  // 기본 true(마이그레이션 안전값)
+    const oCashUse    = !!wd.oCashUse;             // SELFREL-008: realty.cashUseStartAge 이후 O 배당 현금 사용
+    const oReinvest   = oDripActive && !oCashUse;  // 재투자 중(소득원 미표시)
 
     // ③ 소득원별 계산 — ps-engine.js의 실제 월별 인출 내역(withdrawalLog)을 그대로 사용, 재계산 금지
     const sources = [];
@@ -302,14 +304,18 @@ const PensionWithdrawal = (() => {
     // Phase2(현금인출 전환) 진입 후에만 표시하며, financialIncomeLimit 2,000만원 캡 없이
     // 실제 배당액 전액을 다른 소득(사적연금·국민연금)과 합산해 종합과세 누진세율 근사 적용.
     // ⚠️ 근사 구현 — 정확한 금융소득종합과세 비교과세는 세무사 확인 필요 (§13 disclaimers 참고).
-    if (!oDripActive && wd.realty > 0) {
+    if (!oReinvest && wd.realty > 0) {
       const annualRealty = wd.realtyAnnualTotal || 0;              // 해당 연도 O 배당 총액(세전)
       const pensionCombinedAnnual = privatePensionAnnual + npAnnual; // 이미 위에서 누계된 사적연금+국민연금 연 합계
       const pensionDeduction = _pensionIncomeDeduction(pensionCombinedAnnual);
       const taxableBase = Math.max(0, pensionCombinedAnnual - pensionDeduction) + annualRealty;
       const { total: annualTaxTotal } = _comprehensiveIncomeTax(taxableBase);
       const realtyShare = taxableBase > 0 ? annualRealty / taxableBase : 0;
-      const effRate = annualRealty > 0 ? (annualTaxTotal * realtyShare) / annualRealty : (params.realty?.withholdingRate || 0.15);
+      const withholdRate = params.realty?.withholdingRate || 0.15;
+      const effRateRaw = annualRealty > 0 ? (annualTaxTotal * realtyShare) / annualRealty : withholdRate;
+      // SELFREL-008: 해외 배당은 미국 원천징수(15%)로 과세가 끝나는 것이 하한 — 금융소득 2,000만원 이하에서
+      // 종합과세 누진세율 근사가 원천징수율보다 낮게 나오는 과소 과세를 막는다(엔진 부족분 계산도 15% 기준).
+      const effRate = Math.max(effRateRaw, withholdRate);
 
       const monthly = wd.realtyGrossKRW || 0;
       const tax     = Math.round(monthly * effRate);
@@ -318,7 +324,7 @@ const PensionWithdrawal = (() => {
         monthly,
         tax,
         net: monthly - tax,
-        note: `${wd.realtyShares != null ? Math.round(wd.realtyShares) : '?'}주 × $${wd.realtyMonthlyDivUSD ?? '?'}/주 · 현금인출 전환 · 종합과세 근사(세무사 확인 필요)`
+        note: `${wd.realtyShares != null ? Math.round(wd.realtyShares) : '?'}주 × $${wd.realtyMonthlyDivUSD ?? '?'}/주 · ${oDripActive ? '현금 사용(설정)' : '현금인출 전환'} · 원천징수 ${Math.round(withholdRate * 100)}% 하한 + 종합과세 근사(세무사 확인 필요)`
       });
     }
 
@@ -403,11 +409,17 @@ const PensionWithdrawal = (() => {
       warnings.push(`${targetAge}세는 연금 인출 시작(${_ymToAge(withdrawStartYM)}세, ${withdrawStartYM}) 이전입니다. 자산 적립 기간입니다.`);
     }
     const realtyLimit = params.realty?.financialIncomeLimit || 20000000;
-    if (oDripActive && (wd.realtyAnnualTotal || 0) >= realtyLimit * 0.85) {
+    if (oReinvest && (wd.realtyAnnualTotal || 0) >= realtyLimit * 0.85) {
       warnings.push('O 배당 수입이 금융소득 2,000만원 한도(85%)에 근접했습니다. DRIP 속도 조절을 검토하세요.');
     }
-    if (oDripActive && wd.realtyComprehensiveRequired) {
+    if (oCashUse && (wd.realtyAnnualTotal || 0) >= realtyLimit * 0.85) {
+      warnings.push('O 배당 수입이 금융소득 2,000만원 한도(85%)에 근접했습니다. 초과 시 다음해 5월 금융소득종합과세 정산 대상입니다.');
+    }
+    if (oReinvest && wd.realtyComprehensiveRequired) {
       warnings.push('O배당 2,000만원 초과로 다음해 5월 금융소득종합과세(비교과세) 정산 대상입니다. 사적연금 처리방식(excessMode) 선택과는 무관하게 자동 적용됩니다.');
+    }
+    if (oCashUse && oDripActive) {
+      warnings.push(`ℹ️ O(리얼티인컴) 배당을 현금으로 사용 중입니다(설정: 만 ${params.realty?.cashUseStartAge}세 또는 인출 시작 이후, 주수 고정·재투자 없음). 원천징수 ${Math.round((params.realty?.withholdingRate || 0.15) * 100)}%를 하한으로 세금을 계산하며 해외주식 매도는 IRP1·IRP2 소진 후에만 일어납니다.`);
     }
     if (!oDripActive) {
       warnings.push('⚠️ IRP1·IRP2 소진으로 O(리얼티인컴) 배당이 재투자에서 현금인출로 전환됐습니다. 이후 배당은 다른 소득과 합산해 종합과세 근사 적용 중이며, 실제 세무 신고 시점엔 세무사 확인이 필요합니다.');
@@ -475,8 +487,9 @@ const PensionWithdrawal = (() => {
       shares:        wd.realtyShares || 0,
       monthlyDivUSD: wd.realtyMonthlyDivUSD || 0,
       oDripActive,
+      oCashUse,
       annualKRW:     wd.realtyAnnualTotal || 0,
-      atLimit:       oDripActive && (wd.realtyAnnualTotal || 0) >= realtyLimit * 0.85
+      atLimit:       oReinvest && (wd.realtyAnnualTotal || 0) >= realtyLimit * 0.85
     };
 
     return {
@@ -491,6 +504,7 @@ const PensionWithdrawal = (() => {
       netAfterHI: totalNet - hi.monthly,
       odrip,
       oDripActive,
+      oCashUse,
       withdrawal: wd,
       warnings
     };

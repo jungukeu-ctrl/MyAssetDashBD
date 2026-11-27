@@ -125,7 +125,7 @@ const PensionSelfReliance = (() => {
     const inGap = gap.hasGap && age < gap.phase2Age;
     let oEst = 0;
     let oApplied = false;
-    if (cfg.oDividendCashInGap && inGap && c.oDripActive !== false && oShares.shares != null) {
+    if (cfg.oDividendCashInGap && inGap && c.oDripActive !== false && !c.oCashUse && oShares.shares != null) {
       const divUSD = c.withdrawal?.realtyMonthlyDivUSD || 0;
       const fx = params.realty?.fxRate || 0;
       const wh = params.realty?.withholdingRate != null ? params.realty.withholdingRate : 0.15;
@@ -146,7 +146,7 @@ const PensionSelfReliance = (() => {
       inGap,
       tax: c.totalTax,
       healthInsurance: c.healthInsurance?.monthly || 0,
-      oDripActive: c.oDripActive !== false
+      oDripActive: c.oDripActive !== false && !c.oCashUse   // 엔진이 O를 재투자 중인지 (현금 사용이면 false)
     };
   }
 

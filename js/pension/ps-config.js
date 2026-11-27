@@ -157,7 +157,9 @@ const PS_DEFAULT_PARAMS = {
     priceGrowthRate:      0.03,      // 주가 성장률 (연, 역사적 평균)
     fxRate:               1380,      // 기준 환율 (원/달러, 고정 가정)
     withholdingRate:      0.15,      // 미국 원천징수율 (W-8BEN 제출 기준 15%, 미제출 시 30%)
-    financialIncomeLimit: 20000000   // 금융소득 연간 상한 (원, 소득세법 제62조)
+    financialIncomeLimit: 20000000,  // 금융소득 연간 상한 (원, 소득세법 제62조)
+    cashUseStartAge:      null       // O 배당 현금 사용 시작 만 나이 (SELFREL-008). null=현행(IRP1·IRP2 소진 시에만 현금 전환).
+                                     // 설정 시 max(그 나이 생일월, 인출 시작월)부터 배당을 현금 사용(재투자 중단·주수 고정). 해외주식 매도와 무관.
   },
 
   // ── 해외주식 계좌 잔액 매도 (PENSION_WITHDRAWAL.md §5-2) ──────────────────

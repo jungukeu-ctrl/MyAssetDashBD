@@ -84,12 +84,12 @@ const PensionSettings = (() => {
   }
 
   /** 빈 값 허용 숫자 입력창 (null → 빈 칸). SELFREL-001 */
-  function _nullableNumInput(id, value, step, min) {
+  function _nullableNumInput(id, value, step, min, placeholder) {
     const shown = (value == null) ? '' : value;
     return `<input class="ps-input" type="number" id="${id}"
       value="${shown}" step="${step || 'any'}"
       ${min !== undefined ? `min="${min}"` : ''}
-      placeholder="엔진 값">`;
+      placeholder="${placeholder || '엔진 값'}">`;
   }
 
   /** 원 단위 금액 입력창 — 콤마 실시간 포맷 (type=number는 콤마 표시 불가라 text+inputmode 사용) */
@@ -234,6 +234,7 @@ const PensionSettings = (() => {
           ${_row('배당 성장률',  _numInput('ps-realty-div-growth', _pct(p.realty.divGrowthRate), 0.1, 0, 20), '%/년')}
           ${_row('환율',         _numInput('ps-realty-fx',         p.realty.fxRate, 0.1, 1), '원/$ (고정 가정)')}
           ${_row('공백기 시작 보유 주수', _nullableNumInput('ps-realty-shares-gap', p.selfReliance?.oSharesAtGap, 0.1, 0), '주 (자립률 카드용 보정, 비우면 엔진 값 — 엔진은 O 신규 매수 미반영)')}
+          ${_row('배당 현금 사용 시작 나이', _nullableNumInput('ps-realty-cash-age', p.realty.cashUseStartAge, 1, 50, '미사용'), '세 (비우면 IRP1·IRP2 소진 시에만 현금 전환. 설정 시 인출 시작 이후부터 배당을 현금 사용·재투자 중단, 해외주식 매도와 무관)')}
         </div>
       </div>
 
@@ -359,6 +360,7 @@ const PensionSettings = (() => {
     _bindNum('ps-realty-div-growth', v => ({ realty: { divGrowthRate: v / 100 } }));
     _bindNum('ps-realty-fx',         v => ({ realty: { fxRate: Math.max(1, v) } }));
     _bindNullableNum('ps-realty-shares-gap', v => ({ selfReliance: { oSharesAtGap: v } }));
+    _bindNullableNum('ps-realty-cash-age',   v => ({ realty: { cashUseStartAge: v == null ? null : Math.min(100, Math.max(50, Math.round(v))) } }));
 
     // ── 고정값 (퇴직/국민연금) ──
     _bindText('ps-retire-ym',    v => ({ retire: { ym: v } }));
@@ -453,6 +455,7 @@ const PensionSettings = (() => {
     _setVal('ps-realty-div-growth', _pct(p.realty.divGrowthRate));
     _setVal('ps-realty-fx',         p.realty.fxRate);
     _setVal('ps-realty-shares-gap', p.selfReliance?.oSharesAtGap);
+    _setVal('ps-realty-cash-age',   p.realty.cashUseStartAge);
     _updateRealtyAnnual();
 
     _setVal('ps-os-cost-ratio', (p.overseasSale.costBasisRatio * 100).toFixed(0));
