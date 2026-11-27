@@ -85,12 +85,12 @@ const PS_DEFAULT_PARAMS = {
   isa: {
     joinYM:              '2026-03',
     annualLimit:         20000000,
-    transferStartYM:     '2027-05', // RIA 의무보유 해제(2027-05) 이후 최초 이체 가능 시점
+    transferStartYM:     '2027-04', // RIA 납입일(2026-03-31) 기준 1년 의무보유 해제(2027-04-01) 이후 최초 이체 가능 시점 (SELFREL-006, 2026-11-20 정정, 종전 2027-05)
     transferRepeatMonth: 1          // 최초 이체 이후 매년 이 월에 반복 이체 시도(RIA 잔액 0 될 때까지, ps-engine.js _stepMonth 참고)
   },
   retire: {
-    ym:           '2028-12',
-    severancePay: 140000000     // 퇴직금 (원)
+    ym:           '2031-01',    // 퇴직 (마스터플랜 6-A: 휴직 2029-01~2030-12 후 퇴직, SELFREL-006, 종전 2028-12)
+    severancePay: 160000000     // 퇴직금·DC 이전 적립금 대용값 (원, 2026-11-20 정정 1.6억 — DC 적립금 미확정, SELFREL-006, 종전 1.4억)
   },
   nationalPension: {
     startYM:  '2039-03',
@@ -98,9 +98,9 @@ const PS_DEFAULT_PARAMS = {
     startAge: 65                // 국민연금 개시 나이 (변수, startYM과 별개 트랙 — Phase2에서 동기화)
   },
   withdrawal: {
-    startAge:      61,          // 인출 시작 나이 (변수, 최소 55, 실질하한은 ISA만기 보정 적용)
+    startAge:      57,          // 인출 시작 나이 (변수, 최소 55, 실질하한은 ISA만기 보정 적용) — 6-A 공백기 시작 2031-02 (SELFREL-006, 종전 61)
     monthlyTarget: 3050000,     // 목표 월 생활비 (사용자 입력값, 기본값)
-    phase1Target:  null,        // 공백기(1단계) 목표 월 인출액 (원/월, null=비활성 → monthlyTarget 단일 목표, PS-TWOSTAGE-001)
+    phase1Target:  1200000,     // 공백기(1단계) 목표 월 인출액 (원/월, 현재가, null=비활성 → monthlyTarget 단일 목표, PS-TWOSTAGE-001) — 6-A 공백기 120만원 (SELFREL-006, 종전 null)
     phase2StartAge: 61,         // 본 목표(monthlyTarget) 시작 나이 — phase1Target 설정 시에만 사용
     excessMode:    'cap15m_thenExpand', // 사적연금 연 1,500만원 초과 처리 방식 (§13, 4-way): 'cap15m' | 'cap15m_thenExpand'(기본값, IRP1·IRP2 소진 후에만 조건부 확장) | 'separate16_5' | 'comprehensive'
     irp2MonthlyTarget: 1500000, // IRP 목표 월 인출액 (기존 하드코딩 IRP_MONTHLY_TARGET 파라미터화)
@@ -151,14 +151,14 @@ const PS_DEFAULT_PARAMS = {
   // financialIncomeLimit: 금융소득 2,000만 상한 — 초과 시 DRIP 속도 조절 필요
   realty: {
     shares:               546.5646,  // 현재 보유 수량 (주), DRIP 후 매월 자동 증가
-    currentPrice:         63.00,     // 현재가 ($), 연 1회 업데이트
-    monthlyDivPerShare:   0.2685,    // 월 배당/주 ($), 분기 공시 후 연 1회 업데이트
+    currentPrice:         58.59,     // 현재가 ($), 연 1회 업데이트 (마스터플랜 값, SELFREL-006, 종전 63.00)
+    monthlyDivPerShare:   0.2708,    // 월 배당/주 ($), 분기 공시 후 연 1회 업데이트 (연 $3.25 ÷ 12, SELFREL-006, 종전 0.2685)
     divGrowthRate:        0.03,      // 배당 성장률 (연, 역사적 평균)
     priceGrowthRate:      0.03,      // 주가 성장률 (연, 역사적 평균)
-    fxRate:               1380,      // 기준 환율 (원/달러, 고정 가정)
+    fxRate:               1346.6,    // 기준 환율 (원/달러, 고정 가정) (마스터플랜 값, SELFREL-006, 종전 1380)
     withholdingRate:      0.15,      // 미국 원천징수율 (W-8BEN 제출 기준 15%, 미제출 시 30%)
     financialIncomeLimit: 20000000,  // 금융소득 연간 상한 (원, 소득세법 제62조)
-    cashUseStartAge:      null       // O 배당 현금 사용 시작 만 나이 (SELFREL-008). null=현행(IRP1·IRP2 소진 시에만 현금 전환).
+    cashUseStartAge:      57         // O 배당 현금 사용 시작 만 나이 (SELFREL-008). null=현행(IRP1·IRP2 소진 시에만 현금 전환). 6-A: 공백기부터 현금 사용 (SELFREL-006, 종전 null)
                                      // 설정 시 max(그 나이 생일월, 인출 시작월)부터 배당을 현금 사용(재투자 중단·주수 고정). 해외주식 매도와 무관.
   },
 
