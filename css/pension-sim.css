@@ -1290,3 +1290,34 @@
 }
 .ps-wd-oref-text { flex: 1 1 220px; min-width: 0; line-height: 1.5; }
 .ps-wd-oref-text strong { color: var(--text); }
+
+/* ── 자립률 카드 나이 선택 (SELFREL-009) ──────────────────────────────── */
+
+.ps-sr-age-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.ps-sr-age-label-text { font-size: 12px; color: var(--text3); }
+.ps-sr-age-slider { flex: 1 1 160px; min-width: 120px; }
+.ps-sr-age-label { font-size: 13px; font-weight: 600; color: var(--text); min-width: 76px; text-align: right; }
+.ps-sr-age-reset {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text2);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.ps-sr-age-reset:hover { border-color: var(--gold); color: var(--gold); }
+
+button.ps-sr-chip {
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+.ps-sr-chip-active { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold-dim); }

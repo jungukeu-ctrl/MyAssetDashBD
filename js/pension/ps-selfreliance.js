@@ -1,5 +1,5 @@
 /**
- * ps-selfreliance.js — 자립률 계산 (순수 함수, SELFREL-001)
+ * ps-selfreliance.js — 자립률 계산 (순수 함수, SELFREL-001 / SELFREL-009)
  * 의존: ps-config.js (PS_SELF_RELIANCE, PS_START_YM, PS_END_YM, psAgeToYM, PS_BIRTH),
  *       ps-engine.js (PensionEngine.run), ps-withdrawal.js (PensionWithdrawal.calc)
  * DOM / Firebase / 전역 상태 접근 금지.
@@ -10,7 +10,12 @@
  *
  * 인출 금액·세금 재계산 금지: 소득원별 순소득은 PensionWithdrawal.calc()가 돌려준
  * sources[].net을 그대로 합산한다. calc()는 나이 기준 '생일월 스냅샷'만 계산하므로
- * 자립률도 공백기 연령별(생일월) 스냅샷으로 산출한다 (12개월 평균 아님).
+ * 자립률도 연령별(생일월) 스냅샷으로 산출한다 (12개월 평균 아님).
+ *
+ * O 배당 (SELFREL-009, 6-A 확정: 공백기부터 현금 사용, 이후에도 계속):
+ *   - 엔진이 O를 이미 현금으로 쓰는 중이면(realty.cashUseStartAge 또는 IRP 소진) calc() 값을 그대로 사용
+ *   - 엔진이 재투자 중이면 인출 시작월 이후 모든 나이에 대해 추정 세후 현금을 더한다
+ *     (보유 주수 고정 × 해당 월 배당($/주/월) × 환율 × (1 − 원천징수율), 종합과세 미반영)
  */
 
 'use strict';
@@ -44,6 +49,10 @@ const PensionSelfReliance = (() => {
 
   function _ymMax(a, b) { return a > b ? a : b; }
 
+  const AGE_MIN = 55;
+  const AGE_MAX = 100;
+  function _clampAge(age) { return Math.max(AGE_MIN, Math.min(AGE_MAX, Math.round(age))); }
+
   /** 신호등 판정 (바닥선 기준 자립률) */
   function signalOf(rate) {
     const c = PS_SELF_RELIANCE;
@@ -59,7 +68,7 @@ const PensionSelfReliance = (() => {
    * 인출 시작월과 공백기 연령 목록.
    * - 인출 시작월 = max(인출 시작 나이 생일월, ISA 만기월) (엔진 'withdrawStart' 이벤트와 동일 규칙)
    * - phase1Target 설정 시: 시작 나이 ~ (phase2StartAge − 1) 이 공백기
-   * - phase1Target 미설정: 공백기 없음 → 시작 나이 스냅샷 한 개만 (O 배당 추정 미적용)
+   * - phase1Target 미설정: 공백기 없음 → 시작 나이 스냅샷 한 개만
    */
   function gapInfo(params) {
     const w = params.withdrawal || {};
@@ -102,8 +111,14 @@ const PensionSelfReliance = (() => {
 
   function _snapshot(result, params, age, gap, oShares) {
     const cfg = PS_SELF_RELIANCE;
+    const ym = psAgeToYM(age);
+
+    // 인출 시작 전 (적립 기간) — 자립률을 계산하지 않고 표시용 정보만 돌려준다
+    if (ym < gap.wdStartYM) {
+      return { age, ym, beforeStart: true, startYM: gap.wdStartYM, startAge: _ymToAge(gap.wdStartYM) };
+    }
+
     const c = PensionWithdrawal.calc(age, result, params);
-    const ym = c.targetYM;
     const mult = _inflationMult(params, ym);
     const floor  = cfg.floorMonthly  * mult;
     const target = cfg.targetMonthly * mult;
@@ -111,8 +126,10 @@ const PensionSelfReliance = (() => {
     // ① 엔진 소득원별 순소득 합 (세금 정산 항목·국민연금 옵션 처리)
     let netEngine = 0;
     let npNet = 0;
+    let oEngine = 0;   // 엔진이 이미 현금 인출로 반영한 O 배당(세후) — 중복 계산 방지용
     for (const s of (c.sources || [])) {
       if (typeof s.name === 'string' && s.name.indexOf('전년도') === 0) continue; // 세금 정산은 별도
+      if (typeof s.name === 'string' && s.name.indexOf('O(') === 0) oEngine += s.net;
       if (s.name === '국민연금') {
         npNet += s.net;
         if (!cfg.includeNationalPension) continue;
@@ -120,12 +137,12 @@ const PensionSelfReliance = (() => {
       netEngine += s.net;
     }
 
-    // ② 공백기 O 배당 현금 추정 (엔진이 재투자 중일 때만, 공백기 연령에만)
-    //    보유 주수 고정(공백기 동안 재투자 안 함) × 해당 월 배당($/주/월) × 환율 × (1 − 원천징수율)
-    const inGap = gap.hasGap && age < gap.phase2Age;
+    // ② O 배당 현금 추정 — 엔진이 재투자 중일 때, 인출 시작월 이후 모든 나이 (SELFREL-009 (ii))
+    //    보유 주수 고정(재투자 안 함) × 해당 월 배당($/주/월) × 환율 × (1 − 원천징수율)
+    const engineReinvest = c.oDripActive !== false && !c.oCashUse;
     let oEst = 0;
     let oApplied = false;
-    if (cfg.oDividendCashInGap && inGap && c.oDripActive !== false && !c.oCashUse && oShares.shares != null) {
+    if (cfg.oDividendCashInGap && engineReinvest && oShares.shares != null) {
       const divUSD = c.withdrawal?.realtyMonthlyDivUSD || 0;
       const fx = params.realty?.fxRate || 0;
       const wh = params.realty?.withholdingRate != null ? params.realty.withholdingRate : 0.15;
@@ -136,17 +153,18 @@ const PensionSelfReliance = (() => {
     const income = netEngine + oEst;
     return {
       age, ym, mult,
+      beforeStart: false,
       floor, target,
-      netEngine, npNet, oEst, oApplied, oShares: oApplied ? oShares.shares : null,
+      netEngine, npNet, oEngine, oEst, oApplied, oShares: oApplied ? oShares.shares : null,
       income,
       rateFloor:  floor  > 0 ? income / floor  : null,
       rateTarget: target > 0 ? income / target : null,
-      rateFloorEngineOnly: floor > 0 ? netEngine / floor : null,  // O 배당 추정 제외 (참고)
+      rateFloorEngineOnly: floor > 0 ? (netEngine - oEngine) / floor : null,  // O 배당 제외 (참고)
       signal: signalOf(floor > 0 ? income / floor : null),
-      inGap,
+      inGap: gap.hasGap && age < gap.phase2Age,
       tax: c.totalTax,
       healthInsurance: c.healthInsurance?.monthly || 0,
-      oDripActive: c.oDripActive !== false && !c.oCashUse   // 엔진이 O를 재투자 중인지 (현금 사용이면 false)
+      oDripActive: engineReinvest   // 엔진이 O를 재투자 중인지 (현금 사용이면 false)
     };
   }
 
@@ -181,15 +199,18 @@ const PensionSelfReliance = (() => {
 
   // ─── 한 시나리오 평가 ──────────────────────────────────────────────────────
 
-  function _evaluate(result, params) {
+  function _evaluate(result, params, selectedAge) {
     const gap = gapInfo(params);
     const oShares = _oSharesAtGap(result, params);
     const rows = gap.ages.map(age => _snapshot(result, params, age, gap, oShares));
+    const selAge = selectedAge != null ? _clampAge(selectedAge) : gap.firstAge;
+    const selected = _snapshot(result, params, selAge, gap, oShares);
     return {
       gap,
       oShares,
       rows,
       representative: rows[0] || null,   // 인출 시작월 스냅샷
+      selected,                          // 사용자가 고른 나이의 스냅샷 (기본: 인출 시작 나이)
       depletion: _depletion(result, params, gap)
     };
   }
@@ -209,29 +230,30 @@ const PensionSelfReliance = (() => {
   // ─── 공개: 전체 계산 ───────────────────────────────────────────────────────
 
   /**
-   * @param {object} params      현재 파라미터 (PensionState.params)
-   * @param {object|null} actual 실적 데이터 (PensionState.actual) — 보수 재실행에 사용
-   * @param {object} baseResult  기본 시나리오 엔진 결과 (PensionState.result)
+   * @param {object} params       현재 파라미터 (PensionState.params)
+   * @param {object|null} actual  실적 데이터 (PensionState.actual) — 보수 재실행에 사용
+   * @param {object} baseResult   기본 시나리오 엔진 결과 (PensionState.result)
+   * @param {number} [selectedAge] 카드에서 고른 나이 (없으면 인출 시작 나이). 55~100으로 보정
    * @returns {{ base, conservative, error? }}
    */
-  function compute(params, actual, baseResult) {
+  function compute(params, actual, baseResult, selectedAge) {
     if (!params || !baseResult) return { base: null, conservative: null, error: '결과 없음' };
     let base = null, cons = null, error = null;
     try {
-      base = _evaluate(baseResult, params);
+      base = _evaluate(baseResult, params, selectedAge);
     } catch (e) {
       return { base: null, conservative: null, error: '기본 시나리오 계산 실패: ' + e.message };
     }
     try {
       const cp = conservativeParams(params);
       const cr = PensionEngine.run(cp, actual || null);
-      cons = _evaluate(cr, cp);
+      cons = _evaluate(cr, cp, selectedAge);
     } catch (e) {
       error = '보수 시나리오 계산 실패: ' + e.message;
     }
     return { base, conservative: cons, error };
   }
 
-  return { compute, signalOf, gapInfo, conservativeParams };
+  return { compute, signalOf, gapInfo, conservativeParams, AGE_MIN, AGE_MAX };
 
 })();
