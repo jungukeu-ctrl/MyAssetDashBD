@@ -144,6 +144,18 @@ const PensionWithdrawalUI = (() => {
       </div>`;
     }
 
+    // O(리얼티인컴) 배당 참고 줄 (SELFREL-007) — 재투자 중에는 소득원 표에서 제외되므로 금액을 별도 표시.
+    // 엔진 계산값(odrip/withdrawal.realtyGrossKRW)을 그대로 보여줄 뿐 소득 합계에는 넣지 않는다.
+    let oRefHtml = '';
+    const _od = result.odrip;
+    if (result.oDripActive !== false && _od && _od.shares > 0) {
+      const _grossM = result.withdrawal?.realtyGrossKRW || 0;
+      oRefHtml = `<div class="ps-wd-oref">
+        <span class="ps-wd-badge ps-wd-badge-ok">O 재투자 중</span>
+        <span class="ps-wd-oref-text">O(리얼티인컴) 배당 ${Math.round(_od.shares).toLocaleString()}주 × $${(_od.monthlyDivUSD ?? 0).toFixed(4)}/주 · 월 세전 약 <strong>${_fmtM(_grossM)}</strong> (연 ${_fmtM(_od.annualKRW || 0)}) — 재투자 중이라 위 소득 합계에는 미포함</span>
+      </div>`;
+    }
+
     // 최종 실수령 색상 (30만 이상이면 정상)
     const finalClass = netAfterHI >= 3000000 ? 'ps-wd-final-good' : netAfterHI >= 1000000 ? 'ps-wd-final-warn' : 'ps-wd-final-low';
 
@@ -171,6 +183,8 @@ const PensionWithdrawalUI = (() => {
       </tr>
     </tfoot>
   </table>
+
+  ${oRefHtml}
 
   ${hiHtml}
 

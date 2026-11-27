@@ -1273,3 +1273,20 @@
   .ps-sr-hero-rate { font-size: 28px; }
   .ps-sr-kv-row { font-size: 12px; }
 }
+
+/* ── O 배당 참고 줄 (SELFREL-007) ─────────────────────────────────────── */
+
+.ps-wd-oref {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding: 8px 10px;
+  border: 1px dashed var(--border2);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text2);
+}
+.ps-wd-oref-text { flex: 1 1 220px; min-width: 0; line-height: 1.5; }
+.ps-wd-oref-text strong { color: var(--text); }
