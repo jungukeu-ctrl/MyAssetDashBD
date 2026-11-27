@@ -818,19 +818,32 @@ const PensionEngine = (() => {
       wd.oDripActive = false;
     }
 
+    // 7-5a. O 배당 현금 사용 시작 (SELFREL-008) — oDripActive와 분리된 상태(oCashUse).
+    // realty.cashUseStartAge(만 나이)가 설정되면 max(그 나이 생일월, 인출 시작월)부터 O 배당을 현금으로
+    // 사용(재투자 중단, 주수 고정)한다. 영구 전환(되돌리지 않음). null/미설정이면 이 블록은 동작하지 않아
+    // 기존 동작과 완전히 동일하다.
+    // 주의: oDripActive=false(= IRP1·IRP2 소진)와 달리 §7-6 해외주식 매도는 일으키지 않는다 — 배당만 쓰고
+    // O 주식은 보유한다는 계획(마스터플랜 6-A)이며, 같은 스위치로 묶으면 부족분 때문에 O가 청산된다.
+    if (!wd.oCashUse) {
+      const cashAge = params.realty?.cashUseStartAge;
+      if (cashAge != null && isFinite(cashAge) && _ymLte(_ymMax(psAgeToYM(cashAge), withdrawStartYM), ym)) {
+        wd.oCashUse = true;
+      }
+    }
+
     const realty = bal.realty || { shares: 0, monthlyDivPerShare: 0, price: 0 };
     const realtyDivUSD      = realty.shares * realty.monthlyDivPerShare;
     const realtyWithholding = params.realty?.withholdingRate || 0.15;
     const realtyAfterTaxUSD = realtyDivUSD * (1 - realtyWithholding);
     const realtyDivKRW      = realtyDivUSD * realtyFxRate;
 
-    if (wd.oDripActive) {
+    if (wd.oDripActive && !wd.oCashUse) {
       // 재투자 구간: 세후 배당으로 shares 추가 매수, 생활비 인출액에는 미포함
       if (realty.price > 0) {
         realty.shares += realtyAfterTaxUSD / realty.price;
       }
     } else {
-      // 현금인출 구간: shares 고정, 세후 배당을 생활비 부족분에 반영 (financialIncomeLimit 캡 미적용)
+      // 현금인출 구간(IRP 소진 전환 또는 SELFREL-008 현금 사용): shares 고정, 세후 배당을 생활비 부족분에 반영 (financialIncomeLimit 캡 미적용)
       withdrawal.realty = Math.round(realtyAfterTaxUSD * realtyFxRate);
       withdrawal.overallShortfall = Math.max(0, withdrawal.overallShortfall - withdrawal.realty);
     }
@@ -895,6 +908,7 @@ const PensionEngine = (() => {
     withdrawal.realtyShares        = Math.round(realty.shares * 10) / 10;
     withdrawal.realtyMonthlyDivUSD = Math.round(realty.monthlyDivPerShare * 10000) / 10000;
     withdrawal.oDripActive         = wd.oDripActive;
+    withdrawal.oCashUse            = !!wd.oCashUse;
     withdrawal.isaMaturityRiaRemaining = wd.isaMaturityRiaRemaining || 0;
     withdrawal.isaPostMaturityVooRedirect = wd.isaPostMaturityVooRedirect || 0;
 
@@ -1077,6 +1091,7 @@ const PensionEngine = (() => {
       irp2LimitAmt:       0,
       irp2WithdrawnYear:  0,
       oDripActive:        true,  // O(리얼티인컴) DRIP 재투자 활성 여부 (§5), 기본 true — IRP1·IRP2 소진 후 false로 영구 전환
+      oCashUse:           false, // O 배당 현금 사용 여부 (SELFREL-008) — realty.cashUseStartAge 도달 시 true로 영구 전환(해외주식 매도와 무관)
       oDripYear:          0,
       oDripYearlyGross:   0,
       isaPostMaturityVooRedirect: 0,  // ISA 만기 이후 VOO 3순위 배분분이 해외주식 계좌로 대체 귀속된 누계

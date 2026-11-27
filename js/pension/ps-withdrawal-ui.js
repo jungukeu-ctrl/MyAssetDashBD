@@ -37,12 +37,14 @@ const PensionWithdrawalUI = (() => {
   // ─── 결과 HTML 빌더 ─────────────────────────────────────────────────────────
 
   function _buildBalanceCard(result) {
-    const { targetAge, balances, oDripActive } = result;
+    const { targetAge, balances, oDripActive, oCashUse } = result;
 
-    // O(리얼티인컴) DRIP 재투자/현금인출 상태 배지 (§5 조건부 전환)
-    const oDripBadge = oDripActive !== false
-      ? `<span class="ps-wd-badge ps-wd-badge-ok">O 재투자 중</span>`
-      : `<span class="ps-wd-badge ps-wd-badge-region">O 현금인출 전환</span>`;
+    // O(리얼티인컴) 상태 배지 3종: 재투자 중 / 현금 사용(설정, SELFREL-008) / 현금인출 전환(IRP 소진, §5)
+    const oDripBadge = oDripActive === false
+      ? `<span class="ps-wd-badge ps-wd-badge-region">O 현금인출 전환</span>`
+      : (oCashUse
+        ? `<span class="ps-wd-badge ps-wd-badge-region">O 현금 사용</span>`
+        : `<span class="ps-wd-badge ps-wd-badge-ok">O 재투자 중</span>`);
 
     const rows = [
       { label: '연금저축',           key: '연금저축' },
@@ -148,7 +150,7 @@ const PensionWithdrawalUI = (() => {
     // 엔진 계산값(odrip/withdrawal.realtyGrossKRW)을 그대로 보여줄 뿐 소득 합계에는 넣지 않는다.
     let oRefHtml = '';
     const _od = result.odrip;
-    if (result.oDripActive !== false && _od && _od.shares > 0) {
+    if (result.oDripActive !== false && !result.oCashUse && _od && _od.shares > 0) {
       const _grossM = result.withdrawal?.realtyGrossKRW || 0;
       oRefHtml = `<div class="ps-wd-oref">
         <span class="ps-wd-badge ps-wd-badge-ok">O 재투자 중</span>
