@@ -83,6 +83,15 @@ const PensionSettings = (() => {
       ${max !== undefined ? `max="${max}"` : ''}>`;
   }
 
+  /** 빈 값 허용 숫자 입력창 (null → 빈 칸). SELFREL-001 */
+  function _nullableNumInput(id, value, step, min) {
+    const shown = (value == null) ? '' : value;
+    return `<input class="ps-input" type="number" id="${id}"
+      value="${shown}" step="${step || 'any'}"
+      ${min !== undefined ? `min="${min}"` : ''}
+      placeholder="엔진 값">`;
+  }
+
   /** 원 단위 금액 입력창 — 콤마 실시간 포맷 (type=number는 콤마 표시 불가라 text+inputmode 사용) */
   function _wonInput(id, value, nullable) {
     const shown = (nullable && value == null) ? '' : psFormatWonInput(value);
@@ -224,6 +233,7 @@ const PensionSettings = (() => {
           ${_row('└ 연 환산',   _readOnly('ps-realty-div-annual', _realtyAnnualText(p)), '$/주·년 (월 값 × 12)')}
           ${_row('배당 성장률',  _numInput('ps-realty-div-growth', _pct(p.realty.divGrowthRate), 0.1, 0, 20), '%/년')}
           ${_row('환율',         _numInput('ps-realty-fx',         p.realty.fxRate, 0.1, 1), '원/$ (고정 가정)')}
+          ${_row('공백기 시작 보유 주수', _nullableNumInput('ps-realty-shares-gap', p.selfReliance?.oSharesAtGap, 0.1, 0), '주 (자립률 카드용 보정, 비우면 엔진 값 — 엔진은 O 신규 매수 미반영)')}
         </div>
       </div>
 
@@ -348,6 +358,7 @@ const PensionSettings = (() => {
     });
     _bindNum('ps-realty-div-growth', v => ({ realty: { divGrowthRate: v / 100 } }));
     _bindNum('ps-realty-fx',         v => ({ realty: { fxRate: Math.max(1, v) } }));
+    _bindNullableNum('ps-realty-shares-gap', v => ({ selfReliance: { oSharesAtGap: v } }));
 
     // ── 고정값 (퇴직/국민연금) ──
     _bindText('ps-retire-ym',    v => ({ retire: { ym: v } }));
@@ -441,6 +452,7 @@ const PensionSettings = (() => {
     _setVal('ps-realty-div',        p.realty.monthlyDivPerShare);
     _setVal('ps-realty-div-growth', _pct(p.realty.divGrowthRate));
     _setVal('ps-realty-fx',         p.realty.fxRate);
+    _setVal('ps-realty-shares-gap', p.selfReliance?.oSharesAtGap);
     _updateRealtyAnnual();
 
     _setVal('ps-os-cost-ratio', (p.overseasSale.costBasisRatio * 100).toFixed(0));
@@ -496,6 +508,19 @@ const PensionSettings = (() => {
   }
 
   /** 빈 입력 = null(비활성) 허용 금액 입력창 바인딩 (PS-TWOSTAGE-001) */
+  /** 빈 값 허용 숫자 입력 바인딩 — 빈 칸이면 null(엔진 값 사용), 음수·NaN은 무시. SELFREL-001 */
+  function _bindNullableNum(id, toPatch) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('change', () => {
+      const raw = String(el.value || '').trim();
+      if (raw === '') { _commit(toPatch(null)); return; }
+      const v = parseFloat(raw);
+      if (isNaN(v) || v < 0) return;
+      _commit(toPatch(v));
+    });
+  }
+
   function _bindNullableWon(id, toPatch) {
     const el = document.getElementById(id);
     if (!el) return;
