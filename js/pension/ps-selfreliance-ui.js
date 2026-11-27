@@ -67,7 +67,40 @@ const PensionSelfRelianceUI = (() => {
       </div>`;
   }
 
-  function _buildKv(sel, csel, base) {
+  /** 현재 인출 목표 설정 요약 줄 (SELFREL-011) — 설정이 결과에 어떻게 반영됐는지 한눈에 확인 */
+  function _buildSettings(base) {
+    const st = base.settings;
+    if (!st) return '';
+    const target = st.hasGap
+      ? `공백기 ${_man(st.phase1Target)}(${st.startAge}~${st.phase1LastAge}세) → 본 목표 ${_man(st.monthlyTarget)}(${st.phase2Age}세~)`
+      : `공백기 미설정 · 단일 목표 ${_man(st.monthlyTarget)}(${st.startAge}세~)`;
+    let oText;
+    if (st.oMode === 'engineCash') {
+      oText = `엔진 현금 사용(만 ${st.oCashAge}세~)` + (st.oSharesSource === 'manual' ? ' · 보유 주수는 엔진 값(보정 입력은 엔진 현금 사용 시 미적용)' : '');
+    } else if (st.oMode === 'estimate') {
+      const n = st.oShares != null ? Math.round(st.oShares).toLocaleString() + '주' : '';
+      oText = `엔진은 재투자 · 카드에서 현금 사용 추정(${n}${st.oSharesSource === 'manual' ? ', 보정 입력' : ', 엔진 값'})`;
+    } else {
+      oText = '재투자(현금 사용 미반영)';
+    }
+    return `<div class="ps-sr-settings">
+      <div><b>인출 목표</b> ${target} <span class="ps-sr-dim">(현재가 · ${st.startYM.slice(0, 4)}년 물가 반영 시 ${_man(st.startTargetNominal)})</span></div>
+      <div><b>퇴직</b> ${st.retireYM || '—'} · <b>인출 시작</b> ${st.startAge}세(${st.startYM}) · <b>O 배당</b> ${oText}</div>
+    </div>`;
+  }
+
+  /** 지속 가능성(연금계좌 합계 소진) 경고 줄 (SELFREL-011) */
+  function _buildSustainWarn(sel, base) {
+    const sus = base.sustain;
+    if (!sus || sus.signal === 'green') return '';
+    const when = `${sus.ym} (${sus.age}세)`;
+    if (!sel.beforeStart && sel.signalCapped) {
+      return `<div class="ps-sr-warn">⚠️ 연금계좌(연금저축·IRP1·IRP2 합계)가 ${when}에 소진되어 신호를 ${_sig(sel.signalRate).icon}→${_sig(sel.signal).icon}로 낮췄습니다 <span class="ps-sr-dim">(기준: ${sus.greenMinAge}세 이상 제한 없음, ${sus.yellowMinAge}~${sus.greenMinAge - 1}세 최대 🟡, ${sus.yellowMinAge}세 미만 🔴)</span></div>`;
+    }
+    return `<div class="ps-sr-warn ps-sr-warn-info">ℹ️ 연금계좌 합계가 ${when}에 소진됩니다 <span class="ps-sr-dim">(기준 ${sus.greenMinAge}세 미만 → 신호 상한 ${_sig(sus.signal).icon})</span></div>`;
+  }
+
+  function _buildKv(sel, csel, base, cons) {
     const cfg = PS_SELF_RELIANCE;
     if (sel.beforeStart) return '';
     const cs = csel && !csel.beforeStart ? _sig(csel.signal) : null;
@@ -86,6 +119,7 @@ const PensionSelfRelianceUI = (() => {
         <div class="ps-sr-kv-row"><span>목표선 ${_man(cfg.targetMonthly)} 기준 자립률</span><b>${_pct(sel.rateTarget)}</b></div>
         <div class="ps-sr-kv-row"><span>보수 시나리오 <span class="ps-sr-dim">(수익률 ${(cfg.conservative.rateDeltaPP * 100).toFixed(0)}%p · 물가 ${(cfg.conservative.inflationRate * 100).toFixed(1)}%)</span></span>
           <b>${cs ? cs.icon + ' ' + _pct(csel.rateFloor) : '—'}</b></div>
+        ${cons && cons.sustain && cons.sustain.age != null ? `<div class="ps-sr-kv-row ps-sr-kv-sub"><span>└ 보수 시나리오 연금계좌 소진</span><span>${cons.sustain.ym} (${cons.sustain.age}세)</span></div>` : ''}
       </div>`;
   }
 
@@ -115,6 +149,7 @@ const PensionSelfRelianceUI = (() => {
       notes.push('공백기(1단계) 목표 월 인출액이 설정되지 않아 인출 시작 시점의 단일 목표 기준으로 계산했습니다.');
     }
     if (!cfg.includeNationalPension) notes.push('국민연금은 분자에서 제외되었습니다.');
+    notes.push(`신호등은 자립률 신호와 지속 가능성 신호 중 나쁜 쪽입니다. 지속 가능성은 연금계좌 합계 소진 나이 기준(${cfg.sustain.greenMinAge}세 이상 제한 없음, ${cfg.sustain.yellowMinAge}~${cfg.sustain.greenMinAge - 1}세 최대 🟡, ${cfg.sustain.yellowMinAge}세 미만 🔴)이며, 자립률은 설정한 인출 목표 대비 값이라 목표를 높이면 함께 올라갑니다.`);
     if (out.error) notes.push('⚠️ ' + out.error);
 
     // 공백기 연령 칩 (클릭하면 해당 나이로 이동)
@@ -137,6 +172,7 @@ const PensionSelfRelianceUI = (() => {
 
     const endYM = base.depletion.endYM;
     const depRows = [
+      ['<b>연금계좌 합계</b>', base.depletion.pensionTotal, cons && cons.depletion.pensionTotal],
       ['연금저축', base.depletion.pensionSaving, cons && cons.depletion.pensionSaving],
       ['IRP 1',    base.depletion.irp1,          cons && cons.depletion.irp1],
       ['IRP 2',    base.depletion.irp2,          cons && cons.depletion.irp2]
@@ -155,10 +191,13 @@ const PensionSelfRelianceUI = (() => {
     </div>`;
 
     return `
+    ${_buildSettings(base)}
+
     <div class="ps-sr-main">
       ${_buildHero(sel, base)}
-      ${_buildKv(sel, csel, base)}
+      ${_buildKv(sel, csel, base, cons)}
     </div>
+    ${_buildSustainWarn(sel, base)}
 
     ${chipsHtml}
 

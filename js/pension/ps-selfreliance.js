@@ -189,6 +189,7 @@ const PensionSelfReliance = (() => {
     const irp2   = acc.IRP2 || [];
 
     return {
+      pensionTotal:        firstZero(i => (taxed[i] || 0) + (taxFre[i] || 0) + (irp1[i] || 0) + (irp2[i] || 0)), // 연금계좌 합계 (SELFREL-011)
       pensionSaving:       firstZero(i => (taxed[i] || 0) + (taxFre[i] || 0)), // 연금저축 합계(과세분+비과세원금)
       pensionSavingTaxed:  firstZero(i => taxed[i] || 0),                      // 참고: 과세분만
       irp1: firstZero(i => irp1[i] || 0),
@@ -197,21 +198,82 @@ const PensionSelfReliance = (() => {
     };
   }
 
+  // ─── 지속 가능성 신호 (SELFREL-011) ─────────────────────────────────────────
+
+  const _SEVERITY = { green: 0, yellow: 1, red: 2 };
+  function _worse(a, b) { return _SEVERITY[a] >= _SEVERITY[b] ? a : b; }
+
+  /** 연금계좌 합계 소진 나이 → 지속 가능성 신호 (소진 없음 = 100세까지 유지 = green) */
+  function _sustainInfo(depletion) {
+    const cfg = PS_SELF_RELIANCE.sustain;
+    const hit = depletion.pensionTotal;     // {ym, age} | null
+    let signal = 'green';
+    if (hit) {
+      if (hit.age >= cfg.greenMinAge)       signal = 'green';
+      else if (hit.age >= cfg.yellowMinAge) signal = 'yellow';
+      else                                  signal = 'red';
+    }
+    return { signal, ym: hit ? hit.ym : null, age: hit ? hit.age : null, greenMinAge: cfg.greenMinAge, yellowMinAge: cfg.yellowMinAge };
+  }
+
+  /** 스냅샷 신호에 지속 가능성 상한 적용. signalRate는 원래 자립률 신호, signal은 최종 신호 */
+  function _applySustain(snap, sustain) {
+    if (!snap || snap.beforeStart) return snap;
+    snap.signalRate = snap.signal;
+    snap.signal = snap.signalRate ? _worse(snap.signalRate, sustain.signal) : snap.signalRate;
+    snap.signalCapped = snap.signal !== snap.signalRate;
+    return snap;
+  }
+
+  // ─── 인출 목표 설정 요약 (SELFREL-011) ─────────────────────────────────────
+
+  /** 카드에 표시할 현재 인출 목표 설정 (현재가·물가 반영 금액, O 처리 방식) */
+  function describeSettings(params, gap, oShares) {
+    const w = params.withdrawal || {};
+    const startYM = gap.wdStartYM;
+    const mult = _inflationMult(params, startYM);
+    const monthly = w.monthlyTarget != null ? w.monthlyTarget : 0;
+    const cashAge = params.realty?.cashUseStartAge;
+    let oMode;
+    if (cashAge != null && isFinite(cashAge)) oMode = 'engineCash';
+    else oMode = (PS_SELF_RELIANCE.oDividendCashInGap && oShares.shares != null) ? 'estimate' : 'reinvest';
+    return {
+      hasGap: gap.hasGap,
+      startAge: gap.firstAge,
+      startYM,
+      phase1Target: gap.hasGap ? w.phase1Target : null,
+      phase1LastAge: gap.lastAge,
+      phase2Age: gap.phase2Age,
+      monthlyTarget: monthly,
+      startMult: mult,
+      startTargetNominal: (gap.hasGap ? w.phase1Target : monthly) * mult,   // 인출 시작 시점 명목 목표
+      retireYM: params.retire?.ym || null,
+      oMode,
+      oCashAge: oMode === 'engineCash' ? cashAge : null,
+      oSharesSource: oShares.source,
+      oShares: oShares.shares
+    };
+  }
+
   // ─── 한 시나리오 평가 ──────────────────────────────────────────────────────
 
   function _evaluate(result, params, selectedAge) {
     const gap = gapInfo(params);
     const oShares = _oSharesAtGap(result, params);
-    const rows = gap.ages.map(age => _snapshot(result, params, age, gap, oShares));
+    const depletion = _depletion(result, params, gap);
+    const sustain = _sustainInfo(depletion);
+    const rows = gap.ages.map(age => _applySustain(_snapshot(result, params, age, gap, oShares), sustain));
     const selAge = selectedAge != null ? _clampAge(selectedAge) : gap.firstAge;
-    const selected = _snapshot(result, params, selAge, gap, oShares);
+    const selected = _applySustain(_snapshot(result, params, selAge, gap, oShares), sustain);
     return {
       gap,
       oShares,
       rows,
       representative: rows[0] || null,   // 인출 시작월 스냅샷
       selected,                          // 사용자가 고른 나이의 스냅샷 (기본: 인출 시작 나이)
-      depletion: _depletion(result, params, gap)
+      depletion,
+      sustain,                           // 지속 가능성 신호 (연금계좌 합계 소진 나이 기준)
+      settings: describeSettings(params, gap, oShares)
     };
   }
 
